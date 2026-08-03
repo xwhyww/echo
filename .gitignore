@@ -1,0 +1,42 @@
+node_modules
+
+# Output — unanchored, because the client that produces them lives one level
+# down in echo-client/ rather than at the repo root.
+.output
+.vercel
+.netlify
+.wrangler
+.svelte-kit
+build
+dist
+
+# Tauri — the Rust build directory, several gigabytes of it.
+src-tauri/target
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.*
+!.env.example
+!.env.test
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# Editors — .vscode is shared on purpose; the JetBrains folder is per-machine.
+.idea
+
+# Local Claude Code settings (the shared ones live in .claude/settings.json)
+.claude/settings.local.json
+
+# Emoji assets — 32 MB copied out of node_modules/emoji-datasource-apple by
+# echo-client's postinstall (scripts/copy-emoji-assets.mjs). Reproducible, so
+# the lockfile is the source of truth rather than these 3794 files.
+echo-client/static/emojis/apple/
+
+# Scratch
+package.json.tmp

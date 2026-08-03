@@ -1,0 +1,1 @@
+ALTER TABLE "user_cache" ADD COLUMN "privacy_online_status" varchar(16) DEFAULT 'all' NOT NULL;

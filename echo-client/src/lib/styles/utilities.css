@@ -1,0 +1,52 @@
+/* ============================================
+   Echo — Utility Classes (kept minimal)
+   Only for patterns repeated across many components
+   ============================================ */
+
+/* --- Flex shortcuts --- */
+.flex        { display: flex; }
+.flex-col    { display: flex; flex-direction: column; }
+.flex-center { display: flex; align-items: center; justify-content: center; }
+.flex-between { display: flex; align-items: center; justify-content: space-between; }
+.gap-1  { gap: var(--sp-1); }
+.gap-2  { gap: var(--sp-2); }
+.gap-3  { gap: var(--sp-3); }
+.gap-4  { gap: var(--sp-4); }
+
+/* --- Text colour ---
+   The single source of truth for text colour. Components must not write
+   `color:` in their scoped CSS — compose these in the markup instead. State
+   changes (:hover, .active, …) are the exception: a class can't express them,
+   so those stay in the component. */
+.text-default { color: var(--c-text); }
+.text-muted { color: var(--c-text-muted); }
+.text-faint { color: var(--c-text-faint); }
+/* There is no `.text-accent-solid` twin: it set `color: var(--c-accent)`, which
+   is a gradient in the dark theme and therefore no colour at all. Text takes
+   `--c-accent-text`; borders and native controls take `--c-accent-solid`. */
+.text-accent { color: var(--c-accent-text); }
+.text-error { color: var(--c-error); }
+.text-warning { color: var(--c-warning); }
+.text-success { color: var(--c-success); }
+.text-inverse { color: var(--c-text-inverse); }
+.text-on-accent-muted { color: var(--c-on-accent-muted); }
+.text-sm   { font-size: var(--fs-sm); }
+.text-xs   { font-size: var(--fs-xs); }
+.truncate  {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* --- Visually hidden (screen readers only) --- */
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}

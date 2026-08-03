@@ -1,0 +1,93 @@
+/* ============================================
+   Chat surface layout — one definition for every chat route
+   ============================================
+
+   Personal chat (/chats/perschat/[id]) is the reference implementation, and
+   group chat now follows it. The model: the header and the composer float
+   *above* a full-height scroller rather than sitting in normal flow beside
+   it, so the background image runs edge to edge behind the glass chrome.
+
+   Two consequences that are easy to get wrong when editing this:
+
+   - The scroller itself carries no padding. The message list instead
+     reserves header-height of clearance at each end, because that space
+     exists to clear the floating chrome, not to inset the content.
+   - There is no `gap` between rows. ChatBubble's own `.bubble-row` padding
+     supplies both the horizontal inset and the vertical rhythm; adding a gap
+     here double-spaces the column.
+
+   Panels whose chrome *is* in normal flow — the voice-channel side panel —
+   have nothing to clear, so they override `--chat-list-clearance`. */
+
+@mixin chat-messages-wrapper {
+	flex: 1;
+	position: relative;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+}
+
+@mixin chat-messages-scroller {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	overflow-y: auto;
+
+	/* Empty and loading states render a bare <p> — centre those instead. */
+	&:has(> p) {
+		align-items: center;
+		justify-content: center;
+	}
+}
+
+/* Only the live message list supports drag-to-select; read-only lists (search
+   results) include the scroller above without this. */
+@mixin chat-messages-drag-select {
+	&.drag-selecting {
+		user-select: none;
+	}
+}
+
+@mixin chat-messages-list {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	margin-top: auto;
+	padding-top: var(--chat-list-clearance, var(--header-h-padding-m));
+	padding-bottom: var(--chat-list-clearance, var(--header-h-padding-m));
+}
+
+/* The floating chrome. Both anchor to the nearest positioned ancestor, so
+   whoever includes these must be `position: relative` — otherwise they
+   escape to the viewport and overhang the emoji sidebar. */
+@mixin chat-header-overlay {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: var(--header-h);
+	display: flex;
+	align-items: center;
+	padding: 0 var(--sp-2);
+	flex-shrink: 0;
+	z-index: 1000;
+	white-space: nowrap;
+	/* Scrim so bubbles scrolling under the glass stay legible. */
+	background: linear-gradient(
+		to bottom,
+		rgba(0, 0, 0, 0.9),
+		rgba(0, 0, 0, 0.6) 60%,
+		rgba(0, 0, 0, 0.2)
+	);
+	transition: background var(--duration-fast) var(--ease-default);
+}
+
+@mixin chat-composer-overlay {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	flex-shrink: 0;
+	margin: 0 8px 8px;
+	z-index: 10;
+}

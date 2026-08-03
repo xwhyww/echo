@@ -1,0 +1,21 @@
+{
+  "name": "@echo/shared",
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./auth": "./src/auth/jwt.ts",
+    "./nats": "./src/nats.ts",
+    "./types/ws-events": "./src/types/ws-events.ts",
+    "./types/events": "./src/types/events.ts"
+  },
+  "dependencies": {
+    "hono": "^4.12.9",
+    "jsonwebtoken": "^9.0.3",
+    "nats": "^2.29.3"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
+    "typescript": "^6.0.2"
+  }
+}

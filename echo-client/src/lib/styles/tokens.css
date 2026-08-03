@@ -1,0 +1,274 @@
+/* ============================================
+   Echo Design System — Tokens
+   Dark by default, blue→green accent, calm & minimal
+   ============================================ */
+
+:root {
+	/* --- Color: Base (dark palette) --- */
+	--c-bg-0: #1a1a18;          /* deepest background — app shell */
+	--c-bg-1: #212120;          /* sidebar, panels */
+	--c-bg-2: #262624;          /* channel list, cards */
+	--c-bg-3: #302f2d;          /* input fields, hover states */
+	--c-bg-4: #3b3a37;          /* active/selected states */
+
+	/* --- Color: Surface overlays --- */
+	--c-surface: #2d2c2a;       /* modals, dropdowns, tooltips */
+	--c-surface-hover: #353432;
+	--c-surface-active: #3e3d3a;
+
+	/* --- Glass (frosted elements floating over content) ---
+	   White-based translucency, not grey: over the dark bg it reads as a
+	   light frost, and the blur supplies the "glass" depth. */
+	--glass-bg: rgba(21, 21, 21, 0.07);
+	--glass-bg-more: rgba(21, 21, 21, 0.5);
+	--glass-bg-less: rgba(68, 68, 68, 0.3);
+	--glass-bg-modal: rgba(2, 2, 2, 0.5);
+	--glass-bg-hover: rgba(255, 255, 255, 0.13);
+	--glass-border: rgba(255, 255, 255, 0.14);
+	--glass-border-more: rgba(33, 32, 32, 0.3);
+	--glass-highlight: rgba(255, 255, 255, 0.18); /* inner top edge light */
+	--glass-blur: 14px;
+
+	/* --- Color: Borders --- */
+	--c-border: #333230;        /* subtle dividers */
+	--c-border-strong: #45443f; /* emphasized borders */
+
+	/* --- Color: Text --- */
+	--c-text: #f0eeeb;          /* primary text */
+	--c-text-muted: #b5b2aa;    /* secondary / labels */
+	--c-text-faint: #7d7972;    /* placeholders, timestamps */
+	--c-text-inverse: #ffffff;  /* text on accent bg */
+
+	/* --- Color: Accent (blue → green) ---
+	 * The brand mark is a gradient, not a single colour: deep navy sliding
+	 * into forest green. Everything that has to be a *flat* accent (buttons,
+	 * badges, focus rings) uses the teal that sits halfway between the two
+	 * gradient stops in hue (~185°), so a solid accent and a gradient accent
+	 * read as the same family instead of two competing colours.
+	 *
+	 * `--c-accent` is that gradient and belongs in `background` only. A gradient
+	 * is not a colour: as `color`, `border-color`, `outline-color` or
+	 * `accent-color` it is invalid, the declaration is dropped, and — inside a
+	 * shorthand like `border: 2px solid …` — the whole border disappears. Use
+	 * `--c-accent-solid` for those, and `--c-accent-text` for text. */
+	--c-accent: linear-gradient(150deg, rgba(8, 59, 119, 1), rgba(9, 115, 77, 1)); /* brand gradient */
+	--c-accent-solid: #25939d; /* primary teal — the gradient's midpoint */
+	--c-accent-sidebar: linear-gradient(150deg, rgba(8, 59, 119, 0.7), rgba(9, 115, 77, 0.7)); /* brand gradient */
+	--c-accent-hover: #1f7c84;  /* darker on hover */
+	--c-accent-hover-opacity: rgba(31, 92, 134, 0.6);  /* translucent blue — focus borders */
+	--c-accent-active: #1a686f;  /* even darker on press */
+	--c-accent-subtle: rgba(37, 147, 157, 0.12); /* tinted backgrounds */
+	--c-accent-subtle-2: rgba(31, 124, 132, 0.3); /* tinted backgrounds */
+	--c-accent-subtle-3: rgba(31, 92, 134, 0.6); /* tinted backgrounds — blue end */
+	--c-accent-text: #45bac4;   /* teal for text (better readability) */
+	--c-sage: rgba(122, 158, 126, 0.54);        /* legacy — used to be the own-message bubble bg */
+	--c-sage-text: #181f18;
+	--c-sage-bubble: rgba(62, 79, 64, 0.54);
+
+	/* --- Message bubbles ---
+	 * Both bubbles are gradients rather than flat fills so they read as
+	 * surfaces with a little depth. The two stops of each gradient stay
+	 * close together on purpose: a one-line bubble and a ten-line bubble
+	 * have to look like the same colour, which a wide ramp breaks.
+
+	 * Incoming stays neutral warm-grey; own runs the brand gradient — navy
+	 * into green — at low lightness, so it carries the brand colour without
+	 * becoming a saturated wall behind the text. */
+	--c-bubble-in-top: rgba(59, 59, 59, 0.7);
+	--c-bubble-in-bottom: rgba(28, 27, 27, 0.7);
+	--grad-bubble-in: linear-gradient(150deg, var(--c-bubble-in-top), var(--c-bubble-in-bottom));
+
+	--c-own-bubble-top: rgba(7, 38, 72, 0.7);
+	--c-own-bubble-bottom: rgba(4, 72, 48, 0.7);
+	--grad-bubble-own: linear-gradient(150deg, var(--c-own-bubble-top), var(--c-own-bubble-bottom));
+	/* Flat stand-in for places that need a single colour (borders, frames). */
+	--c-own-bubble: #0c3c40;
+	--c-own-bubble-hover: rgba(37, 147, 157, 0.22);
+
+	/* Inset top edge that catches the "light", and the recessed wash used
+	 * by strips nested inside a bubble (reply quotes, own reaction chips). */
+	--c-bubble-highlight: rgba(255, 255, 255, 0.06);
+	--c-bubble-inset: rgba(0, 0, 0, 0.2);
+	--c-bubble-inset-hover: rgba(0, 0, 0, 0.29);
+
+	/* Ink and fills laid over an own (accent) bubble, where the muted and faint
+	 * text colours would disappear. White at two alphas — one for a readout,
+	 * one for the unplayed half of a waveform or track, which had drifted to
+	 * 0.4 in one component and 0.35 in the other. Not overridden in light: own
+	 * bubbles stay deep blue in both themes. */
+	--c-on-accent-muted: rgba(255, 255, 255, 0.75);
+	--c-on-accent-faint: rgba(255, 255, 255, 0.4);
+
+	/* Dim behind a modal. One value for every dialog — these had drifted to
+	 * 0.4 / 0.5 / 0.55 / 0.6 depending on which component opened them. */
+	--c-modal-scrim: rgba(0, 0, 0, 0.55);
+
+	/* Chips and controls laid over video. The picture is the only background
+	 * they have, so these stay dark in both themes — there is no light-theme
+	 * override below. */
+	--c-video-overlay: rgba(0, 0, 0, 0.55);
+	--c-video-overlay-hover: rgba(0, 0, 0, 0.75);
+
+	/* --- Color: Semantic --- */
+	--c-success: #3fba6f;
+	--c-warning: #e0a832;
+	--c-error: #e04848;
+	--c-info: #4a9ee0;
+
+	/* --- Color: Online status --- */
+	--c-online: #3fba6f;
+	--c-idle: #e0a832;
+	--c-dnd: #e04848;
+	--c-offline: #635f58;
+
+	/* --- Typography --- */
+	--font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+	--font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+
+	--fs-xxs: 0.6rem;   /* 11px — timestamps, badges */
+	--fs-xs: 0.6875rem;   /* 11px — timestamps, badges */
+	--fs-sm: 0.8125rem;   /* 13px — labels, secondary */
+	--fs-base: 0.9375rem; /* 15px — body text, messages */
+	--fs-md: 1.0625rem;   /* 17px — channel names */
+	--fs-lg: 1.25rem;     /* 20px — section headers */
+	--fs-xl: 1.5rem;      /* 24px — space name */
+	--fs-2xl: 2rem;       /* 32px — hero / welcome */
+
+	--fw-normal: 400;
+	--fw-medium: 500;
+	--fw-semibold: 600;
+	--fw-bold: 700;
+
+	--lh-tight: 1.2;
+	--lh-base: 1.5;
+	--lh-relaxed: 1.7;
+
+	/* --- Spacing --- */
+	--sp-1: 0.25rem;  /* 4px */
+	--sp-2: 0.5rem;   /* 8px */
+	--sp-3: 0.75rem;  /* 12px */
+	--sp-4: 1rem;     /* 16px */
+	--sp-5: 1.25rem;  /* 20px */
+	--sp-6: 1.5rem;   /* 24px */
+	--sp-8: 2rem;     /* 32px */
+	--sp-10: 2.5rem;  /* 40px */
+	--sp-12: 3rem;    /* 48px */
+	--sp-16: 4rem;    /* 64px */
+
+	/* --- Border radius --- */
+	--radius-sm: 4px;
+	--radius-md: 8px;
+	--radius-lg: 12px;
+	--radius-xl: 16px;
+	--radius-full: 9999px;
+
+	/* --- Shadows (subtle, dark-theme friendly) --- */
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+	--shadow-md: 0 2px 8px rgba(0, 0, 0, 0.35);
+	--shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.4);
+	--shadow-xl: 0 8px 32px rgba(0, 0, 0, 0.5);
+
+	/* --- Transitions --- */
+	--ease-default: cubic-bezier(0.25, 0.1, 0.25, 1);
+	--ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+	--duration-fast: 100ms;
+	--duration-base: 180ms;
+	--duration-slow: 300ms;
+
+	/* --- Layout --- */
+	--sidebar-w: 72px;       /* space icon rail */
+	--channel-list-w: 240px; /* channel sidebar */
+	--member-list-w: 240px;  /* member panel */
+	--header-h: 48px;        /* top bar */
+	--header-h-padding-s: 48px;        /* top bar */
+	--header-h-padding-m: 58px;        /* top bar */
+	--header-h-padding-l: 68px;        /* top bar */
+	--header-h-padding-xl: 78px;        /* top bar */
+	--header-h-padding-xxl: 98px;        /* top bar */
+	--bottom-nav-h: 56px;    /* mobile bottom tab bar */
+	--input-h: 38px;         /* message input */
+	--count-badge-size: 24px; /* round "how many" chip beside a section title */
+
+	/* --- Z-index layers ---
+	 * Modals sit at 2000 rather than 400 because the chat context menu and its
+	 * overlay occupy 1000–1002, and several backdrops had already hardcoded
+	 * 2000 to get above them. The incoming-call overlay stays above everything
+	 * at 3000. */
+	--z-base: 0;
+	--z-dropdown: 100;
+	--z-sticky: 200;
+	--z-overlay: 300;
+	/* The chat message menu: scrim, then the menu, then its hover flyouts. */
+	--z-message-overlay: 1000;
+	--z-message-menu: 1001;
+	--z-message-popup: 1002;
+	--z-modal: 2000;
+	--z-toast: 2500;
+	--z-urgent: 3000;
+}
+
+/* --- Light theme override --- */
+[data-theme='light'] {
+	--c-bg-0: #f5f5f7;
+	--c-bg-1: #eeeef0;
+	--c-bg-2: #e4e4e8;
+	--c-bg-3: #d8d8de;
+	--c-bg-4: #ccccd4;
+
+	--c-surface: #ffffff;
+	--c-surface-hover: #f0f0f3;
+	--c-surface-active: #e6e6ea;
+
+	--glass-bg: rgba(255, 255, 255, 0.45);
+	--glass-bg-hover: rgba(255, 255, 255, 0.65);
+	--glass-border: rgba(26, 26, 31, 0.1);
+	--glass-highlight: rgba(255, 255, 255, 0.8);
+
+	--c-border: #d4d4da;
+	--c-border-strong: #b8b8c0;
+
+	--c-text: #1a1a1f;
+	--c-text-muted: #5e5e6e;
+	--c-text-faint: #9a9aa6;
+	--c-text-inverse: #ffffff;
+
+	/* Same hue family as dark, pulled down in lightness so white-on-accent
+	 * and accent-on-white both stay legible against a pale shell. The
+	 * translucent tokens need their own alphas here: a 0.6 wash that reads
+	 * as a tint over #1a1a18 reads as a solid block over #eeeef0.
+	 *
+	 * Here the two accents are the same flat colour — the light shell doesn't
+	 * carry the gradient — but they stay two names so no component has to know
+	 * which theme it is in. */
+	--c-accent: #18818b;
+	--c-accent-solid: #18818b;
+	--c-accent-sidebar: linear-gradient(150deg, rgba(8, 59, 119, 0.9), rgba(9, 115, 77, 0.9));
+	--c-accent-hover: #146d75;
+	--c-accent-hover-opacity: rgba(31, 92, 134, 0.55);
+	--c-accent-active: #10585f;
+	--c-accent-subtle: rgba(24, 129, 139, 0.1);
+	--c-accent-subtle-2: rgba(24, 129, 139, 0.22);
+	--c-accent-subtle-3: rgba(31, 92, 134, 0.18);
+	--c-accent-text: #14707a;
+
+	/* Bubbles invert: incoming lifts off the panel as near-white, own keeps
+	 * the brand blue but deep enough that light text on it stays readable. */
+	--c-bubble-in-top: #ffffff;
+	--c-bubble-in-bottom: #eeedf1;
+
+	--c-own-bubble-top: #1a5ae1;
+	--c-own-bubble-bottom: #030931;
+	--c-own-bubble: #0e3189;
+	--c-own-bubble-hover: rgba(24, 129, 139, 0.18);
+
+	--c-bubble-highlight: rgba(255, 255, 255, 0.75);
+	--c-bubble-inset: rgba(26, 26, 31, 0.07);
+	--c-bubble-inset-hover: rgba(26, 26, 31, 0.12);
+
+	--c-modal-scrim: rgba(26, 26, 31, 0.4);
+
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+	--shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
+	--shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.1);
+	--shadow-xl: 0 8px 32px rgba(0, 0, 0, 0.12);
+}

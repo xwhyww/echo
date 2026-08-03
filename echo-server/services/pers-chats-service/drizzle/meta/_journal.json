@@ -1,0 +1,132 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1774894495128,
+      "tag": "0000_gigantic_red_skull",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1774953728987,
+      "tag": "0001_green_phalanx",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1775197821343,
+      "tag": "0002_common_orphan",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1775335062626,
+      "tag": "0003_classy_chimera",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1775757138540,
+      "tag": "0004_graceful_shaman",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1775980800000,
+      "tag": "0005_reply_to",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1775915726692,
+      "tag": "0006_message_links",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1775932976807,
+      "tag": "0007_majestic_garia",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1776000000000,
+      "tag": "0008_file_blobs",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1776000060000,
+      "tag": "0009_raw_blob_map",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1776100100000,
+      "tag": "0010_add_privacy_messaging",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1776200000000,
+      "tag": "0011_drop_dead_blob_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1776300000000,
+      "tag": "0012_create_friendship_cache",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1776107642101,
+      "tag": "0013_safe_madrox",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1776400000000,
+      "tag": "0014_encrypt_messages",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1776500000000,
+      "tag": "0015_message_read_at",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1776600000000,
+      "tag": "0016_message_search",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1776700000000,
+      "tag": "0017_message_reactions",
+      "breakpoints": true
+    }
+  ]
+}

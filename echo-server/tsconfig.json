@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.base.json",
+  "references": [
+    { "path": "packages/shared" },
+    { "path": "services/gateway" },
+    { "path": "services/auth-service" },
+    { "path": "services/user-service" },
+    { "path": "services/pers-chats-service" },
+    { "path": "services/ws-gateway" }
+  ],
+  "include": []
+}

@@ -1,0 +1,111 @@
+import { api } from './client.js';
+import type { VoiceChannel, VoiceCategory, JoinVoiceResponse, VoiceRole } from './voice.js';
+
+class VoiceService {
+	listChannels(groupId: string) {
+		return api<{ channels: VoiceChannel[]; categories: VoiceCategory[] }>(
+			`/voice/channels?groupId=${groupId}`,
+		);
+	}
+
+	createChannel(input: { groupId: string; name: string; categoryId?: string | null }) {
+		return api<{ channel: VoiceChannel }>('/voice/channels', { method: 'POST', body: input });
+	}
+
+	updateChannel(id: string, patch: { name?: string; categoryId?: string | null }) {
+		return api<{ success: boolean; patch: typeof patch }>(`/voice/channels/${id}`, {
+			method: 'PATCH',
+			body: patch,
+		});
+	}
+
+	deleteChannel(id: string) {
+		return api<{ success: boolean }>(`/voice/channels/${id}`, { method: 'DELETE' });
+	}
+
+	createCategory(input: { groupId: string; name: string }) {
+		return api<{ category: VoiceCategory }>('/voice/categories', { method: 'POST', body: input });
+	}
+
+	updateCategory(id: string, patch: { name?: string; position?: number }) {
+		return api<{ success: boolean; patch: typeof patch }>(`/voice/categories/${id}`, {
+			method: 'PATCH',
+			body: patch,
+		});
+	}
+
+	deleteCategory(id: string) {
+		return api<{ success: boolean }>(`/voice/categories/${id}`, { method: 'DELETE' });
+	}
+
+	join(channelId: string) {
+		return api<JoinVoiceResponse>(`/voice/channels/${channelId}/join`, { method: 'POST' });
+	}
+
+	// Fire-and-forget presence signal so other group members see realtime
+	// join/leave/mic-state updates. The sidebar list endpoint stays the
+	// authoritative source for late-joiners or after a reconnect.
+	presence(channelId: string, body: { kind: 'joined' | 'left' | 'updated'; micMuted: boolean; deafened: boolean; sharing: boolean }) {
+		return api<{ success: boolean }>(`/voice/channels/${channelId}/presence`, {
+			method: 'POST',
+			body,
+		});
+	}
+
+	// ─── Roles ──────────────────────────────────────────────────
+	// `canManage` rides along with the list so the page can render in
+	// read-only mode for members who only need to see who's in which role.
+
+	listRoles(groupId: string) {
+		return api<{ roles: VoiceRole[]; canManage: boolean }>(
+			`/voice/roles?groupId=${groupId}`,
+		);
+	}
+
+	createRole(input: { groupId: string; name: string; color?: string | null; permissions?: number }) {
+		return api<{ role: VoiceRole }>(`/voice/roles`, { method: 'POST', body: input });
+	}
+
+	updateRole(id: string, patch: { name?: string; color?: string | null; permissions?: number; position?: number }) {
+		return api<{ success: boolean; patch: typeof patch }>(`/voice/roles/${id}`, {
+			method: 'PATCH',
+			body: patch,
+		});
+	}
+
+	deleteRole(id: string) {
+		return api<{ success: boolean }>(`/voice/roles/${id}`, { method: 'DELETE' });
+	}
+
+	addRoleMember(roleId: string, userId: string) {
+		return api<{ success: boolean }>(`/voice/roles/${roleId}/members`, {
+			method: 'POST',
+			body: { userId },
+		});
+	}
+
+	removeRoleMember(roleId: string, userId: string) {
+		return api<{ success: boolean }>(`/voice/roles/${roleId}/members/${userId}`, {
+			method: 'DELETE',
+		});
+	}
+
+	// ─── Channel access (allowlist) ─────────────────────────────
+	// Read returns the current role-id set + a manage flag. Replace sends the
+	// full desired set (PUT semantics); pass [] to make the channel open again.
+
+	getChannelAccess(channelId: string) {
+		return api<{ roleIds: string[]; canManage: boolean }>(
+			`/voice/channels/${channelId}/access`,
+		);
+	}
+
+	replaceChannelAccess(channelId: string, roleIds: string[]) {
+		return api<{ success: boolean; roleIds: string[] }>(
+			`/voice/channels/${channelId}/access`,
+			{ method: 'PUT', body: { roleIds } },
+		);
+	}
+}
+
+export const voiceService = new VoiceService();

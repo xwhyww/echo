@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1777342177409,
+      "tag": "0000_ordinary_luminals",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1777343629601,
+      "tag": "0001_supreme_warstar",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1777344588188,
+      "tag": "0002_old_the_call",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1777537525137,
+      "tag": "0003_sudden_human_torch",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1778580905258,
+      "tag": "0004_good_maggott",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1778820944836,
+      "tag": "0005_glossy_wallow",
+      "breakpoints": true
+    }
+  ]
+}

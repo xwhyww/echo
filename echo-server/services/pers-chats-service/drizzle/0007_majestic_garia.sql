@@ -1,0 +1,2 @@
+ALTER TABLE "personal_messages" ADD COLUMN IF NOT EXISTS "forwarded_from" jsonb;--> statement-breakpoint
+ALTER TABLE "user_cache" ADD COLUMN IF NOT EXISTS "privacy_photo" varchar(16) DEFAULT 'all' NOT NULL;

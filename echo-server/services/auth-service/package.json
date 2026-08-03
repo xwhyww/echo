@@ -1,0 +1,28 @@
+{
+  "name": "@echo/auth-service",
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate"
+  },
+  "dependencies": {
+    "@echo/shared": "workspace:*",
+    "@hono/node-server": "^1.19.11",
+    "bcryptjs": "^3.0.3",
+    "jsonwebtoken": "^9.0.2",
+    "dotenv": "^17.3.1",
+    "drizzle-orm": "^0.45.2",
+    "hono": "^4.12.9",
+    "postgres": "^3.4.8",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.7",
+    "drizzle-kit": "^0.31.10",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.2"
+  }
+}

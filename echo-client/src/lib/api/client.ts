@@ -1,0 +1,174 @@
+export const isTauri =
+	typeof window !== 'undefined' &&
+	('__TAURI_INTERNALS__' in window || '__TAURI__' in window);
+
+// The backend runs on whatever machine served this page, so in a browser we
+// reuse that host instead of hardcoding localhost. Open the dev server from a
+// phone (http://192.168.1.5:5173) and the API and WS follow to the same IP —
+// otherwise the phone would look for the backend on its own localhost. Tauri's
+// webview origin is tauri.localhost, so it stays on localhost.
+export const API_HOST =
+	!isTauri && typeof location !== 'undefined' && location.hostname
+		? location.hostname
+		: 'localhost';
+
+export const API_URL = `http://${API_HOST}:3000`;
+
+const CLIENT_HEADER = isTauri ? 'tauri' : 'browser';
+
+// For browser <img>/<video> pointing at cross-origin /blobs/files/, we need
+// `crossorigin="use-credentials"` so the echo_auth cookie is actually sent.
+// In Tauri there's no cookie (the token rides in ?t=), so omit it.
+export const blobCrossOrigin: 'use-credentials' | undefined = isTauri
+	? undefined
+	: 'use-credentials';
+
+type TokenResolver = () => string | null;
+
+let getToken: TokenResolver = () => null;
+
+export function setTokenResolver(resolver: TokenResolver) {
+	getToken = resolver;
+}
+
+let waitForAuth: () => Promise<void> = () => Promise.resolve();
+
+export function setAuthReadyWaiter(fn: () => Promise<void>) {
+	waitForAuth = fn;
+}
+
+// Tauri appends ?t= (no cookie jar shared with the webview). In the browser we
+// rely exclusively on the HttpOnly echo_auth cookie — putting the JWT in a URL
+// leaks it to server logs, Referer headers, browser history, and the DevTools
+// network panel, so we never do that in the browser context.
+export function resolveUrl(path: string | null | undefined): string | null {
+	if (!path) return null;
+	if (path.startsWith('http') || path.startsWith('blob:')) return path;
+	if (isTauri && path.startsWith('/blobs/files/')) {
+		const token = getToken();
+		if (token) {
+			const sep = path.includes('?') ? '&' : '?';
+			return `${API_URL}${path}${sep}t=${encodeURIComponent(token)}`;
+		}
+	}
+	return `${API_URL}${path}`;
+}
+
+interface RequestOptions {
+	method?: string;
+	body?: unknown;
+	signal?: AbortSignal;
+	skipAuthWait?: boolean;
+}
+
+export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
+	const { method = 'GET', body, signal, skipAuthWait } = options;
+
+	if (!skipAuthWait) await waitForAuth();
+
+	const headers: Record<string, string> = {
+		'Content-Type': 'application/json',
+		'X-Client': CLIENT_HEADER,
+	};
+
+	const token = getToken();
+	if (token) {
+		headers['Authorization'] = `Bearer ${token}`;
+	}
+
+	const res = await fetch(`${API_URL}${path}`, {
+		method,
+		headers,
+		body: body ? JSON.stringify(body) : undefined,
+		signal,
+		credentials: 'include',
+	});
+
+	const data = await res.json();
+
+	if (!res.ok) {
+		throw new ApiError(data.error ?? 'Request failed', res.status, data);
+	}
+
+	return data as T;
+}
+
+export async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
+	const headers: Record<string, string> = {
+		'X-Client': CLIENT_HEADER,
+	};
+
+	const token = getToken();
+	if (token) {
+		headers['Authorization'] = `Bearer ${token}`;
+	}
+
+	const res = await fetch(`${API_URL}${path}`, {
+		method: 'POST',
+		headers,
+		body: formData,
+		credentials: 'include',
+	});
+
+	const data = await res.json();
+
+	if (!res.ok) {
+		throw new ApiError(data.error ?? 'Upload failed', res.status, data);
+	}
+
+	return data as T;
+}
+
+export function apiUploadWithProgress<T>(
+	path: string,
+	formData: FormData,
+	onProgress?: (percent: number) => void,
+): { promise: Promise<T>; abort: () => void } {
+	const xhr = new XMLHttpRequest();
+	const promise = new Promise<T>((resolve, reject) => {
+		xhr.open('POST', `${API_URL}${path}`);
+		xhr.withCredentials = true;
+		xhr.setRequestHeader('X-Client', CLIENT_HEADER);
+
+		const token = getToken();
+		if (token) {
+			xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+		}
+
+		xhr.upload.onprogress = (e) => {
+			if (e.lengthComputable && onProgress) {
+				onProgress(Math.round((e.loaded / e.total) * 100));
+			}
+		};
+
+		xhr.onload = () => {
+			try {
+				const data = JSON.parse(xhr.responseText);
+				if (xhr.status >= 200 && xhr.status < 300) {
+					resolve(data as T);
+				} else {
+					reject(new ApiError(data.error ?? 'Upload failed', xhr.status, data));
+				}
+			} catch {
+				reject(new ApiError('Upload failed', xhr.status, null));
+			}
+		};
+
+		xhr.onerror = () => reject(new ApiError('Network error', 0, null));
+		xhr.onabort = () => reject(new ApiError('Upload cancelled', 0, null));
+
+		xhr.send(formData);
+	});
+
+	return { promise, abort: () => xhr.abort() };
+}
+
+export class ApiError extends Error {
+	constructor(
+		message: string,
+		public status: number,
+		public data: unknown
+	) {
+		super(message);
+	}
+}

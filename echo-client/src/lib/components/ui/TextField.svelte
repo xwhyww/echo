@@ -1,0 +1,238 @@
+<script lang="ts">
+	import { Send, Smile } from 'lucide-svelte';
+	import { onMount, untrack } from 'svelte';
+	import ButtonIcon from '$lib/components/ui/ButtonIcon.svelte';
+	import ComposerAttachments from '$lib/components/chat/ComposerAttachments.svelte';
+	import VoiceRecorder from '$lib/components/audio/VoiceRecorder.svelte';
+	import { useEmojiEditor } from '$lib/hooks/ui/useEmojiEditor.svelte.js';
+	import { recordingToFile, type VoiceRecording } from '$lib/utils/voiceRecording';
+	import type { VoiceMeta } from '$lib/api/personalChats';
+	import { i18n } from '$lib/i18n/i18n.svelte.js';
+
+	const t = $derived(i18n.t);
+
+	interface Props {
+		value?: string;
+		/** A draft to restore — applied whenever it changes under us. */
+		initialValue?: string;
+		placeholder: string;
+		maxlength?: number;
+		showCounterAt?: number;
+		emojiOpen?: boolean;
+		onsubmit?: (value: string, files: File[]) => void;
+		oninput?: (value: string) => void;
+		onemojitoggle?: () => void;
+		onvoice?: (file: File, meta: VoiceMeta) => void;
+		onvoiceerror?: (message: string) => void;
+	}
+
+	let {
+		value = $bindable(''),
+		initialValue,
+		placeholder,
+		maxlength = 500,
+		showCounterAt = 400,
+		emojiOpen = false,
+		onsubmit,
+		oninput,
+		onemojitoggle,
+		onvoice,
+		onvoiceerror,
+	}: Props = $props();
+
+	let editorEl = $state<HTMLDivElement>();
+	let recordingActive = $state(false);
+
+	const editor = useEmojiEditor(() => editorEl);
+
+	const overLimit = $derived(value.length > maxlength);
+	const canSend = $derived(value.trim().length > 0 && !overLimit);
+
+	$effect(() => {
+		const incoming = initialValue ?? '';
+		untrack(() => {
+			if (incoming === value) return;
+			value = incoming;
+			editor.render(incoming);
+		});
+	});
+
+	onMount(() => {
+		editor.render(value);
+		editor.focus();
+	});
+
+	function onEditorInput() {
+		value = editor.read();
+		oninput?.(value);
+	}
+
+	function handleKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter' && !e.shiftKey) {
+			e.preventDefault();
+			send();
+		}
+	}
+
+	// Paste is intercepted so pasted text goes through the emoji segmenter and
+	// arrives as plain text — not as whatever markup the clipboard carried.
+	function handlePaste(e: ClipboardEvent) {
+		e.preventDefault();
+		const text = e.clipboardData?.getData('text/plain') ?? '';
+		if (!text) return;
+		editor.insert(text);
+		onEditorInput();
+	}
+
+	export function focus() {
+		editor.focus();
+	}
+
+	export function insertAtCursor(text: string) {
+		editor.focus();
+		editor.insert(text);
+		onEditorInput();
+	}
+
+	function send() {
+		if (!canSend) return;
+		submit(value.trim(), []);
+	}
+
+	function submit(text: string, files: File[]) {
+		onsubmit?.(text, files);
+		value = '';
+		editor.render('');
+	}
+
+	function handleVoiceSend(rec: VoiceRecording) {
+		onvoice?.(recordingToFile(rec), { duration: rec.durationSec, peaks: rec.peaks });
+	}
+</script>
+
+<div class="textfield-wrapper">
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div
+		class="textfield"
+		class:recording={recordingActive}
+		onclick={() => { if (!recordingActive) editor.focus(); }}
+	>
+		{#if !recordingActive}
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div
+				bind:this={editorEl}
+				class="textfield-input body-sm text-default"
+				class:empty={value.length === 0}
+				contenteditable="true"
+				role="textbox"
+				tabindex="0"
+				aria-multiline="true"
+				aria-label={placeholder}
+				data-placeholder={placeholder}
+				oninput={onEditorInput}
+				onkeydown={handleKeydown}
+				onpaste={handlePaste}
+			></div>
+			<ComposerAttachments bind:text={value} onsend={(f, text) => submit(text.trim(), f)} />
+			{#if onemojitoggle}
+				<ButtonIcon
+					size="sm"
+					title={t.common.emoji}
+					onclick={(e: MouseEvent) => { e.stopPropagation(); onemojitoggle?.(); }}
+				>
+					<Smile size={16} class={emojiOpen ? 'emoji-active' : ''} />
+				</ButtonIcon>
+			{/if}
+		{/if}
+
+		<!-- The recorder replaces the send button while there's nothing to send,
+		     and takes over the whole field once recording starts. -->
+		{#if onvoice && (recordingActive || !canSend)}
+			<VoiceRecorder
+				onsend={handleVoiceSend}
+				onerror={(m) => onvoiceerror?.(m)}
+				onactive={(a) => (recordingActive = a)}
+			/>
+		{:else if !recordingActive}
+			<ButtonIcon size="sm" title={t.common.send} onclick={send} disabled={!canSend}>
+				<Send size={16} />
+			</ButtonIcon>
+		{/if}
+		
+		{#if value.length >= showCounterAt}
+		<span
+			class="char-count body-xs {overLimit
+				? 'text-error'
+				: value.length > maxlength * 0.9
+					? 'text-warning'
+					: 'text-faint'}"
+		>
+			{value.length}/{maxlength}
+		</span>
+		{/if}
+	</div>
+</div>
+
+<style lang="scss">
+	@use '$lib/styles/glass.mixin' as *;
+
+	.textfield-wrapper {
+		display: flex;
+		flex-direction: column;
+		gap: var(--sp-1);
+		position: relative;
+	}
+
+	.textfield {
+		display: flex;
+		flex-direction: row;
+		align-items: flex-start;
+		gap: var(--sp-2);
+		padding: var(--sp-1) var(--sp-2);
+		cursor: text;
+		@include glass-more;
+		border-radius: 12px;
+		transition: border-color var(--duration-fast) var(--ease-default);
+		border: none;
+	}
+
+	.textfield-input {
+		width: 100%;
+		background: none;
+		border: none;
+		outline: none;
+		min-height: 1lh;
+		max-height: 8lh;
+		overflow-y: auto;
+		padding: 0;
+		white-space: pre-wrap;
+		overflow-wrap: anywhere;
+		padding-top: 5px;
+		padding-bottom: 5px;
+	}
+
+	.textfield-input.empty::before {
+		content: attr(data-placeholder);
+		color: var(--c-text-faint);
+		pointer-events: none;
+	}
+
+	/* The emoji images the editor builds; they only exist at runtime, so the
+	   rule has to be global. */
+	.textfield-input :global(.input-emoji) {
+		width: 1.1em;
+		height: 1.1em;
+		display: inline-block;
+		vertical-align: -0.2em;
+		user-select: none;
+		-webkit-user-drag: none;
+	}
+
+	.char-count {
+		padding-left: var(--sp-1);
+		position: absolute;
+		right: 10px;
+		bottom: 10px;
+	}
+</style>

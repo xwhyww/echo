@@ -1,0 +1,36 @@
+/* ============================================
+   The message bubble's surface
+
+   Lives here because a message is rendered by two components — `ChatBubble`
+   once it has landed, `PendingMessage` while it is still uploading — and the
+   one must not change shape or colour at the moment it becomes the other.
+   ============================================ */
+
+@mixin bubble-content($background: var(--grad-bubble-in)) {
+	background: $background;
+	/* Highlight is inset rather than a real border so the bubble's box metrics
+	   stay identical to the flat version. */
+	box-shadow:
+		inset 0 1px 0 var(--c-bubble-highlight),
+		0 1px 2px rgba(0, 0, 0, 0.22);
+	padding: var(--sp-1) var(--sp-2);
+	border-radius: var(--radius-md);
+	word-break: break-word;
+}
+
+/* Squared off at the top where it meets the collage above it. */
+@mixin bubble-content-under-media {
+	flex: 1;
+	box-sizing: border-box;
+	min-width: 0;
+	border-top-left-radius: 0;
+	border-top-right-radius: 0;
+}
+
+/* The row that carries the avatar and the bubble body. */
+@mixin bubble-row {
+	display: flex;
+	gap: var(--sp-2);
+	max-width: 70%;
+	align-items: flex-end;
+}

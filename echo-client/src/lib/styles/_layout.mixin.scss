@@ -1,0 +1,57 @@
+/* ============================================
+   Layout primitives for scoped component CSS
+
+   The markup-side twins of these live in utilities.css (`.flex-center`). Reach
+   for the class when the element has no other styling of its own; reach for the
+   mixin when it already carries a scoped rule, so its box stays described in
+   one place instead of split across the class list and the stylesheet.
+   ============================================ */
+
+@mixin flex-center {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+/* The chip that labels a video tile — presenter's name, "screen" badge, the
+   live dot. Padding and gap stay with the caller; what is shared is the dark
+   plate it all sits on, because over video nothing else gives contrast. */
+@mixin video-overlay-chip {
+	display: flex;
+	align-items: center;
+	background: var(--c-video-overlay);
+	border-radius: var(--radius-sm);
+	color: var(--c-text-inverse);
+}
+
+/* A full-width row in one of the media gallery's list tabs: leading icon, two
+   lines of text, divider under it. Files and links are different enough to be
+   two components and identical in everything but their contents, so the row
+   itself is defined once here. */
+@mixin media-row {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-3);
+	padding: var(--sp-3) var(--sp-2);
+	border-bottom: 1px solid var(--c-border);
+	text-decoration: none;
+	transition: background var(--duration-fast) var(--ease-default);
+
+	&:hover {
+		background: var(--c-bg-3);
+	}
+
+	/* The icons that bracket the text; the middle column is what may shrink. */
+	:global(svg) {
+		color: var(--c-text-muted);
+		flex-shrink: 0;
+	}
+}
+
+/* The middle column of a `media-row`: two stacked lines that ellipsise. */
+@mixin media-row-text {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	flex: 1;
+}

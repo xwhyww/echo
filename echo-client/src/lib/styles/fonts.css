@@ -1,0 +1,97 @@
+/* ============================================
+   Echo — Typography Classes
+
+   The single source of truth for text styling. Components must not set
+   font-size / font-weight / line-height in their scoped CSS — compose these
+   classes in the markup instead:
+
+     <h2 class="heading-md fw-semibold">
+     <span class="body-xs overline">
+
+   Base classes carry a size + its default weight + line-height. Modifiers
+   below override weight / line-height / case, and are declared last so they
+   win on equal specificity.
+   ============================================ */
+
+/* --- Base: headings --- */
+
+.heading-2xl {
+	font-size: var(--fs-2xl);
+	font-weight: var(--fw-bold);
+	line-height: var(--lh-tight);
+}
+
+.heading-xl {
+	font-size: var(--fs-xl);
+	font-weight: var(--fw-semibold);
+	line-height: var(--lh-tight);
+}
+
+.heading-lg {
+	font-size: var(--fs-lg);
+	font-weight: var(--fw-semibold);
+	line-height: var(--lh-tight);
+}
+
+.heading-md {
+	font-size: var(--fs-md);
+	font-weight: var(--fw-medium);
+	line-height: var(--lh-base);
+}
+
+/* --- Base: body --- */
+
+.body-base {
+	font-size: var(--fs-base);
+	font-weight: var(--fw-normal);
+	line-height: var(--lh-base);
+}
+
+.body-sm {
+	font-size: var(--fs-sm);
+	font-weight: var(--fw-normal);
+	line-height: var(--lh-base);
+}
+
+.body-xs {
+	font-size: var(--fs-xs);
+	font-weight: var(--fw-normal);
+	line-height: var(--lh-base);
+}
+
+.body-xxs {
+	font-size: var(--fs-xxs);
+	font-weight: var(--fw-normal);
+	line-height: var(--lh-base);
+}
+
+/* --- Modifiers: weight --- */
+
+.fw-normal { font-weight: var(--fw-normal); }
+.fw-medium { font-weight: var(--fw-medium); }
+.fw-semibold { font-weight: var(--fw-semibold); }
+.fw-bold { font-weight: var(--fw-bold); }
+
+/* --- Modifiers: line-height --- */
+
+/* lh-none: for single-line chrome (badges, counters) where any leading
+   would push the glyph off-centre inside a fixed-size box. */
+.lh-none { line-height: 1; }
+.lh-tight { line-height: var(--lh-tight); }
+.lh-base { line-height: var(--lh-base); }
+.lh-relaxed { line-height: var(--lh-relaxed); }
+
+/* --- Modifiers: style --- */
+
+/* overline: the small uppercase label used for section headers, tags and
+   pills. Unifies the 0.04–0.06em tracking those sites had drifted into. */
+.overline {
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.italic { font-style: italic; }
+
+.mono {
+	font-family: var(--font-mono), serif;
+}

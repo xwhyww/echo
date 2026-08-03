@@ -1,0 +1,40 @@
+@use 'glass.mixin' as *;
+
+/* ============================================
+   Modal surfaces — one treatment for every dialog
+   ============================================
+
+   These had drifted apart component by component: backgrounds split across
+   --c-surface, --c-bg-1 and --c-bg-2; borders on some panels and not others;
+   three different shadows including one hardcoded rgba; and scrims ranging
+   from 0.4 to 0.6 opacity. A dialog should look the same whichever component
+   opened it, so both layers now come from here.
+
+   The panel is frosted rather than opaque, so it picks up the scrim and the
+   page behind it instead of reading as a flat card dropped on top. */
+
+@mixin modal-surface {
+	@include glass-modal;
+	border-radius: var(--radius-lg);
+	/* `glass` pairs its inset highlight with --shadow-sm, which is right for
+	   something resting on the page. A modal floats well clear of it, so keep
+	   the highlight and lift the drop shadow. */
+	box-shadow:
+		inset 0 1px 0 var(--glass-highlight),
+		var(--shadow-xl);
+}
+
+/* The dimmed layer a modal floats on, and the flex context that centres it.
+   Padding keeps the panel off the viewport edge on small screens. */
+@mixin modal-backdrop {
+	position: fixed;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--c-modal-scrim);
+	backdrop-filter: blur(2px);
+	-webkit-backdrop-filter: blur(2px);
+	z-index: var(--z-modal);
+
+}

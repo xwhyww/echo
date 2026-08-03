@@ -1,0 +1,185 @@
+@mixin button-base {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--sp-2);
+	padding: var(--sp-2) var(--sp-5);
+	border: none;
+	border-radius: var(--radius-md);
+	font-family: var(--font-sans), serif;
+	font-size: var(--fs-sm);
+	font-weight: var(--fw-medium);
+	line-height: var(--lh-tight);
+	cursor: pointer;
+	transition:
+		background var(--duration-fast) var(--ease-default),
+		color var(--duration-fast) var(--ease-default);
+	user-select: none;
+
+	&:disabled {
+		cursor: not-allowed;
+		opacity: 0.5;
+	}
+}
+
+@mixin button-primary {
+	@include button-base;
+	background: var(--c-accent);
+	color: var(--c-text-inverse);
+
+	&:hover:not(:disabled) {
+		background: var(--c-accent-hover);
+	}
+
+	&:active:not(:disabled) {
+		background: var(--c-accent-active);
+	}
+}
+
+@mixin button-secondary {
+	@include button-base;
+	background: var(--c-bg-3);
+	color: var(--c-text);
+
+	&:hover:not(:disabled) {
+		background: var(--c-bg-4);
+	}
+
+	&:active:not(:disabled) {
+		background: var(--c-border-strong);
+	}
+}
+
+/* Destructive confirmations only — the button that actually deletes something.
+   Anything that merely opens such a confirmation stays `ghost`/`secondary`, so
+   red in a dialog always means "this is the irreversible one". */
+@mixin button-danger {
+	@include button-base;
+	background: var(--c-error);
+	color: var(--c-text-inverse);
+
+	&:hover:not(:disabled) {
+		background: color-mix(in srgb, var(--c-error) 88%, black);
+	}
+
+	&:active:not(:disabled) {
+		background: color-mix(in srgb, var(--c-error) 78%, black);
+	}
+}
+
+/* The round play/pause control on playable attachments — voice messages and
+   uploaded audio share it so a bubble never shows two different players. */
+@mixin play-button {
+	flex-shrink: 0;
+	width: 30px;
+	height: 30px;
+	border-radius: 50%;
+	border: none;
+	background: var(--c-accent);
+	color: var(--c-text-inverse);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	transition: background var(--duration-fast) var(--ease-default);
+
+	&:hover {
+		background: var(--c-accent-hover);
+	}
+}
+
+/* A control sitting on top of video — back, fullscreen, mute. Same dark plate
+   as `video-overlay-chip`, plus a hover. Size and padding stay with the caller:
+   these range from a 28px square to a labelled pill. */
+@mixin video-overlay-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--c-video-overlay);
+	color: var(--c-text-inverse);
+	border: none;
+	border-radius: var(--radius-sm);
+	cursor: pointer;
+	transition: background var(--duration-fast) var(--ease-default);
+
+	&:hover {
+		background: var(--c-video-overlay-hover);
+	}
+}
+
+/* Applied on top of `play-button` inside an own (accent) bubble. */
+@mixin play-button-own {
+	color: var(--c-accent-text);
+}
+
+/* The "add another" affordance that sits inline among chips or pills — a
+   compact dashed outline rather than a filled control, so it reads as an empty
+   slot waiting to be filled instead of a peer of the items beside it. */
+@mixin button-dashed {
+	@include button-base;
+	gap: var(--sp-1);
+	padding: 2px var(--sp-2);
+	border-radius: var(--radius-full);
+	font-size: var(--fs-xs);
+	background: transparent;
+	border: 1px dashed var(--c-border);
+	color: var(--c-text-faint);
+	transition:
+		border-color var(--duration-fast) var(--ease-default),
+		color var(--duration-fast) var(--ease-default);
+
+	&:hover:not(:disabled) {
+		border-color: var(--c-accent-solid);
+		color: var(--c-accent-text);
+	}
+}
+
+@mixin button-ghost {
+	@include button-base;
+	background: transparent;
+	color: var(--c-text-muted);
+
+	&:hover:not(:disabled) {
+		color: var(--c-text);
+		background: var(--c-bg-3);
+	}
+
+	&:active:not(:disabled) {
+		background: var(--c-bg-4);
+	}
+}
+
+/* A row in a context menu: icon, label, full width, tinted on hover. Lives here
+   because the menu's own items and the ones that open a flyout (reactors,
+   seen-by) are separate components and must stay the same row. */
+@mixin context-item {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-2);
+	width: 100%;
+	padding: var(--sp-2) var(--sp-3);
+	background: none;
+	border: none;
+	cursor: pointer;
+	border-radius: var(--radius-sm);
+	transition: background var(--duration-fast) var(--ease-default);
+
+	&:hover {
+		background: var(--c-bg-3);
+	}
+}
+
+/* Text-only action that sits inline with copy — "refresh", "grant access",
+   "reset". Reads as a link but behaves as a button. */
+@mixin button-link {
+	@include button-base;
+	padding: var(--sp-1) var(--sp-2);
+	border-radius: var(--radius-sm);
+	background: none;
+	color: var(--c-accent-text);
+	font-size: var(--fs-xs);
+
+	&:hover:not(:disabled) {
+		background: var(--c-bg-3);
+	}
+}

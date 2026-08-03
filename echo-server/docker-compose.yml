@@ -1,0 +1,337 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: echo
+      POSTGRES_PASSWORD: echo_dev
+    # Host port 15432: a natively installed PostgreSQL occupies 5432 on this
+    # machine. Inside the compose network it's still postgres:5432.
+    ports:
+      - "15432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/init-dbs.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U echo"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  nats:
+    image: nats:2-alpine
+    command: ["--jetstream", "--store_dir", "/data"]
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    volumes:
+      - natsdata:/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  # S3-compatible blob storage for dev. Console on http://localhost:9001
+  # (login echo / echo_dev_secret). Swapping to Cloudflare R2 / Backblaze B2
+  # in prod is just different S3_* env vars on the blobs service.
+  minio:
+    image: quay.io/minio/minio:latest
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: echo
+      MINIO_ROOT_PASSWORD: echo_dev_secret
+    volumes:
+      - miniodata:/data
+
+  livekit:
+    image: livekit/livekit-server:latest
+    # --node-ip is the IP advertised in ICE candidates. It must be reachable
+    # from the browser; in Docker, the container's own IP isn't, so we
+    # point at 127.0.0.1 (the published host port maps back into here).
+    command: --dev --bind 0.0.0.0 --node-ip 127.0.0.1
+    ports:
+      - "7880:7880"   # WebSocket signalling
+      - "7881:7881"   # TCP fallback for media
+      - "7882:7882/udp" # UDP media
+    # Webhooks let LiveKit report participants who vanished without saying
+    # goodbye (closed tab, dead network) — voice-service turns those into the
+    # same presence events the client would have sent itself, so nobody is left
+    # showing as "in call" forever.
+    #
+    # The default URL assumes the app services run natively (`pnpm dev`) while
+    # infra runs here; host.docker.internal is how this container reaches them.
+    # With the `full` profile everything is in compose, so override it:
+    #   LIVEKIT_WEBHOOK_URL=http://voice:3008/voice/webhooks/livekit docker compose --profile full up
+    environment:
+      LIVEKIT_KEYS: "devkey: devsecret_change_in_production_min_32_chars_long"
+      LIVEKIT_CONFIG: |
+        keys:
+          devkey: devsecret_change_in_production_min_32_chars_long
+        webhook:
+          api_key: devkey
+          urls:
+            - ${LIVEKIT_WEBHOOK_URL:-http://host.docker.internal:3008/voice/webhooks/livekit}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  gateway:
+    profiles: ["full"]
+    build:
+      context: .
+      args:
+        SERVICE: gateway
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      JWT_SECRET: dev-secret-change-in-production
+      AUTH_SERVICE_URL: http://auth:3001
+      USER_SERVICE_URL: http://user:3002
+      PERS_CHATS_SERVICE_URL: http://pers-chats:3003
+      FRIENDS_SERVICE_URL: http://friends:3005
+      BLOB_SERVICE_URL: http://blobs:3006
+      GROUPS_SERVICE_URL: http://groups:3007
+      VOICE_SERVICE_URL: http://voice:3008
+      WS_GATEWAY_URL: ws://ws-gateway:3004
+    depends_on:
+      auth:
+        condition: service_started
+      user:
+        condition: service_started
+      pers-chats:
+        condition: service_started
+      friends:
+        condition: service_started
+      ws-gateway:
+        condition: service_started
+      blobs:
+        condition: service_started
+      groups:
+        condition: service_started
+      voice:
+        condition: service_started
+
+  auth:
+    profiles: ["full"]
+    build:
+      context: .
+      args:
+        SERVICE: auth-service
+    ports:
+      - "3001:3001"
+    volumes:
+      - auth-uploads:/app/uploads
+    environment:
+      PORT: 3001
+      DATABASE_URL: postgresql://echo:echo_dev@postgres:5432/echo_auth
+      JWT_SECRET: dev-secret-change-in-production
+      NATS_URL: nats://nats:4222
+      BLOB_SERVICE_URL: http://blobs:3006
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_started
+      blobs:
+        condition: service_started
+
+  user:
+    profiles: ["full"]
+    build:
+      context: .
+      args:
+        SERVICE: user-service
+    ports:
+      - "3002:3002"
+    environment:
+      PORT: 3002
+      DATABASE_URL: postgresql://echo:echo_dev@postgres:5432/echo_users
+      JWT_SECRET: dev-secret-change-in-production
+      NATS_URL: nats://nats:4222
+      FRIENDS_SERVICE_URL: http://friends:3005
+      INTERNAL_API_KEY: dev-internal-key
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_started
+
+  pers-chats:
+    profiles: ["full"]
+    build:
+      context: .
+      args:
+        SERVICE: pers-chats-service
+    ports:
+      - "3003:3003"
+    volumes:
+      - pers-chats-uploads:/app/services/pers-chats-service/uploads
+    environment:
+      PORT: 3003
+      DATABASE_URL: postgresql://echo:echo_dev@postgres:5432/echo_chats
+      JWT_SECRET: dev-secret-change-in-production
+      REDIS_URL: redis://redis:6379
+      NATS_URL: nats://nats:4222
+      USER_SERVICE_URL: http://user:3002
+      FRIENDS_SERVICE_URL: http://friends:3005
+      BLOB_SERVICE_URL: http://blobs:3006
+      INTERNAL_API_KEY: dev-internal-key
+      MESSAGE_ENCRYPTION_KEY: ${MESSAGE_ENCRYPTION_KEY:-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      nats:
+        condition: service_started
+      blobs:
+        condition: service_started
+
+  friends:
+    profiles: ["full"]
+    build:
+      context: .
+      args:
+        SERVICE: friends-service
+    ports:
+      - "3005:3005"
+    environment:
+      PORT: 3005
+      DATABASE_URL: postgresql://echo:echo_dev@postgres:5432/echo_friends
+      JWT_SECRET: dev-secret-change-in-production
+      NATS_URL: nats://nats:4222
+      INTERNAL_API_KEY: dev-internal-key
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_started
+
+  ws-gateway:
+    profiles: ["full"]
+    build:
+      context: .
+      args:
+        SERVICE: ws-gateway
+    ports:
+      - "3004:3004"
+    environment:
+      PORT: 3004
+      JWT_SECRET: dev-secret-change-in-production
+      REDIS_URL: redis://redis:6379
+      NATS_URL: nats://nats:4222
+      USER_SERVICE_URL: http://user:3002
+      FRIENDS_SERVICE_URL: http://friends:3005
+    depends_on:
+      redis:
+        condition: service_started
+      nats:
+        condition: service_started
+      user:
+        condition: service_started
+      friends:
+        condition: service_started
+
+  blobs:
+    profiles: ["full"]
+    build:
+      context: .
+      args:
+        SERVICE: blob-service
+    ports:
+      - "3006:3006"
+    volumes:
+      - blob-uploads:/app/uploads
+    environment:
+      PORT: 3006
+      DATABASE_URL: postgresql://echo:echo_dev@postgres:5432/echo_blobs
+      JWT_SECRET: dev-secret-change-in-production
+      NATS_URL: nats://nats:4222
+      PERS_CHATS_SERVICE_URL: http://pers-chats:3003
+      GROUPS_SERVICE_URL: http://groups:3007
+      INTERNAL_API_KEY: dev-internal-key
+      STORAGE_DRIVER: s3
+      S3_ENDPOINT: http://minio:9000
+      S3_BUCKET: echo-blobs
+      S3_ACCESS_KEY: echo
+      S3_SECRET_KEY: echo_dev_secret
+      S3_FORCE_PATH_STYLE: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_started
+      minio:
+        condition: service_started
+
+  groups:
+    profiles: ["full"]
+    build:
+      context: .
+      args:
+        SERVICE: groups-service
+    ports:
+      - "3007:3007"
+    environment:
+      PORT: 3007
+      DATABASE_URL: postgresql://echo:echo_dev@postgres:5432/echo_groups
+      GROUPS_DATABASE_URL: postgresql://echo:echo_dev@postgres:5432/echo_groups
+      JWT_SECRET: dev-secret-change-in-production
+      NATS_URL: nats://nats:4222
+      USER_SERVICE_URL: http://user:3002
+      FRIENDS_SERVICE_URL: http://friends:3005
+      BLOB_SERVICE_URL: http://blobs:3006
+      INTERNAL_API_KEY: dev-internal-key
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_started
+      user:
+        condition: service_started
+      friends:
+        condition: service_started
+      blobs:
+        condition: service_started
+
+  voice:
+    profiles: ["full"]
+    build:
+      context: .
+      args:
+        SERVICE: voice-service
+    ports:
+      - "3008:3008"
+    environment:
+      PORT: 3008
+      DATABASE_URL: postgresql://echo:echo_dev@postgres:5432/echo_voice
+      JWT_SECRET: dev-secret-change-in-production
+      REDIS_URL: redis://redis:6379
+      NATS_URL: nats://nats:4222
+      USER_SERVICE_URL: http://user:3002
+      GROUPS_SERVICE_URL: http://groups:3007
+      INTERNAL_API_KEY: dev-internal-key
+      LIVEKIT_URL: ws://livekit:7880
+      LIVEKIT_PUBLIC_URL: ws://localhost:7880
+      LIVEKIT_API_KEY: devkey
+      LIVEKIT_API_SECRET: devsecret_change_in_production_min_32_chars_long
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      nats:
+        condition: service_started
+      livekit:
+        condition: service_started
+
+volumes:
+  pgdata:
+  natsdata:
+  miniodata:
+  auth-uploads:
+  pers-chats-uploads:
+  blob-uploads:
