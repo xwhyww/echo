@@ -68,12 +68,12 @@ async function sendViaSmsc(phone: string, code: string): Promise<void> {
 // message itself, so there is no text to build. `ttl` matches the OTP lifetime
 // in auth.ts so an expired code stops being displayed.
 async function sendViaTelegram(phone: string, code: string): Promise<void> {
-	const { token, ttlSeconds } = config.sms.telegram;
+	const { token, ttlSeconds, baseUrl } = config.sms.telegram;
 	if (!token) {
 		throw driverError('telegram', 'TELEGRAM_GATEWAY_TOKEN is required for SMS_DRIVER=telegram');
 	}
 
-	const resp = await fetch('https://gatewayapi.telegram.org/sendVerificationMessage', {
+	const resp = await fetch(`${baseUrl}/sendVerificationMessage`, {
 		method: 'POST',
 		headers: {
 			Authorization: `Bearer ${token}`,

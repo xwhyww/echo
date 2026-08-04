@@ -30,6 +30,14 @@ export const config = {
 		},
 		telegram: {
 			token: process.env.TELEGRAM_GATEWAY_TOKEN || '',
+			// Overridable because the gateway's IPv4 address is unreachable from
+			// some networks (Russian hosting, notably) while its IPv6 answers
+			// fine. Pointing this at a host-side relay reaches it over v6 without
+			// giving containers an IPv6 stack — doing that at the Docker level
+			// breaks the embedded DNS and takes every service down with it.
+			// The host must still be the real one so TLS validates: relay via
+			// `extra_hosts` + a non-443 port, not a different hostname.
+			baseUrl: process.env.TELEGRAM_GATEWAY_BASE_URL || 'https://gatewayapi.telegram.org',
 			// Matches OTP_TTL_MS in routes/auth.ts.
 			ttlSeconds: 300,
 		},

@@ -43,18 +43,54 @@ in this repo — they configure the daemon, not the stack:
 **The mirror** — Docker Hub returns `429 Too Many Requests` for anonymous pulls
 from most Russian datacenter IP ranges. Substitute your provider's mirror.
 
-**IPv6** — Telegram Gateway's IPv4 address is unreachable from Russian hosting
-while its IPv6 answers in milliseconds. Without a v6 stack in the container,
-Node resolves the v4 address, waits out the connect timeout, and every
-verification code fails with a bare `fetch failed`. The compose file enables
-IPv6 on its own network too; both halves are needed, since `fixed-cidr-v6`
-only covers the default bridge.
-
-The addresses are ULA and get masqueraded (`ip6tables`), because a typical VPS
-gets a single /128 with no delegated prefix — there is nothing to hand out to
-containers directly.
-
 Restart the daemon after editing: `systemctl restart docker`.
+
+## Reaching Telegram Gateway
+
+Its IPv4 address is unreachable from Russian hosting; its IPv6 answers in
+milliseconds. Containers are IPv4-only, so `sendVerificationMessage` times out
+and every sign-in code fails with a bare `fetch failed`.
+
+**Do not fix this by enabling IPv6 on the compose network.** That was tried:
+Docker's embedded DNS then returns SERVFAIL for internal service names, and
+every service that talks to Postgres crash-loops. The stack goes down entirely.
+
+Instead the host — which has working IPv6 — relays the connection:
+
+```ini
+# /etc/systemd/system/telegram-gateway-relay.service
+[Unit]
+Description=IPv6 relay to gatewayapi.telegram.org for the Echo auth service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/bin/socat TCP4-LISTEN:8443,fork,reuseaddr TCP6:gatewayapi.telegram.org:443
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+apt-get install -y socat
+systemctl enable --now telegram-gateway-relay
+# ufw denies container-to-host traffic by default
+ufw allow from 172.16.0.0/12 to any port 8443 proto tcp
+```
+
+Then in `.env`:
+
+```
+TELEGRAM_GATEWAY_BASE_URL=https://gatewayapi.telegram.org:8443
+```
+
+`extra_hosts` in the compose file points that name at the host gateway. The
+hostname stays real on purpose — socat only moves bytes, so TLS is still
+end-to-end against Telegram's own certificate. Leave
+`TELEGRAM_GATEWAY_BASE_URL` unset on a network where Telegram's IPv4 works and
+none of this applies.
 
 ## First deploy
 
