@@ -61,7 +61,7 @@
 		@include chat-header-overlay;
 		justify-content: space-between;
 		cursor: pointer;
-		padding-top: 20px;
+		padding: var(--safe-top) var(--sp-2) 0;
 	}
 
 	.header-info {
