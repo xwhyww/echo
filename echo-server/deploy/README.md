@@ -26,6 +26,36 @@ Firewall (or Selectel/Timeweb security group) must allow:
 Nothing else should be open. Postgres, Redis, NATS and the nine services have no
 published ports — they are reachable only on the internal compose network.
 
+## Docker daemon settings
+
+Two things belong in `/etc/docker/daemon.json` on the server. Neither can live
+in this repo — they configure the daemon, not the stack:
+
+```json
+{
+  "registry-mirrors": ["https://dockerhub.timeweb.cloud"],
+  "ipv6": true,
+  "ip6tables": true,
+  "fixed-cidr-v6": "fd00:d0c:0::/64"
+}
+```
+
+**The mirror** — Docker Hub returns `429 Too Many Requests` for anonymous pulls
+from most Russian datacenter IP ranges. Substitute your provider's mirror.
+
+**IPv6** — Telegram Gateway's IPv4 address is unreachable from Russian hosting
+while its IPv6 answers in milliseconds. Without a v6 stack in the container,
+Node resolves the v4 address, waits out the connect timeout, and every
+verification code fails with a bare `fetch failed`. The compose file enables
+IPv6 on its own network too; both halves are needed, since `fixed-cidr-v6`
+only covers the default bridge.
+
+The addresses are ULA and get masqueraded (`ip6tables`), because a typical VPS
+gets a single /128 with no delegated prefix — there is nothing to hand out to
+containers directly.
+
+Restart the daemon after editing: `systemctl restart docker`.
+
 ## First deploy
 
 ```bash

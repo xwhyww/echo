@@ -325,3 +325,19 @@ volumes:
   redisdata:
   caddy-data:
   caddy-config:
+
+# The compose network needs IPv6 explicitly — the daemon's fixed-cidr-v6 only
+# covers the default bridge. It is needed because Telegram Gateway's IPv4
+# address is unreachable from this host's network while its IPv6 answers
+# instantly; without a v6 stack in the container, Node resolves the v4 address,
+# times out, and every verification code fails to send.
+#
+# ULA + NAT66: the host has a single /128 with no delegated prefix, so
+# containers get private addresses and Docker masquerades them (ip6tables in
+# /etc/docker/daemon.json).
+networks:
+  default:
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: fd00:ec0:0::/64
