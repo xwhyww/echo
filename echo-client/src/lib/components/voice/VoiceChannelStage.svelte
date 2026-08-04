@@ -103,10 +103,6 @@
 		transition: color var(--duration-fast) var(--ease-default);
 	}
 
-	.back-btn:hover {
-		color: var(--c-text);
-	}
-
 	/* Fills the space the grid would have taken, so connecting, failing and
 	   sitting alone all centre the same way. */
 	.vc-status {

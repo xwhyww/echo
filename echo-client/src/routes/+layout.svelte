@@ -111,9 +111,9 @@
 		align-items: center;
 		flex-direction: column;
 		
-		background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)),
-		url('/chat-bg/chat-bg-6.jpg');
-		background-size: cover;
+		background-image: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8)),
+		url('/chat-bg/chat-bg-1.jpg');
+		background-size: cover, 200%;
 		background-position: center, center;
 		background-repeat: no-repeat, repeat;
 		

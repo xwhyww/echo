@@ -72,7 +72,7 @@
 				{audioPlayer.speed}×
 			</button>
 
-			<AudioVolumeControl {dockTop} />
+<!--			<AudioVolumeControl {dockTop} />-->
 
 			<button type="button" class="icon-btn text-muted" onclick={() => audioPlayer.close()} aria-label={t.chat.closePlayer}>
 				<X size={18} />

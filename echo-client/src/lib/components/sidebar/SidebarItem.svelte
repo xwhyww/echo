@@ -63,7 +63,7 @@
 		}
 	}
 
-	const avatarSize = $derived(size === 's' ? 34 : 48);
+	const avatarSize = $derived(size === 's' ? 48 : 48);
 
 	function formatTimestamp(iso: string): string {
 		const d = new Date(iso);
@@ -121,7 +121,7 @@
 			{/if}
 		</div>
 	{:else}
-		<span class="item-name body-xs truncate">{name}</span>
+		<span class="item-name body-sm truncate">{name}</span>
 	{/if}
 
 	{#if badge}

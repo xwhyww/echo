@@ -59,9 +59,4 @@
 			background var(--duration-fast) var(--ease-default),
 			color var(--duration-fast) var(--ease-default);
 	}
-
-	.back-btn:hover {
-		background: var(--c-bg-3);
-		color: var(--c-text);
-	}
 </style>

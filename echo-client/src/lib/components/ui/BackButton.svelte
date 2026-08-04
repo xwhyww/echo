@@ -41,9 +41,4 @@
 		cursor: pointer;
 		@include glass;
 	}
-
-	.back-btn:hover {
-		background: var(--glass-bg-hover);
-		color: var(--c-text);
-	}
 </style>

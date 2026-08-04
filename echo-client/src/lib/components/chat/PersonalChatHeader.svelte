@@ -3,6 +3,7 @@
 	import Status from '$lib/components/user/Status.svelte';
 	import TypingIndicator from '$lib/components/chat/TypingIndicator.svelte';
 	import UserInfo from '$lib/components/user/UserInfo.svelte';
+	import { auth } from '$lib/stores/auth.svelte.js';
 	import { routes } from '$lib/routes.js';
 	import { i18n } from '$lib/i18n/i18n.svelte.js';
 	import type { PersonalChatUser } from '$lib/api/personalChats.js';
@@ -23,6 +24,10 @@
 	}
 
 	let { companion, isSelf, title, typingUsers = [], onopeninfo }: Props = $props();
+
+	// Saved messages has no companion, so the avatar is our own — without this
+	// the fallback initial ('?') is all UserInfo has to draw.
+	const avatarOf = $derived(isSelf ? auth.user : companion);
 
 	function onclick(e: MouseEvent) {
 		if ((e.target as HTMLElement | null)?.closest('.chat-header-back')) return;
@@ -57,9 +62,9 @@
 
 	<div class="chat-header-user">
 		<UserInfo
-			displayName={companion?.displayName}
-			username={companion?.username}
-			avatarUrl={companion?.avatarUrl}
+			displayName={avatarOf?.displayName}
+			username={avatarOf?.username}
+			avatarUrl={avatarOf?.avatarUrl}
 			showName={false}
 			size="mm"
 		/>

@@ -53,8 +53,8 @@
 	flex-direction: column;
 	width: 100%;
 	margin-top: auto;
-	padding-top: var(--chat-list-clearance, var(--header-h-padding-m));
-	padding-bottom: var(--chat-list-clearance, var(--footer-h-padding-xl));
+	padding-top: calc(var(--header-h-padding-xl) + 100px);
+	padding-bottom: var(--chat-list-clearance, var(--footer-h-padding-m));
 }
 
 /* The floating chrome. Both anchor to the nearest positioned ancestor, so
@@ -92,4 +92,5 @@
 	flex-shrink: 0;
 	margin: 0 8px 0;
 	z-index: 10;
+	padding-bottom: var(--safe-bottom);
 }

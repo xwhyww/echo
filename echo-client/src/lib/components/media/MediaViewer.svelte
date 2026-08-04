@@ -179,7 +179,7 @@
 
 	.close-btn {
 		position: absolute;
-		top: 10px;
+		top: calc(var(--safe-top) + 10px);
 		right: 0;
 		width: 30px;
 		height: 30px;
