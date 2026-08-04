@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+	Merged into the generated iOS Info.plist by Tauri (it picks up Info.plist and
+	Info.ios.plist sitting next to tauri.conf.json). iOS-only keys live here so
+	the macOS bundle doesn't inherit them.
+-->
+<plist version="1.0">
+<dict>
+	<!-- iOS kills the process rather than showing a permission prompt if the
+	     matching usage string is missing. The mic one is not optional: every
+	     voice channel and call goes through getUserMedia. -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Echo uses the microphone for voice channels and calls.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Echo uses the camera for video calls.</string>
+
+	<!-- Reaching echo-server on a LAN address trips iOS 14+ local network
+	     privacy, which is a separate prompt from the ones above. -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Echo connects to the Echo server running on your local network.</string>
+
+	<!-- DEV ONLY. App Transport Security blocks cleartext HTTP, and the client
+	     talks to http://host:3000 and ws://host:3004. NSAllowsLocalNetworking
+	     opens exactly that hole for LAN addresses and nothing else — it is the
+	     narrow form Apple tolerates, unlike NSAllowsArbitraryLoads. Delete this
+	     block once echo-server is behind TLS. -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+
+	<!-- Without this the audio session is torn down when the screen locks and
+	     an in-progress call goes silent. -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
+</dict>
+</plist>
