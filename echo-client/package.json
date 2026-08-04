@@ -11,7 +11,11 @@
 		"postinstall": "node scripts/copy-emoji-assets.mjs",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"tauri": "tauri dev"
+		"tauri": "tauri",
+		"desktop": "tauri dev",
+		"ios:init": "sh scripts/with-env.sh tauri ios init",
+		"ios:dev": "sh scripts/with-env.sh tauri ios dev",
+		"ios:build": "sh scripts/with-env.sh tauri ios build"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^7.0.0",
