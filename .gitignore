@@ -10,6 +10,12 @@ node_modules
 build
 dist
 
+# The built client, uploaded to the server and served by Caddy from there. The
+# directory itself stays tracked so the bind mount in docker-compose.prod.yml
+# has something to attach to on a fresh clone.
+echo-server/deploy/client-dist/*
+!echo-server/deploy/client-dist/.gitkeep
+
 # Tauri — the Rust build directory, several gigabytes of it.
 src-tauri/target
 

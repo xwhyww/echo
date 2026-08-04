@@ -19,10 +19,13 @@
 	root * /srv/client
 
 	# Hashed asset filenames never change contents, so they can be cached hard.
+	# Both rules need a matcher: an unconditional `header` runs after the
+	# matched one and would overwrite it, leaving everything on no-cache.
 	@immutable path /_app/immutable/*
+	@mutable not path /_app/immutable/*
 	header @immutable Cache-Control "public, max-age=31536000, immutable"
 	# Everything else must revalidate, or a deploy leaves stale shells behind.
-	header Cache-Control "no-cache"
+	header @mutable Cache-Control "no-cache"
 
 	try_files {path} {path}/ /index.html
 	file_server
