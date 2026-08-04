@@ -88,9 +88,8 @@
 	position: absolute;
 	left: 0;
 	right: 0;
-	bottom: 0;
+	bottom: var(--safe-bottom);
 	flex-shrink: 0;
 	margin: 0 8px 0;
 	z-index: 10;
-	padding-bottom: var(--safe-bottom);
 }
