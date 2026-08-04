@@ -2,6 +2,7 @@ import { eq, and, lt, sql } from 'drizzle-orm';
 import type { Database } from './db/index.js';
 import { fileBlobs, blobGrants } from './db/schema.js';
 import { storage } from './storage.js';
+import { log } from './log.js';
 
 // Drop the file row + delete the stored object if no grants reference it.
 // CASCADE on rawBlobMap takes care of the dedup mapping.
@@ -50,17 +51,17 @@ export async function sweepStalePendingGrants(db: Database): Promise<void> {
 		await gcIfOrphan(db, hash);
 	}
 
-	console.log(`[blob-service] gc: swept ${stale.length} stale pending grants, ${affected.size} hashes checked`);
+	log.info({ swept: stale.length, hashesChecked: affected.size }, 'gc: swept stale pending grants');
 }
 
 export function startPendingGrantsGC(db: Database): void {
 	void sweepStalePendingGrants(db).catch((err) => {
-		console.error('[blob-service] gc: initial sweep failed:', err);
+		log.error({ err }, 'gc: initial sweep failed');
 	});
 
 	setInterval(() => {
 		void sweepStalePendingGrants(db).catch((err) => {
-			console.error('[blob-service] gc: sweep failed:', err);
+			log.error({ err }, 'gc: sweep failed');
 		});
 	}, SWEEP_INTERVAL_MS).unref();
 }

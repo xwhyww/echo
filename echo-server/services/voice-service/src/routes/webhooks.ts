@@ -3,6 +3,7 @@ import { WebhookReceiver } from 'livekit-server-sdk';
 import { config } from '../config.js';
 import { channelIdFromRoom, participantStateFrom } from '../livekit.js';
 import { fanOutParticipantEvent } from '../presence.js';
+import { log } from '../log.js';
 
 // LiveKit's server-side view of who is actually connected.
 //
@@ -38,7 +39,7 @@ webhooksRoutes.post('/webhooks/livekit', async (c) => {
 		// Unsigned or tampered payload. This endpoint is deliberately outside the
 		// JWT auth middleware, so the signature is the only thing standing between
 		// the outside world and forged presence events — reject loudly.
-		console.warn('[voice] rejected LiveKit webhook:', err);
+		log.warn({ err }, 'rejected LiveKit webhook');
 		return c.json({ error: 'invalid signature' }, 401);
 	}
 
@@ -73,7 +74,7 @@ webhooksRoutes.post('/webhooks/livekit', async (c) => {
 		// Swallow: a non-2xx makes LiveKit retry, and a retry can't fix a bad
 		// channel row or a NATS outage. The channel list endpoint still reconciles
 		// against LiveKit on the next open.
-		console.error('[voice] livekit webhook fan-out failed:', err);
+		log.error({ err }, 'livekit webhook fan-out failed');
 	}
 
 	return c.json({ ok: true });

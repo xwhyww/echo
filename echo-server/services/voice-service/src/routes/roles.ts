@@ -12,6 +12,7 @@ import {
 	publishVoiceRoleCreated, publishVoiceRoleUpdated, publishVoiceRoleDeleted,
 	publishVoiceRoleMembersChanged, publishVoiceChannelAccessChanged,
 } from '../nats.js';
+import { log } from '../log.js';
 
 const db = createDb(config.databaseUrl);
 
@@ -145,7 +146,7 @@ rolesRoutes.post('/roles', async (c) => {
 			targetUserIds,
 			role: toRoleSummary(row),
 		}).catch((err) => {
-			console.warn('[voice] publishVoiceRoleCreated failed:', err);
+			log.warn({ err }, 'publishVoiceRoleCreated failed');
 		});
 
 		return c.json({ role: { ...toRoleSummary(row), members: [] } }, 201);
@@ -202,7 +203,7 @@ rolesRoutes.patch('/roles/:id', async (c) => {
 		roleId: id,
 		patch,
 	}).catch((err) => {
-		console.warn('[voice] publishVoiceRoleUpdated failed:', err);
+		log.warn({ err }, 'publishVoiceRoleUpdated failed');
 	});
 
 	return c.json({ success: true, patch });
@@ -237,7 +238,7 @@ rolesRoutes.delete('/roles/:id', async (c) => {
 		groupId: role.groupId,
 		roleId: id,
 	}).catch((err) => {
-		console.warn('[voice] publishVoiceRoleDeleted failed:', err);
+		log.warn({ err }, 'publishVoiceRoleDeleted failed');
 	});
 
 	for (const { channelId } of affected) {
@@ -251,7 +252,7 @@ rolesRoutes.delete('/roles/:id', async (c) => {
 			channelId,
 			roleIds: remaining.map((r) => r.roleId),
 		}).catch((err) => {
-			console.warn('[voice] publishVoiceChannelAccessChanged failed:', err);
+			log.warn({ err }, 'publishVoiceChannelAccessChanged failed');
 		});
 	}
 
@@ -296,7 +297,7 @@ rolesRoutes.post('/roles/:id/members', async (c) => {
 		kind: 'added',
 		userId,
 	}).catch((err) => {
-		console.warn('[voice] publishVoiceRoleMembersChanged failed:', err);
+		log.warn({ err }, 'publishVoiceRoleMembersChanged failed');
 	});
 
 	return c.json({ success: true });
@@ -327,7 +328,7 @@ rolesRoutes.delete('/roles/:id/members/:userId', async (c) => {
 		kind: 'removed',
 		userId,
 	}).catch((err) => {
-		console.warn('[voice] publishVoiceRoleMembersChanged failed:', err);
+		log.warn({ err }, 'publishVoiceRoleMembersChanged failed');
 	});
 
 	return c.json({ success: true });
@@ -404,7 +405,7 @@ rolesRoutes.put('/channels/:id/access', async (c) => {
 		channelId: id,
 		roleIds: desired,
 	}).catch((err) => {
-		console.warn('[voice] publishVoiceChannelAccessChanged failed:', err);
+		log.warn({ err }, 'publishVoiceChannelAccessChanged failed');
 	});
 
 	return c.json({ success: true, roleIds: desired });

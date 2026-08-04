@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import type { Database } from './db/index.js';
 import { userCache, friendshipCache } from './db/schema.js';
 import { config } from './config.js';
+import { log } from './log.js';
 
 const RECONCILE_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6h
 const INSERT_BATCH = 5000;
@@ -35,11 +36,11 @@ async function reconcileUserCache(db: Database): Promise<number> {
 			headers: { 'X-Internal-Key': config.internalApiKey },
 		});
 	} catch (err) {
-		console.error('[pers-chats] reconcile: user-service unreachable, skipping:', err);
+		log.error({ err }, 'reconcile: user-service unreachable, skipping');
 		return 0;
 	}
 	if (!resp.ok) {
-		console.error(`[pers-chats] reconcile: user-service returned ${resp.status}, skipping`);
+		log.error({ status: resp.status }, 'reconcile: user-service returned an error, skipping');
 		return 0;
 	}
 
@@ -93,11 +94,11 @@ async function reconcileFriendshipCache(db: Database): Promise<number> {
 			headers: { 'X-Internal-Key': config.internalApiKey },
 		});
 	} catch (err) {
-		console.error('[pers-chats] reconcile: friends-service unreachable, skipping:', err);
+		log.error({ err }, 'reconcile: friends-service unreachable, skipping');
 		return 0;
 	}
 	if (!resp.ok) {
-		console.error(`[pers-chats] reconcile: friends-service returned ${resp.status}, skipping`);
+		log.error({ status: resp.status }, 'reconcile: friends-service returned an error, skipping');
 		return 0;
 	}
 
@@ -146,16 +147,17 @@ export async function bootstrapCaches(db: Database): Promise<void> {
 	const start = Date.now();
 	const [users, friendships] = await Promise.all([
 		reconcileUserCache(db).catch((err) => {
-			console.error('[pers-chats] bootstrap user_cache failed:', err);
+			log.error({ err }, 'bootstrap user_cache failed');
 			return 0;
 		}),
 		reconcileFriendshipCache(db).catch((err) => {
-			console.error('[pers-chats] bootstrap friendship_cache failed:', err);
+			log.error({ err }, 'bootstrap friendship_cache failed');
 			return 0;
 		}),
 	]);
-	console.log(
-		`[pers-chats] bootstrap: hydrated ${users} users, ${friendships} friendships in ${Date.now() - start}ms`,
+	log.info(
+		{ users, friendships, durationMs: Date.now() - start },
+		'bootstrap: hydrated caches',
 	);
 }
 
@@ -165,7 +167,7 @@ export async function bootstrapCaches(db: Database): Promise<void> {
 export function startCacheReconciler(db: Database): void {
 	setInterval(() => {
 		void bootstrapCaches(db).catch((err) => {
-			console.error('[pers-chats] reconciler tick failed:', err);
+			log.error({ err }, 'reconciler tick failed');
 		});
 	}, RECONCILE_INTERVAL_MS).unref();
 }

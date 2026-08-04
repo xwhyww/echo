@@ -4,8 +4,9 @@ import type { VoiceChannel, VoiceCategory } from '$lib/api/voice.js';
 import type { VoiceChannelMessage, VoiceChannelMessageAttachment, VoiceChannelMessageReaction } from '$lib/api/voiceChat.js';
 import { API_HOST } from '$lib/api/client.js';
 
-// Same host the page came from — see API_HOST.
-const WS_URL = `ws://${API_HOST}:3004/ws`;
+// Same host the page came from — see API_HOST. VITE_WS_URL overrides it for a
+// deployment, where ws-gateway sits behind TLS on its own subdomain.
+const WS_URL = import.meta.env.VITE_WS_URL || `ws://${API_HOST}:3004/ws`;
 
 type WsEvent =
 	| { type: 'connected'; userId: string }

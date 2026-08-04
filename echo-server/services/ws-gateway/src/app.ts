@@ -4,6 +4,7 @@ import { verifyToken, SUBJECTS, type IncomingWsMessage } from '@echo/shared';
 import { config } from './config.js';
 import { addConnection, removeConnection, isUserOnline, broadcastPresence, setUserPrivacy, setUserFriends, clearUserCaches, getUserPrivacy, setPresenceCallback, broadcastFromUser } from './connections.js';
 import { getNatsConnection } from './nats.js';
+import { log } from './log.js';
 
 export const app = new Hono();
 export const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
@@ -30,7 +31,7 @@ async function fetchUserPrivacy(userId: string, token: string): Promise<void> {
 			}
 		}
 	} catch (err) {
-		console.error('[ws-gateway] Failed to fetch user privacy:', err);
+		log.error({ err }, 'Failed to fetch user privacy');
 	}
 }
 
@@ -55,7 +56,7 @@ async function fetchUserFriends(userId: string, token: string): Promise<void> {
 		}
 		setUserFriends(userId, friendIds);
 	} catch (err) {
-		console.error('[ws-gateway] Failed to fetch user friends:', err);
+		log.error({ err }, 'Failed to fetch user friends');
 	}
 }
 

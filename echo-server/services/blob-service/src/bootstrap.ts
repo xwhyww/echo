@@ -1,6 +1,7 @@
 import type { Database } from './db/index.js';
 import { dmChatMembers, groupMembersMirror } from './db/schema.js';
 import { config } from './config.js';
+import { log } from './log.js';
 
 interface MembershipRow {
 	chatId: string;
@@ -34,12 +35,12 @@ export async function bootstrapDmChatMembers(db: Database): Promise<void> {
 				resp = r;
 				break;
 			}
-			console.warn(`[blob-service] bootstrap: pers-chats-service returned ${r.status}, attempt ${attempt + 1}`);
+			log.warn({ status: r.status, attempt: attempt + 1 }, 'bootstrap: pers-chats-service returned an error');
 		} catch (err) {
-			console.warn(`[blob-service] bootstrap: pers-chats-service unreachable, attempt ${attempt + 1}:`, (err as Error).message);
+			log.warn({ err, attempt: attempt + 1 }, 'bootstrap: pers-chats-service unreachable');
 		}
 		if (attempt === delays.length) {
-			console.error('[blob-service] bootstrap: giving up after retries, mirror will be empty until NATS events arrive');
+			log.error('bootstrap: giving up after retries, mirror will be empty until NATS events arrive');
 			return;
 		}
 		await new Promise((r) => setTimeout(r, delays[attempt]));
@@ -50,7 +51,7 @@ export async function bootstrapDmChatMembers(db: Database): Promise<void> {
 	const memberships = Array.isArray(data?.memberships) ? data.memberships : [];
 
 	if (memberships.length === 0) {
-		console.log('[blob-service] bootstrap: no chats to hydrate');
+		log.info('bootstrap: no chats to hydrate');
 		return;
 	}
 
@@ -69,8 +70,9 @@ export async function bootstrapDmChatMembers(db: Database): Promise<void> {
 		await db.insert(dmChatMembers).values(batch).onConflictDoNothing();
 	}
 
-	console.log(
-		`[blob-service] bootstrap: hydrated ${rows.length} memberships across ${memberships.length} chats in ${Date.now() - start}ms`,
+	log.info(
+		{ memberships: rows.length, chats: memberships.length, durationMs: Date.now() - start },
+		'bootstrap: hydrated dm memberships',
 	);
 }
 
@@ -89,12 +91,12 @@ export async function bootstrapGroupMembers(db: Database): Promise<void> {
 				resp = r;
 				break;
 			}
-			console.warn(`[blob-service] bootstrap groups: groups-service returned ${r.status}, attempt ${attempt + 1}`);
+			log.warn({ status: r.status, attempt: attempt + 1 }, 'bootstrap groups: groups-service returned an error');
 		} catch (err) {
-			console.warn(`[blob-service] bootstrap groups: groups-service unreachable, attempt ${attempt + 1}:`, (err as Error).message);
+			log.warn({ err, attempt: attempt + 1 }, 'bootstrap groups: groups-service unreachable');
 		}
 		if (attempt === delays.length) {
-			console.error('[blob-service] bootstrap groups: giving up, mirror will be empty until NATS events arrive');
+			log.error('bootstrap groups: giving up, mirror will be empty until NATS events arrive');
 			return;
 		}
 		await new Promise((r) => setTimeout(r, delays[attempt]));
@@ -105,7 +107,7 @@ export async function bootstrapGroupMembers(db: Database): Promise<void> {
 	const memberships = Array.isArray(data?.memberships) ? data.memberships : [];
 
 	if (memberships.length === 0) {
-		console.log('[blob-service] bootstrap groups: no groups to hydrate');
+		log.info('bootstrap groups: no groups to hydrate');
 		return;
 	}
 
@@ -124,7 +126,8 @@ export async function bootstrapGroupMembers(db: Database): Promise<void> {
 		await db.insert(groupMembersMirror).values(batch).onConflictDoNothing();
 	}
 
-	console.log(
-		`[blob-service] bootstrap groups: hydrated ${rows.length} memberships across ${memberships.length} groups in ${Date.now() - start}ms`,
+	log.info(
+		{ memberships: rows.length, groups: memberships.length, durationMs: Date.now() - start },
+		'bootstrap groups: hydrated group memberships',
 	);
 }

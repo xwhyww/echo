@@ -7,6 +7,7 @@ import { createDb } from '../db/index.js';
 import { personalMessages } from '../db/schema.js';
 import { config } from '../config.js';
 import { encryptForInsert } from '../crypto.js';
+import { log } from '../log.js';
 
 const BATCH = 500;
 
@@ -50,14 +51,14 @@ async function main() {
 				.where(sql`${personalMessages.id} = ${row.id}`);
 		}
 		total += rows.length;
-		console.log(`[backfill] processed ${total}`);
+		log.info({ total }, 'backfill progress');
 		if (rows.length < BATCH) break;
 	}
-	console.log(`[backfill] done, total=${total}`);
+	log.info({ total }, 'backfill done');
 	process.exit(0);
 }
 
 main().catch((err) => {
-	console.error('[backfill] failed:', err);
+	log.error({ err }, 'failed');
 	process.exit(1);
 });

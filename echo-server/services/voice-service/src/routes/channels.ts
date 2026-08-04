@@ -21,6 +21,7 @@ import {
 	channelAccess,
 	channelAccessMap,
 } from '../permissions.js';
+import { log } from '../log.js';
 
 const db = createDb(config.databaseUrl);
 
@@ -173,7 +174,7 @@ channelsRoutes.post('/channels', async (c) => {
 				createdAt: row.createdAt.toISOString(),
 			},
 		}).catch((err) => {
-			console.warn('[voice] publishVoiceChannelCreated failed:', err);
+			log.warn({ err }, 'publishVoiceChannelCreated failed');
 		});
 
 		return c.json({ channel: row }, 201);
@@ -231,7 +232,7 @@ channelsRoutes.patch('/channels/:id', async (c) => {
 		channelId: id,
 		patch,
 	}).catch((err) => {
-		console.warn('[voice] publishVoiceChannelUpdated failed:', err);
+		log.warn({ err }, 'publishVoiceChannelUpdated failed');
 	});
 
 	return c.json({ success: true, patch });
@@ -290,7 +291,7 @@ channelsRoutes.post('/categories', async (c) => {
 				createdAt: row.createdAt.toISOString(),
 			},
 		}).catch((err) => {
-			console.warn('[voice] publishVoiceCategoryCreated failed:', err);
+			log.warn({ err }, 'publishVoiceCategoryCreated failed');
 		});
 
 		return c.json({ category: row }, 201);
@@ -341,7 +342,7 @@ channelsRoutes.patch('/categories/:id', async (c) => {
 		categoryId: id,
 		patch,
 	}).catch((err) => {
-		console.warn('[voice] publishVoiceCategoryUpdated failed:', err);
+		log.warn({ err }, 'publishVoiceCategoryUpdated failed');
 	});
 
 	return c.json({ success: true, patch });
@@ -388,7 +389,7 @@ channelsRoutes.delete('/categories/:id', async (c) => {
 			channelId: orphan.id,
 			patch: { categoryId: null },
 		}).catch((err) => {
-			console.warn('[voice] publishVoiceChannelUpdated (orphan) failed:', err);
+			log.warn({ err }, 'publishVoiceChannelUpdated (orphan) failed');
 		});
 	}
 
@@ -397,7 +398,7 @@ channelsRoutes.delete('/categories/:id', async (c) => {
 		groupId: cat.groupId,
 		categoryId: id,
 	}).catch((err) => {
-		console.warn('[voice] publishVoiceCategoryDeleted failed:', err);
+		log.warn({ err }, 'publishVoiceCategoryDeleted failed');
 	});
 
 	return c.json({ success: true });
@@ -429,7 +430,7 @@ channelsRoutes.delete('/channels/:id', async (c) => {
 		groupId: ch.groupId,
 		channelId: ch.id,
 	}).catch((err) => {
-		console.warn('[voice] publishVoiceChannelDeleted failed:', err);
+		log.warn({ err }, 'publishVoiceChannelDeleted failed');
 	});
 
 	return c.json({ success: true });

@@ -8,6 +8,7 @@ import {
 } from '@echo/shared';
 import type { Database } from './db/index.js';
 import { userCache } from './db/schema.js';
+import { log } from './log.js';
 
 let nc: NatsConnection | null = null;
 
@@ -43,7 +44,7 @@ export async function initNats(url: string, db: Database): Promise<void> {
 				}
 				msg.ack();
 			} catch (err) {
-				console.error('[pers-chats] Error processing user event:', err);
+				log.error({ err }, 'Error processing user event');
 				msg.nak();
 			}
 		}
@@ -59,12 +60,12 @@ export async function initNats(url: string, db: Database): Promise<void> {
 					.set({ isOnline: event.online, updatedAt: new Date() })
 					.where(eq(userCache.id, event.userId));
 			} catch (err) {
-				console.error('[pers-chats] Error processing presence:', err);
+				log.error({ err }, 'Error processing presence');
 			}
 		}
 	})();
 
-	console.log('[pers-chats] Connected to NATS, subscriptions active');
+	log.info('Connected to NATS, subscriptions active');
 }
 
 export function getNatsConnection(): NatsConnection | null {
@@ -76,7 +77,7 @@ export async function publishDmEvent(event: DmMessageEvent): Promise<void> {
 	if (!nc) return;
 	const js = await getJetStream(nc);
 	const payload = JSON.stringify(event);
-	console.log('[pers-chats] publishDmEvent payload keys:', Object.keys(event.message), 'has forwardedFrom:', 'forwardedFrom' in event.message, 'payload size:', payload.length);
+	log.debug({ chatId: event.chatId, bytes: payload.length }, 'publishing dm event');
 	await js.publish(SUBJECTS.DM_MESSAGE, payload);
 }
 

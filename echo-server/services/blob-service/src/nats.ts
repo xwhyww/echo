@@ -7,6 +7,7 @@ import {
 } from '@echo/shared';
 import type { Database } from './db/index.js';
 import { dmChatMembers, groupMembersMirror, blobGrants } from './db/schema.js';
+import { log } from './log.js';
 
 let nc: NatsConnection | null = null;
 
@@ -52,7 +53,7 @@ export async function initNats(url: string, db: Database): Promise<void> {
 				}
 				msg.ack();
 			} catch (err) {
-				console.error('[blob-service] Error processing chat event:', err);
+				log.error({ err }, 'Error processing chat event');
 				msg.nak();
 			}
 		}
@@ -98,13 +99,13 @@ export async function initNats(url: string, db: Database): Promise<void> {
 				}
 				msg.ack();
 			} catch (err) {
-				console.error('[blob-service] Error processing group event:', err);
+				log.error({ err }, 'Error processing group event');
 				msg.nak();
 			}
 		}
 	})();
 
-	console.log('[blob-service] Connected to NATS, chat + group subscriptions active');
+	log.info('Connected to NATS, chat + group subscriptions active');
 }
 
 export function getNatsConnection(): NatsConnection | null {

@@ -1,0 +1,2 @@
+# Placeholder so the Caddy bind mount exists before the first client upload.
+# Replace the whole directory with the contents of echo-client/build — see README.

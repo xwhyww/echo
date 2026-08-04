@@ -5,6 +5,7 @@ import { config } from './config.js';
 import { createDb } from './db/index.js';
 import { userProfiles } from './db/schema.js';
 import { initNats } from './nats.js';
+import { log } from './log.js';
 
 const db = createDb(config.databaseUrl);
 
@@ -13,13 +14,13 @@ const db = createDb(config.databaseUrl);
 db.update(userProfiles)
 	.set({ isOnline: false })
 	.where(eq(userProfiles.isOnline, true))
-	.then(() => console.log('[user-service] Cleared stale online statuses'))
-	.catch((err) => console.error('[user-service] Failed to clear stale online statuses:', err));
+	.then(() => log.info('Cleared stale online statuses'))
+	.catch((err) => log.error({ err }, 'Failed to clear stale online statuses'));
 
 initNats(config.natsUrl, db).catch((err) => {
-	console.warn('[user-service] NATS unavailable, event sync disabled:', err.message);
+	log.warn({ err }, 'NATS unavailable, event sync disabled');
 });
 
 serve({ fetch: app.fetch, port: config.port }, (info) => {
-	console.log(`[user-service] running on http://localhost:${info.port}`);
+	log.info({ port: info.port }, 'listening');
 });

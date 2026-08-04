@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { logger } from 'hono/logger';
+import { requestLogger, logContext } from '@echo/shared/logger';
+import { log } from './log.js';
 import { config } from './config.js';
 
 export const app = new Hono();
@@ -17,11 +18,18 @@ const isDev = process.env.NODE_ENV !== 'production';
 
 function isAllowedOrigin(origin: string): boolean {
 	if (origin === 'tauri://localhost') return true;
+	// Deployed web origins, e.g. https://app.example.com. Exact matches only —
+	// there is no wildcard form on purpose, since these are sent credentials.
+	if (config.allowedOrigins.includes(origin)) return true;
+	// The localhost and LAN allowances are development conveniences and must not
+	// survive into a deployment: a public gateway trusting http://192.168.x.y
+	// hands CORS-with-credentials to anything on any visitor's network.
+	if (!isDev) return false;
 	if (LOCAL_ORIGIN.test(origin)) return true;
-	return isDev && LAN_ORIGIN.test(origin);
+	return LAN_ORIGIN.test(origin);
 }
 
-app.use('*', logger());
+app.use('*', requestLogger(log));
 app.use(
 	'*',
 	cors({
@@ -68,6 +76,10 @@ function proxy(prefix: string) {
 
 		const headers = new Headers(c.req.raw.headers);
 		headers.delete('host');
+		// The gateway mints the request id for browser traffic; passing it on is
+		// what lets one user action be followed across every service's log.
+		const requestId = logContext()?.requestId;
+		if (requestId) headers.set('x-request-id', requestId);
 
 		try {
 			const resp = await fetch(targetUrl, {
@@ -92,7 +104,8 @@ function proxy(prefix: string) {
 				statusText: resp.statusText,
 				headers: respHeaders,
 			});
-		} catch {
+		} catch (err) {
+			log.error({ err, prefix, targetUrl }, 'upstream unreachable');
 			return c.json({ error: 'Service unavailable' }, 502);
 		}
 	};

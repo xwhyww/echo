@@ -12,6 +12,7 @@ import {
 	publishCallCancelled,
 	publishCallEnded,
 } from '../nats.js';
+import { log } from '../log.js';
 
 const db = createDb(config.databaseUrl);
 
@@ -59,7 +60,7 @@ callsRoutes.post('/calls/invite', async (c) => {
 	});
 
 	publishCallRing({ targetUserId, roomName: room, from: caller, video }).catch((err) => {
-		console.warn('[voice] publishCallRing failed:', err);
+		log.warn({ err }, 'publishCallRing failed');
 	});
 
 	return c.json({ url: config.livekitPublicUrl, token, roomName: room });
@@ -81,7 +82,7 @@ callsRoutes.post('/calls/accept', async (c) => {
 	});
 
 	publishCallAccepted({ targetUserId: peerUserId, roomName: room, fromUserId: me.userId }).catch((err) => {
-		console.warn('[voice] publishCallAccepted failed:', err);
+		log.warn({ err }, 'publishCallAccepted failed');
 	});
 
 	return c.json({ url: config.livekitPublicUrl, token, roomName: room });
@@ -105,7 +106,7 @@ function signalRoute(
 		if (!peerUserId) return c.json({ error: 'peerUserId required' }, 400);
 		const room = callRoomName(me.userId, peerUserId);
 		publisher({ targetUserId: peerUserId, roomName: room, fromUserId: me.userId }).catch((err) => {
-			console.warn(`[voice] ${label} failed:`, err);
+			log.warn({ err, label }, 'call signal publish failed');
 		});
 		return c.json({ success: true });
 	};

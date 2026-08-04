@@ -5,6 +5,7 @@ import { createDb } from './db/index.js';
 import { initNats } from './nats.js';
 import { startPendingGrantsGC } from './gc.js';
 import { bootstrapDmChatMembers, bootstrapGroupMembers } from './bootstrap.js';
+import { log } from './log.js';
 
 const db = createDb(config.databaseUrl);
 
@@ -15,21 +16,21 @@ const db = createDb(config.databaseUrl);
 	try {
 		await bootstrapDmChatMembers(db);
 	} catch (err) {
-		console.error('[blob-service] bootstrap dm failed:', err);
+		log.error({ err }, 'bootstrap dm failed');
 	}
 	try {
 		await bootstrapGroupMembers(db);
 	} catch (err) {
-		console.error('[blob-service] bootstrap groups failed:', err);
+		log.error({ err }, 'bootstrap groups failed');
 	}
 
 	initNats(config.natsUrl, db).catch((err) => {
-		console.error('[blob-service] NATS init failed:', err);
+		log.error({ err }, 'NATS init failed');
 	});
 })();
 
 startPendingGrantsGC(db);
 
 serve({ fetch: app.fetch, port: config.port }, (info) => {
-	console.log(`[blob-service] running on http://localhost:${info.port}`);
+	log.info({ port: info.port }, 'listening');
 });

@@ -12,6 +12,7 @@ import {
 	CreateBucketCommand,
 } from '@aws-sdk/client-s3';
 import { config } from './config.js';
+import { log } from './log.js';
 
 // Storage abstraction for blob bytes. Metadata, grants, and auth stay in
 // Postgres — this only covers where the file contents live. Names are the
@@ -103,11 +104,11 @@ class S3Storage implements BlobStorage {
 			} catch {
 				try {
 					await this.client.send(new CreateBucketCommand({ Bucket: this.bucket }));
-					console.log(`[blob-service] storage: created bucket "${this.bucket}"`);
+					log.info({ bucket: this.bucket }, 'storage: created bucket');
 					return;
 				} catch (err) {
 					if (attempt >= delays.length) {
-						console.error(`[blob-service] storage: bucket "${this.bucket}" unavailable:`, (err as Error).message);
+						log.error({ err, bucket: this.bucket }, 'storage: bucket unavailable');
 						return;
 					}
 					await new Promise((r) => setTimeout(r, delays[attempt]));
@@ -176,4 +177,4 @@ class S3Storage implements BlobStorage {
 export const storage: BlobStorage =
 	config.storageDriver === 's3' ? new S3Storage(config.s3) : new LocalStorage();
 
-console.log(`[blob-service] storage driver: ${config.storageDriver}`);
+log.info({ driver: config.storageDriver }, 'storage driver selected');
