@@ -90,6 +90,27 @@ export function splitPhone(raw: string): { country: Country; local: string } {
 }
 
 /**
+ * Where the caret belongs once the mask has been applied, given how many digits
+ * stood before it in what the user typed.
+ *
+ * Counting digits rather than characters is the point: separators shift as the
+ * mask reflows, digits don't, so "after the 4th digit" survives a `(999` turning
+ * into `(999) `.
+ */
+export function caretAfterDigits(masked: string, digits: number): number {
+	if (digits <= 0) return 0;
+
+	let seen = 0;
+	for (let i = 0; i < masked.length; i++) {
+		if (!/\D/.test(masked[i])) {
+			seen++;
+			if (seen === digits) return i + 1;
+		}
+	}
+	return masked.length;
+}
+
+/**
  * Backspace when the caret sits just after a separator the mask inserted — a
  * bracket or a dash. The browser would delete the separator, which the mask
  * puts straight back, so the key would appear to do nothing; what the user

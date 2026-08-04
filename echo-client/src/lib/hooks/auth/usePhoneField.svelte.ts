@@ -1,5 +1,6 @@
 import {
 	applyMask,
+	caretAfterDigits,
 	deleteDigitBeforeSeparator,
 	maxDigits,
 	splitPhone,
@@ -12,7 +13,14 @@ import {
  *
  * The caret work is the reason this isn't just a `$derived`: rewriting the value
  * on every keystroke moves the cursor to the end, so it has to be put back where
- * the typing left it — after the browser has painted, hence the rAF.
+ * the typing left it.
+ *
+ * Both the value and the caret are written straight to the element rather than
+ * left to Svelte. Assigning `local` only schedules a DOM update, so anything
+ * that reads or sets `input.value` in the same handler is still looking at what
+ * the user typed — and when the mask changes nothing (a digit past the mask's
+ * capacity), `local` never changes, no update is scheduled at all, and the
+ * surplus character would simply stay on screen.
  */
 export function usePhoneField(options: {
 	/** Read once, at creation: the field owns the value from then on. */
@@ -29,8 +37,16 @@ export function usePhoneField(options: {
 		options.onchange(digits ? `${country.dial}${digits}` : '');
 	}
 
-	function restoreCaret(pos: number) {
-		requestAnimationFrame(() => options.input()?.setSelectionRange(pos, pos));
+	/**
+	 * Push a masked value into the element and put the caret at `caret`.
+	 * Svelte's own update lands on an identical string afterwards, which browsers
+	 * treat as a no-op and leave the selection alone.
+	 */
+	function render(input: HTMLInputElement, masked: string, caret: number) {
+		local = masked;
+		publish();
+		input.value = masked;
+		input.setSelectionRange(caret, caret);
 	}
 
 	return {
@@ -49,18 +65,18 @@ export function usePhoneField(options: {
 
 		onInput(e: Event) {
 			const input = e.target as HTMLInputElement;
-			const caret = input.selectionStart ?? 0;
-			const lengthBefore = input.value.length;
+			const typed = input.value;
+			const caret = input.selectionStart ?? typed.length;
 
-			local = applyMask(
-				input.value.replace(/\D/g, '').slice(0, maxDigits(country.mask)),
-				country.mask,
-			);
-			publish();
+			// Anchor the caret to a digit count, not a character offset: the mask
+			// adds and removes separators around it, so "after the 4th digit" is
+			// the only description that survives the rewrite.
+			const digitsBefore = typed.slice(0, caret).replace(/\D/g, '').length;
 
-			// The mask may have inserted or dropped separators around the caret;
-			// shift it by however much the string grew or shrank.
-			restoreCaret(Math.max(0, caret + (input.value.length - lengthBefore)));
+			const digits = typed.replace(/\D/g, '').slice(0, maxDigits(country.mask));
+			const masked = applyMask(digits, country.mask);
+
+			render(input, masked, caretAfterDigits(masked, digitsBefore));
 		},
 
 		onKeydown(e: KeyboardEvent) {
@@ -74,9 +90,7 @@ export function usePhoneField(options: {
 			if (!result) return;
 
 			e.preventDefault();
-			local = result.local;
-			publish();
-			restoreCaret(result.caret);
+			render(input, result.local, result.caret);
 		},
 	};
 }
