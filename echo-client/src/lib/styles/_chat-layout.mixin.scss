@@ -88,7 +88,12 @@
 	position: absolute;
 	left: 0;
 	right: 0;
-	bottom: var(--safe-bottom);
+	/* Matches the mobile tab bar's gap, which is not the full inset: the bar
+	   sits at bottom:0 in a box --safe-bottom + 12px taller than the tab row it
+	   centres (Sidebar.svelte), so what shows beneath it is half the inset plus
+	   a pixel. Anything else and the composer and the bar sit at different
+	   heights. */
+	bottom: calc(var(--safe-bottom) / 2 + 1px);
 	flex-shrink: 0;
 	margin: 0 8px 0;
 	z-index: 10;

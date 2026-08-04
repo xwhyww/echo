@@ -123,7 +123,9 @@
 	</div>
 </div>
 
-<style>
+<style lang="scss">
+	@use '$lib/styles/glass.mixin' as *;
+	
 	.overlay {
 		position: fixed;
 		inset: 0;
@@ -179,10 +181,8 @@
 
 	.close-btn {
 		position: absolute;
-		top: calc(var(--safe-top) + 10px);
-		right: 0;
-		width: 30px;
-		height: 30px;
+		top: calc(var(--safe-top) + 12px);
+		right: 12px;
 		border: none;
 		background: transparent;
 		color: white;
@@ -192,6 +192,9 @@
 		cursor: pointer;
 		transition: background var(--duration-fast) var(--ease-default);
 		z-index: 2;
+		@include glass;
+		border-radius: var(--radius-full);
+		padding: var(--sp-3);
 	}
 
 	.close-btn:hover {
