@@ -8,6 +8,7 @@ import { config } from '../config.js';
 import { publishDmEvent, publishDmReadEvent, publishDmEditedEvent, publishDmDeletedEvent, publishDmPinnedEvent, publishDmUnpinnedEvent, publishDmReactionEvent, publishDmChatCreated } from '../nats.js';
 import type { DmReactionSummary } from '@echo/shared';
 import { encryptForInsert, decryptRow, stripCiphertext, attachmentHashesFromRow } from '../crypto.js';
+import { log } from '../log.js';
 
 function extractAttachmentHashes(attachments: unknown): string[] {
 	if (!Array.isArray(attachments)) return [];
@@ -28,12 +29,12 @@ async function addChatGrants(hashes: string[], chatId: string, token: string): P
 			body: JSON.stringify({ scopeType: 'chat', scopeId: chatId, hashes }),
 		});
 		if (!r.ok) {
-			console.error(`[pers-chats] addChatGrants failed: ${r.status} for chat ${chatId}`);
+			log.error({ status: r.status, chatId }, 'addChatGrants failed');
 			return false;
 		}
 		return true;
 	} catch (err) {
-		console.error('[pers-chats] addChatGrants threw:', err);
+		log.error({ err }, 'addChatGrants threw');
 		return false;
 	}
 }
@@ -255,7 +256,7 @@ personalChatsRoutes.get('/', async (c) => {
 	const search = c.req.query('search')?.trim();
 	const limit = Math.min(Number(c.req.query('limit')) || 20, 50);
 
-	console.log('[personal-chats] search param:', JSON.stringify(search), 'url:', c.req.url);
+	log.debug({ search, limit, cursor }, 'chat list query');
 
 	// Get chat IDs ordered by last message date using a subquery
 	const lastMsgDate = db
@@ -1050,9 +1051,7 @@ personalChatsRoutes.post('/send', async (c) => {
 });
 
 // Forward messages to another user's chat
-console.log('[pers-chats] ### FORWARD-FIX-V3 loaded ###');
 personalChatsRoutes.post('/forward', async (c) => {
-	console.log('[pers-chats] /forward invoked (FORWARD-FIX-V3)');
 	const currentUserId = c.get('user').userId;
 	const { messageIds, targetUserId } = await c.req.json<{ messageIds: string[]; targetUserId: string }>();
 
@@ -1191,7 +1190,7 @@ personalChatsRoutes.post('/forward', async (c) => {
 				author: authorForRecipient as any,
 			},
 		};
-		console.log('[pers-chats] forward publish:', JSON.stringify(dmPayload.message.forwardedFrom));
+		log.debug({ forwardedFrom: dmPayload.message.forwardedFrom }, 'forward publish');
 		await publishDmEvent(dmPayload);
 
 		created.push({ ...msg, author: authorForSelf, forwardedFrom } as any);
@@ -1720,7 +1719,7 @@ personalChatsRoutes.get('/:chatId/media', async (c) => {
 				LIMIT ${limit + 1}
 			`);
 		} catch (err) {
-			console.error('[personal-chats] links query failed', err);
+			log.error({ err }, 'links query failed');
 			return c.json({ error: 'Failed to load links' }, 500);
 		}
 
@@ -1801,7 +1800,7 @@ personalChatsRoutes.get('/:chatId/media', async (c) => {
 			LIMIT ${limit + 1}
 		`);
 	} catch (err) {
-		console.error('[personal-chats] media query failed', err);
+		log.error({ err }, 'media query failed');
 		return c.json({ error: 'Failed to load media' }, 500);
 	}
 

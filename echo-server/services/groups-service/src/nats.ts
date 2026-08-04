@@ -11,6 +11,7 @@ import {
 } from '@echo/shared';
 import type { Database } from './db/index.js';
 import { userCache } from './db/schema.js';
+import { log } from './log.js';
 
 let nc: NatsConnection | null = null;
 
@@ -46,7 +47,7 @@ export async function initNats(url: string, db: Database): Promise<void> {
 				}
 				msg.ack();
 			} catch (err) {
-				console.error('[groups] Error processing user event:', err);
+				log.error({ err }, 'Error processing user event');
 				msg.nak();
 			}
 		}
@@ -61,12 +62,12 @@ export async function initNats(url: string, db: Database): Promise<void> {
 					.set({ isOnline: event.online, updatedAt: new Date() })
 					.where(eq(userCache.id, event.userId));
 			} catch (err) {
-				console.error('[groups] Error processing presence:', err);
+				log.error({ err }, 'Error processing presence');
 			}
 		}
 	})();
 
-	console.log('[groups] Connected to NATS, subscriptions active');
+	log.info('Connected to NATS, subscriptions active');
 }
 
 async function publish(subject: string, data: unknown): Promise<void> {

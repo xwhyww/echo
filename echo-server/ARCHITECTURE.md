@@ -136,6 +136,28 @@ Each service has its own `.env` file with only the variables it needs:
 
 Each service loads its own `dotenv/config` in its local `config.ts`.
 
+## Logging
+
+Every service logs structured JSON through `pino`, wired up in
+`@echo/shared/logger`:
+
+- `createLogger(service)` — one logger per service; `name` identifies it in the
+  merged compose output. Level from `LOG_LEVEL`, defaulting to `debug` in
+  development and `info` under `NODE_ENV=production`.
+- `requestLogger(log)` — replaces `hono/logger` in each `app.ts`. Logs one line
+  per request with `method`, `path`, `status`, `durationMs`, skipping `/health`.
+- **Request id** — taken from an inbound `x-request-id` or minted at the edge,
+  echoed back on the response, and forwarded by the gateway's proxy. One user
+  action therefore carries a single id across every service it touches.
+- **Context** — the id lives in an `AsyncLocalStorage`, which pino's `mixin`
+  reads on every call, so any log line emitted during a request is stamped with
+  `requestId` and (after `authMiddleware`) `userId` without being passed one.
+- **Redaction** — `password`, `token`, `authorization`, `apiKey`, `smsCode` and
+  friends are censored wherever they appear in a logged object.
+
+In development `pino-pretty` renders it human-readably; in production stdout is
+pure JSON for a log shipper to parse.
+
 ## Databases
 
 Each service can point to its own database:
@@ -192,6 +214,16 @@ pnpm db:generate   # Generate migrations from schema changes
 pnpm db:migrate    # Apply migrations (set DATABASE_URL)
 pnpm db:studio     # Open Drizzle Studio
 ```
+
+### Production
+
+`deploy/` holds a standalone stack — Caddy terminating TLS for `api.`, `ws.` and
+`live.` subdomains in front of the same services, with Postgres, Redis, NATS and
+LiveKit unpublished on the internal network. See `deploy/README.md`.
+
+Do not combine `deploy/docker-compose.prod.yml` with the dev `docker-compose.yml`:
+the dev file publishes the datastores to the host, and compose merges `ports` by
+appending, so an override cannot take them back off.
 
 ## Client Configuration
 

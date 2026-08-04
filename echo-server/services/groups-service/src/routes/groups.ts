@@ -13,6 +13,7 @@ import {
 	publishGroupCreated, publishGroupUpdated, publishGroupDeleted,
 	publishGroupMemberJoined, publishGroupMemberLeft, publishGroupMemberRoleChanged,
 } from '../nats.js';
+import { log } from '../log.js';
 
 const db = createDb(config.databaseUrl);
 
@@ -584,7 +585,7 @@ groupsRoutes.get('/:id/media', async (c) => {
 				LIMIT ${limit + 1}
 			`);
 		} catch (err) {
-			console.error('[groups] links query failed', err);
+			log.error({ err }, 'links query failed');
 			return c.json({ error: 'Failed to load links' }, 500);
 		}
 
@@ -660,7 +661,7 @@ groupsRoutes.get('/:id/media', async (c) => {
 			LIMIT ${limit + 1}
 		`);
 	} catch (err) {
-		console.error('[groups] media query failed', err);
+		log.error({ err }, 'media query failed');
 		return c.json({ error: 'Failed to load media' }, 500);
 	}
 

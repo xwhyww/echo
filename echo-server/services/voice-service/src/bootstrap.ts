@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import type { Database } from './db/index.js';
 import { userCache, groupMembersMirror } from './db/schema.js';
 import { config } from './config.js';
+import { log } from './log.js';
 
 const RECONCILE_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const INSERT_BATCH = 5000;
@@ -26,12 +27,12 @@ async function fetchWithRetries<T>(label: string, url: string): Promise<T | null
 		try {
 			const r = await fetch(url, { headers: { 'X-Internal-Key': config.internalApiKey } });
 			if (r.ok) return (await r.json()) as T;
-			console.warn(`[voice] ${label}: status ${r.status}, attempt ${attempt + 1}`);
+			log.warn({ label, status: r.status, attempt: attempt + 1 }, 'bootstrap fetch returned an error');
 		} catch (err) {
-			console.warn(`[voice] ${label}: unreachable, attempt ${attempt + 1}:`, (err as Error).message);
+			log.warn({ label, err, attempt: attempt + 1 }, 'bootstrap fetch unreachable');
 		}
 		if (attempt === delays.length) {
-			console.error(`[voice] ${label}: giving up after retries`);
+			log.error({ label }, 'bootstrap fetch giving up after retries');
 			return null;
 		}
 		await new Promise((r) => setTimeout(r, delays[attempt]));
@@ -109,21 +110,21 @@ export async function bootstrapCaches(db: Database): Promise<void> {
 	const start = Date.now();
 	const [users, members] = await Promise.all([
 		reconcileUserCache(db).catch((err) => {
-			console.error('[voice] bootstrap users failed:', err);
+			log.error({ err }, 'bootstrap users failed');
 			return 0;
 		}),
 		reconcileGroupMembers(db).catch((err) => {
-			console.error('[voice] bootstrap group members failed:', err);
+			log.error({ err }, 'bootstrap group members failed');
 			return 0;
 		}),
 	]);
-	console.log(`[voice] bootstrap: ${users} users, ${members} group memberships in ${Date.now() - start}ms`);
+	log.info({ users, members, durationMs: Date.now() - start }, 'bootstrap: hydrated caches');
 }
 
 export function startCacheReconciler(db: Database): void {
 	setInterval(() => {
 		void bootstrapCaches(db).catch((err) => {
-			console.error('[voice] reconciler tick failed:', err);
+			log.error({ err }, 'reconciler tick failed');
 		});
 	}, RECONCILE_INTERVAL_MS).unref();
 }

@@ -12,7 +12,11 @@ export const API_HOST =
 		? location.hostname
 		: 'localhost';
 
-export const API_URL = `http://${API_HOST}:3000`;
+// A deployment puts the gateway behind TLS on its own subdomain, where neither
+// the scheme nor the port matches the dev layout — so VITE_API_URL wins when
+// set (see echo-client/.env.example) and the host-following default is what dev
+// and LAN testing keep using.
+export const API_URL = import.meta.env.VITE_API_URL || `http://${API_HOST}:3000`;
 
 const CLIENT_HEADER = isTauri ? 'tauri' : 'browser';
 

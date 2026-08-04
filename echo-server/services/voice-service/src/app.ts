@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
-import { logger } from 'hono/logger';
+import { requestLogger } from '@echo/shared/logger';
+import { log } from './log.js';
 import { channelsRoutes } from './routes/channels.js';
 import { messagesRoutes } from './routes/messages.js';
 import { rolesRoutes } from './routes/roles.js';
@@ -8,7 +9,7 @@ import { webhooksRoutes } from './routes/webhooks.js';
 
 export const app = new Hono();
 
-app.use('*', logger());
+app.use('*', requestLogger(log));
 // Mounted before the JWT-guarded routers: LiveKit authenticates with its own
 // signature, not a user token.
 app.route('/voice', webhooksRoutes);

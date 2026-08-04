@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { createMiddleware } from 'hono/factory';
+import { setLogContext } from '../logger.js';
 
 export interface JwtPayload {
 	userId: string;
@@ -39,6 +40,9 @@ export function authMiddleware(secret: string) {
 		}
 
 		c.set('user', payload);
+		// From here on every log line in this request carries the user, without
+		// any handler having to pass it along.
+		setLogContext({ userId: payload.userId });
 		await next();
 	});
 }

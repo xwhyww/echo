@@ -4,6 +4,7 @@ import { config } from './config.js';
 import { createDb } from './db/index.js';
 import { initNats } from './nats.js';
 import { bootstrapCaches, startCacheReconciler } from './bootstrap.js';
+import { log } from './log.js';
 
 const db = createDb(config.databaseUrl);
 
@@ -14,16 +15,16 @@ const db = createDb(config.databaseUrl);
 	try {
 		await bootstrapCaches(db);
 	} catch (err) {
-		console.error('[pers-chats-service] bootstrap failed:', err);
+		log.error({ err }, 'bootstrap failed');
 	}
 
 	initNats(config.natsUrl, db).catch((err) => {
-		console.warn('[pers-chats-service] NATS unavailable, event sync disabled:', err.message);
+		log.warn({ err }, 'NATS unavailable, event sync disabled');
 	});
 })();
 
 startCacheReconciler(db);
 
 serve({ fetch: app.fetch, port: config.port }, (info) => {
-	console.log(`[pers-chats-service] running on http://localhost:${info.port}`);
+	log.info({ port: info.port }, 'listening');
 });

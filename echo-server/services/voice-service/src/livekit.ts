@@ -1,5 +1,6 @@
 import { AccessToken, RoomServiceClient, TrackSource } from 'livekit-server-sdk';
 import { config } from './config.js';
+import { log } from './log.js';
 
 const TOKEN_TTL_SECONDS = 5 * 60;
 
@@ -112,7 +113,7 @@ export async function deleteRoom(channelId: string): Promise<void> {
 	try {
 		await roomService().deleteRoom(roomName(channelId));
 	} catch (err) {
-		console.warn('[voice] deleteRoom failed for', channelId, err);
+		log.warn({ channelId, err }, 'deleteRoom failed for');
 	}
 }
 
@@ -185,7 +186,7 @@ export async function listActiveParticipants(channelIds: string[]): Promise<Map<
 	} catch (err) {
 		// LiveKit may be unreachable (e.g. dev without docker up). Don't fail the
 		// channel list — degrade gracefully to "no participants reported."
-		console.warn('[voice] listRooms failed:', err);
+		log.warn({ err }, 'listRooms failed');
 		return result;
 	}
 
@@ -198,7 +199,7 @@ export async function listActiveParticipants(channelIds: string[]): Promise<Map<
 				const channelId = r.name.slice(ROOM_PREFIX.length);
 				result.set(channelId, participants.map(participantStateFrom));
 			} catch (err) {
-				console.warn('[voice] listParticipants failed for', r.name, err);
+				log.warn({ name: r.name, err }, 'listParticipants failed for');
 			}
 		}),
 	);

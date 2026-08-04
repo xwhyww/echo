@@ -1,0 +1,95 @@
+# Caddy obtains and renews Let's Encrypt certificates for all three names by
+# itself; the only prerequisite is that each A record already points at this
+# server and ports 80/443 are open. Certificates live in the caddy-data volume,
+# so keep that volume across redeploys or you will re-issue on every boot and
+# hit Let's Encrypt's rate limit.
+
+{
+	email {$ACME_EMAIL}
+}
+
+# The web client: a static SvelteKit build (adapter-static), uploaded to
+# ./client-dist on the server rather than baked into an image, so shipping a
+# frontend change is an rsync and not a rebuild.
+#
+# try_files falls back to index.html because the build prerenders only the
+# static routes — /user/xyz and /chats/perschat/xyz have no file on disk, and
+# with ssr off the shell is what routes them client-side.
+{$APP_DOMAIN} {
+	encode zstd gzip
+	root * /srv/client
+
+	# Hashed asset filenames never change contents, so they can be cached hard.
+	@immutable path /_app/immutable/*
+	header @immutable Cache-Control "public, max-age=31536000, immutable"
+	# Everything else must revalidate, or a deploy leaves stale shells behind.
+	header Cache-Control "no-cache"
+
+	try_files {path} {path}/ /index.html
+	file_server
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}
+
+# Public API. Everything the client does over HTTP goes here; the gateway fans
+# out to the internal services.
+{$API_DOMAIN} {
+	encode zstd gzip
+
+	# Blob downloads stream video and can run long; the rest is quick JSON.
+	reverse_proxy gateway:3000 {
+		flush_interval -1
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}
+
+# WebSocket gateway. Caddy upgrades connections without any extra config; what
+# it does need is a read timeout long enough not to sever an idle socket — the
+# client's own ping keeps it alive, but a proxy timeout below that interval
+# would still cut it.
+{$WS_DOMAIN} {
+	reverse_proxy ws-gateway:3004 {
+		flush_interval -1
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}
+
+# LiveKit signalling only. Media does not pass through here — it goes straight
+# to the host's UDP 50000-50200 (and TCP 7881 as a fallback), which is why those
+# ports are published in docker-compose.prod.yml and must be open in the
+# firewall. Proxying signalling through Caddy is what gives it wss://.
+{$LIVE_DOMAIN} {
+	reverse_proxy livekit:7880 {
+		flush_interval -1
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}

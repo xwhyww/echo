@@ -9,7 +9,8 @@ import { createDb } from '../db/index.js';
 import { users, userAvatars, phoneOtps } from '../db/schema.js';
 import { config } from '../config.js';
 import { getNatsConnection } from '../nats.js';
-import { sendSms } from '../sms.js';
+import { sendVerificationCode } from '../sms.js';
+import { log } from '../log.js';
 
 const db = createDb(config.databaseUrl);
 
@@ -140,7 +141,15 @@ authRoutes.post('/otp/request', async (c) => {
 		.values({ phone, ...row })
 		.onConflictDoUpdate({ target: phoneOtps.phone, set: row });
 
-	await sendSms(phone, `Echo code: ${code}`);
+	try {
+		await sendVerificationCode(phone, code);
+	} catch (err) {
+		// The OTP row is already stored, so a retry reuses the resend cooldown
+		// rather than piling up rows. Surfaced as 502: it's the provider that
+		// failed, not the request.
+		log.error({ err, phone }, 'failed to deliver verification code');
+		return c.json({ error: 'Could not send the code. Try again in a moment.' }, 502);
+	}
 
 	return c.json({
 		ok: true,

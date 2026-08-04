@@ -12,6 +12,7 @@ import {
 	publishVoiceChannelMessagePinned, publishVoiceChannelMessageUnpinned,
 	publishVoiceChannelMessageReaction, publishVoiceChannelRead,
 } from '../nats.js';
+import { log } from '../log.js';
 
 const db = createDb(config.databaseUrl);
 export const messagesRoutes = new Hono<AuthEnv>();
@@ -49,9 +50,9 @@ async function addGroupGrants(hashes: string[], groupId: string, token: string):
 			headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
 			body: JSON.stringify({ scopeType: 'group', scopeId: groupId, hashes }),
 		});
-		if (!r.ok) console.error(`[voice] addGroupGrants failed: ${r.status} for group ${groupId}`);
+		if (!r.ok) log.error({ status: r.status, groupId }, 'addGroupGrants failed');
 	} catch (err) {
-		console.error('[voice] addGroupGrants threw:', err);
+		log.error({ err }, 'addGroupGrants threw');
 	}
 }
 

@@ -4,6 +4,7 @@ import { createDb } from './db/index.js';
 import { voiceChannels, groupMembersMirror, userCache } from './db/schema.js';
 import { config } from './config.js';
 import { publishVoiceParticipant } from './nats.js';
+import { log } from './log.js';
 
 const db = createDb(config.databaseUrl);
 
@@ -90,7 +91,7 @@ export async function fanOutParticipantEvent(opts: {
 	};
 
 	await publishVoiceParticipant(event).catch((err) => {
-		console.warn('[voice] publishVoiceParticipant failed:', err);
+		log.warn({ err }, 'publishVoiceParticipant failed');
 	});
 
 	return true;

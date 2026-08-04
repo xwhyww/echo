@@ -16,6 +16,7 @@ import { ensureConsumer, SUBJECTS, type DmMessageEvent, type DmMessageEditedEven
 } from '@echo/shared';
 import { sendToUser, setUserPrivacy, addFriendPair, removeFriendPair } from './connections.js';
 import { getNatsConnection } from './nats.js';
+import { log } from './log.js';
 
 function fanout(targets: string[], event: Parameters<typeof sendToUser>[1]): void {
 	for (const id of targets) sendToUser(id, event);
@@ -24,7 +25,7 @@ function fanout(targets: string[], event: Parameters<typeof sendToUser>[1]): voi
 export async function startNatsSubscriber(): Promise<void> {
 	const nc = getNatsConnection();
 	if (!nc) {
-		console.warn('[ws-gateway] NATS not available, event delivery disabled');
+		log.warn('NATS not available, event delivery disabled');
 		return;
 	}
 
@@ -43,7 +44,7 @@ export async function startNatsSubscriber(): Promise<void> {
 			try {
 				if (msg.subject === SUBJECTS.DM_MESSAGE) {
 					const event: DmMessageEvent = JSON.parse(msg.string());
-					console.log('[ws-gateway] dm relay forwardedFrom:', JSON.stringify((event.message as any).forwardedFrom));
+					log.debug({ forwardedFrom: (event.message as any).forwardedFrom }, 'dm relay forwardedFrom');
 					sendToUser(event.targetUserId, {
 						type: 'dm',
 						chatId: event.chatId,
@@ -103,7 +104,7 @@ export async function startNatsSubscriber(): Promise<void> {
 				}
 				msg.ack();
 			} catch (err) {
-				console.error('[ws-gateway] Error processing DM event:', err);
+				log.error({ err }, 'Error processing DM event');
 				msg.nak();
 			}
 		}
@@ -134,7 +135,7 @@ export async function startNatsSubscriber(): Promise<void> {
 				}
 				msg.ack();
 			} catch (err) {
-				console.error('[ws-gateway] Error processing friend event:', err);
+				log.error({ err }, 'Error processing friend event');
 				msg.nak();
 			}
 		}
@@ -153,7 +154,7 @@ export async function startNatsSubscriber(): Promise<void> {
 				}
 				msg.ack();
 			} catch (err) {
-				console.error('[ws-gateway] Error processing user event:', err);
+				log.error({ err }, 'Error processing user event');
 				msg.nak();
 			}
 		}
@@ -243,7 +244,7 @@ export async function startNatsSubscriber(): Promise<void> {
 				}
 				msg.ack();
 			} catch (err) {
-				console.error('[ws-gateway] Error processing group event:', err);
+				log.error({ err }, 'Error processing group event');
 				msg.nak();
 			}
 		}
@@ -430,11 +431,11 @@ export async function startNatsSubscriber(): Promise<void> {
 				}
 				msg.ack();
 			} catch (err) {
-				console.error('[ws-gateway] Error processing voice event:', err);
+				log.error({ err }, 'Error processing voice event');
 				msg.nak();
 			}
 		}
 	})();
 
-	console.log('[ws-gateway] NATS event subscribers active');
+	log.info('NATS event subscribers active');
 }

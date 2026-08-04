@@ -1,0 +1,327 @@
+# Production stack. Standalone — do NOT combine it with the dev
+# docker-compose.yml: that one publishes Postgres, Redis, NATS and MinIO to the
+# host, and compose merges `ports` by appending, so an override cannot take
+# them back off. Everything here talks over the internal network and only Caddy
+# and LiveKit's media ports face the internet.
+#
+#   cd echo-server/deploy
+#   cp .env.prod.example .env && $EDITOR .env
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# See README.md for the full runbook.
+
+name: echo
+
+x-service: &service
+  restart: unless-stopped
+  # Without a cap, JSON logs fill the disk and take Postgres down with them.
+  # 3x50MB per container; ship them off the box (Loki/Promtail) if you want
+  # more history than that.
+  logging:
+    driver: json-file
+    options:
+      max-size: "50m"
+      max-file: "3"
+
+x-app: &app
+  <<: *service
+  build:
+    context: ..
+  environment: &app-env
+    NODE_ENV: production
+    LOG_LEVEL: ${LOG_LEVEL:-info}
+    JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+    INTERNAL_API_KEY: ${INTERNAL_API_KEY:?set INTERNAL_API_KEY in .env}
+    NATS_URL: nats://nats:4222
+    REDIS_URL: redis://redis:6379
+
+services:
+  caddy:
+    <<: *service
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # The built web client, uploaded separately (see README). Missing on a
+      # first deploy is fine — the API still serves, app.* just 404s.
+      - ./client-dist:/srv/client:ro
+      - caddy-data:/data      # ACME account + issued certificates — persist this
+      - caddy-config:/config
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?set APP_DOMAIN in .env}
+      API_DOMAIN: ${API_DOMAIN:?set API_DOMAIN in .env}
+      WS_DOMAIN: ${WS_DOMAIN:?set WS_DOMAIN in .env}
+      LIVE_DOMAIN: ${LIVE_DOMAIN:?set LIVE_DOMAIN in .env}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in .env}
+    depends_on:
+      - gateway
+      - ws-gateway
+      - livekit
+
+  postgres:
+    <<: *service
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-echo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../scripts/init-dbs.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-echo}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  nats:
+    <<: *service
+    image: nats:2-alpine
+    command: ["--jetstream", "--store_dir", "/data"]
+    volumes:
+      - natsdata:/data
+
+  redis:
+    <<: *service
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "60", "1", "--appendonly", "no"]
+    volumes:
+      - redisdata:/data
+
+  livekit:
+    <<: *service
+    image: livekit/livekit-server:latest
+    ports:
+      # Signalling (7880) goes through Caddy on LIVE_DOMAIN so it gets TLS.
+      # Media cannot: WebRTC needs UDP straight to the host, and 7881 is the
+      # TCP fallback for clients whose network blocks UDP. Both must be open
+      # in the VPS firewall.
+      - "7881:7881"
+      - "50000-50200:50000-50200/udp"
+    environment:
+      # Config comes in as YAML on an env var, the same way the dev stack does
+      # it — compose interpolates ${...} here, which a mounted config file
+      # would not get. Note the absence of `--dev`: that flag installs a
+      # well-known insecure key.
+      LIVEKIT_CONFIG: |
+        port: 7880
+        bind_addresses:
+          - 0.0.0.0
+        rtc:
+          # Must stay in step with the published UDP range above.
+          port_range_start: 50000
+          port_range_end: 50200
+          # TCP fallback for clients whose network blocks UDP (corporate wifi,
+          # some mobile carriers). Without it those users connect and then hear
+          # nothing at all.
+          tcp_port: 7881
+          # The container's own IP is not reachable from a browser, so LiveKit
+          # has to discover and advertise the host's public address in its ICE
+          # candidates instead.
+          use_external_ip: true
+        keys:
+          ${LIVEKIT_API_KEY}: ${LIVEKIT_API_SECRET}
+        webhook:
+          api_key: ${LIVEKIT_API_KEY}
+          urls:
+            # Lets LiveKit report participants who vanished without saying
+            # goodbye (closed tab, dead network) so voice-service can clear
+            # their presence instead of leaving them shown as "in call".
+            - http://voice:3008/voice/webhooks/livekit
+        logging:
+          level: info
+          json: true
+
+  gateway:
+    <<: *app
+    build:
+      context: ..
+      args:
+        SERVICE: gateway
+    environment:
+      <<: *app-env
+      PORT: 3000
+      # Exact web origins allowed to call the API with credentials. The
+      # localhost/LAN allowances in gateway/src/app.ts are dev-only and go away
+      # under NODE_ENV=production.
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:?set ALLOWED_ORIGINS in .env}
+      AUTH_SERVICE_URL: http://auth:3001
+      USER_SERVICE_URL: http://user:3002
+      PERS_CHATS_SERVICE_URL: http://pers-chats:3003
+      FRIENDS_SERVICE_URL: http://friends:3005
+      BLOB_SERVICE_URL: http://blobs:3006
+      GROUPS_SERVICE_URL: http://groups:3007
+      VOICE_SERVICE_URL: http://voice:3008
+      # Handed to clients by GET /ws-info, so it must be the public wss:// URL.
+      WS_GATEWAY_URL: wss://${WS_DOMAIN}
+    depends_on: [auth, user, pers-chats, friends, ws-gateway, blobs, groups, voice]
+
+  auth:
+    <<: *app
+    build:
+      context: ..
+      args:
+        SERVICE: auth-service
+    environment:
+      <<: *app-env
+      PORT: 3001
+      DATABASE_URL: postgresql://${POSTGRES_USER:-echo}:${POSTGRES_PASSWORD}@postgres:5432/echo_auth
+      BLOB_SERVICE_URL: http://blobs:3006
+      # See services/auth-service/src/sms.ts. Leaving SMS_DRIVER unset means
+      # `log`, which writes sign-in codes to the log — fine to start with, not
+      # something to leave running once real users exist.
+      SMS_DRIVER: ${SMS_DRIVER:-log}
+      SMS_FALLBACK_DRIVER: ${SMS_FALLBACK_DRIVER:-}
+      SMS_TEMPLATE: ${SMS_TEMPLATE:-}
+      SMSC_LOGIN: ${SMSC_LOGIN:-}
+      SMSC_PASSWORD: ${SMSC_PASSWORD:-}
+      SMSC_SENDER: ${SMSC_SENDER:-}
+      TELEGRAM_GATEWAY_TOKEN: ${TELEGRAM_GATEWAY_TOKEN:-}
+    depends_on:
+      postgres: { condition: service_healthy }
+      nats: { condition: service_started }
+
+  user:
+    <<: *app
+    build:
+      context: ..
+      args:
+        SERVICE: user-service
+    environment:
+      <<: *app-env
+      PORT: 3002
+      DATABASE_URL: postgresql://${POSTGRES_USER:-echo}:${POSTGRES_PASSWORD}@postgres:5432/echo_users
+      FRIENDS_SERVICE_URL: http://friends:3005
+    depends_on:
+      postgres: { condition: service_healthy }
+      nats: { condition: service_started }
+
+  pers-chats:
+    <<: *app
+    build:
+      context: ..
+      args:
+        SERVICE: pers-chats-service
+    environment:
+      <<: *app-env
+      PORT: 3003
+      DATABASE_URL: postgresql://${POSTGRES_USER:-echo}:${POSTGRES_PASSWORD}@postgres:5432/echo_chats
+      USER_SERVICE_URL: http://user:3002
+      FRIENDS_SERVICE_URL: http://friends:3005
+      BLOB_SERVICE_URL: http://blobs:3006
+      # Losing this key means losing every encrypted message. Back it up
+      # somewhere that is not this server.
+      MESSAGE_ENCRYPTION_KEY: ${MESSAGE_ENCRYPTION_KEY:?set MESSAGE_ENCRYPTION_KEY in .env}
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_started }
+      nats: { condition: service_started }
+
+  friends:
+    <<: *app
+    build:
+      context: ..
+      args:
+        SERVICE: friends-service
+    environment:
+      <<: *app-env
+      PORT: 3005
+      DATABASE_URL: postgresql://${POSTGRES_USER:-echo}:${POSTGRES_PASSWORD}@postgres:5432/echo_friends
+    depends_on:
+      postgres: { condition: service_healthy }
+      nats: { condition: service_started }
+
+  ws-gateway:
+    <<: *app
+    build:
+      context: ..
+      args:
+        SERVICE: ws-gateway
+    environment:
+      <<: *app-env
+      PORT: 3004
+      USER_SERVICE_URL: http://user:3002
+      FRIENDS_SERVICE_URL: http://friends:3005
+    depends_on:
+      redis: { condition: service_started }
+      nats: { condition: service_started }
+
+  blobs:
+    <<: *app
+    build:
+      context: ..
+      args:
+        SERVICE: blob-service
+    environment:
+      <<: *app-env
+      PORT: 3006
+      DATABASE_URL: postgresql://${POSTGRES_USER:-echo}:${POSTGRES_PASSWORD}@postgres:5432/echo_blobs
+      PERS_CHATS_SERVICE_URL: http://pers-chats:3003
+      GROUPS_SERVICE_URL: http://groups:3007
+      # Yandex Object Storage. The bucket must already exist — the service
+      # account key has no CreateBucket right, and ensureBucket() logs that and
+      # carries on (see blob-service/src/storage.ts).
+      STORAGE_DRIVER: s3
+      S3_ENDPOINT: ${S3_ENDPOINT:-https://storage.yandexcloud.net}
+      S3_REGION: ${S3_REGION:-ru-central1}
+      S3_BUCKET: ${S3_BUCKET:?set S3_BUCKET in .env}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?set S3_ACCESS_KEY in .env}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?set S3_SECRET_KEY in .env}
+      # Yandex serves virtual-host style (bucket.storage.yandexcloud.net);
+      # path-style is a MinIO requirement, not a general one.
+      S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-false}
+    depends_on:
+      postgres: { condition: service_healthy }
+      nats: { condition: service_started }
+
+  groups:
+    <<: *app
+    build:
+      context: ..
+      args:
+        SERVICE: groups-service
+    environment:
+      <<: *app-env
+      PORT: 3007
+      DATABASE_URL: postgresql://${POSTGRES_USER:-echo}:${POSTGRES_PASSWORD}@postgres:5432/echo_groups
+      GROUPS_DATABASE_URL: postgresql://${POSTGRES_USER:-echo}:${POSTGRES_PASSWORD}@postgres:5432/echo_groups
+      USER_SERVICE_URL: http://user:3002
+      FRIENDS_SERVICE_URL: http://friends:3005
+      BLOB_SERVICE_URL: http://blobs:3006
+    depends_on:
+      postgres: { condition: service_healthy }
+      nats: { condition: service_started }
+
+  voice:
+    <<: *app
+    build:
+      context: ..
+      args:
+        SERVICE: voice-service
+    environment:
+      <<: *app-env
+      PORT: 3008
+      DATABASE_URL: postgresql://${POSTGRES_USER:-echo}:${POSTGRES_PASSWORD}@postgres:5432/echo_voice
+      USER_SERVICE_URL: http://user:3002
+      GROUPS_SERVICE_URL: http://groups:3007
+      BLOB_SERVICE_URL: http://blobs:3006
+      LIVEKIT_URL: ws://livekit:7880
+      # Handed to browsers in the join token response, so it must be the
+      # TLS-terminated public URL, not the internal one.
+      LIVEKIT_PUBLIC_URL: wss://${LIVE_DOMAIN}
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:?set LIVEKIT_API_KEY in .env}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:?set LIVEKIT_API_SECRET in .env}
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_started }
+      nats: { condition: service_started }
+      livekit: { condition: service_started }
+
+volumes:
+  pgdata:
+  natsdata:
+  redisdata:
+  caddy-data:
+  caddy-config:
