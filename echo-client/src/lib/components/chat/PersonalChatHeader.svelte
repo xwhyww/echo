@@ -75,7 +75,7 @@
 		@include chat-header-overlay;
 		gap: var(--sp-3);
 		cursor: pointer;
-		padding-top: 20px;
+		padding: var(--safe-top) var(--sp-2) 0;
 	}
 
 	.chat-header-back,

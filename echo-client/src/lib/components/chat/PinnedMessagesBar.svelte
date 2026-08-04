@@ -124,7 +124,7 @@
 		display: flex;
 		align-items: center;
 		gap: var(--sp-3);
-		padding: var(--sp-2) var(--sp-4);
+		padding: var(--sp-1) var(--sp-3);
 
 		border-radius: 32px;
 		background: var(--c-bg-2);

@@ -57,9 +57,10 @@
 		});
 	});
 
+	// No focus on mount: opening a chat must not raise the keyboard on mobile or
+	// steal focus from wherever the user actually is.
 	onMount(() => {
 		editor.render(value);
-		editor.focus();
 	});
 
 	function onEditorInput() {

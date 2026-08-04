@@ -34,7 +34,7 @@
 		background: transparent;
 		position: absolute;
 		width: 100%;
-		top: 10px;
+		top: 0;
 		right: 0;
 	}
 

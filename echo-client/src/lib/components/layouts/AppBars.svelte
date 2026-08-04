@@ -59,10 +59,10 @@
 	}
 
 	.doc-top {
-		top: var(--header-h-padding-l);
+		top: var(--header-h-padding-m);
 	}
 	
 	.doc-bottom {
-		bottom: var(--footer-h-padding-l);
+		bottom: var(--footer-h-padding-xl);
 	}
 </style>

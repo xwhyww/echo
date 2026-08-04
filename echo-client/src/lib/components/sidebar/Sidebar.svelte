@@ -108,7 +108,7 @@
 			height: calc(var(--bottom-nav-h) + var(--safe-bottom) + 12px);
 			flex-direction: row;
 			position: absolute;
-			bottom: 10px;
+			bottom: 0;
 			left: 8px;
 			/* Float above .main-content — it's position:relative and later in
 			   the DOM, so without this the page overlays the bar and eats
@@ -205,7 +205,6 @@
 
 		@include glass;
 		border-radius: 50%;
-		padding: var(--sp-2);
 	}
 
 	.tab-icon {

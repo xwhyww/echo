@@ -89,7 +89,7 @@
 		 * to fill the width it's given. */
 		display: flex;
 		flex-direction: column;
-		padding: var(--sp-4) var(--sp-4);
+		padding: var(--sp-2) var(--sp-2);
 
 		position: relative;
 		width: 100%;
