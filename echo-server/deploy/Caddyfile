@@ -3,7 +3,6 @@
 # server and ports 80/443 are open. Certificates live in the caddy-data volume,
 # so keep that volume across redeploys or you will re-issue on every boot and
 # hit Let's Encrypt's rate limit.
-
 {
 	email {$ACME_EMAIL}
 }

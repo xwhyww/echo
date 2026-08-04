@@ -1,0 +1,27 @@
+# Testing overlay: exposes the HTTP and WebSocket entry points on the server's
+# loopback interface so they can be reached through an SSH tunnel.
+#
+#   docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml up -d
+#   ssh -L 3000:127.0.0.1:3000 -L 3004:127.0.0.1:3004 root@<server>
+#
+# With that tunnel open, a locally running client needs no configuration at all:
+# its default endpoints are already localhost:3000 and localhost:3004, so the
+# dev server talks to the deployed stack instead of a local one.
+#
+# The 127.0.0.1 prefix is the whole point — without it Docker publishes to
+# 0.0.0.0 and, because Docker writes its own iptables rules ahead of ufw, the
+# API would be reachable from the internet over plain HTTP regardless of the
+# firewall.
+#
+# Drop this overlay once DNS resolves and the client can reach the stack over
+# TLS through Caddy; keeping it costs nothing but leaves a second, unencrypted
+# path into the API.
+
+services:
+  gateway:
+    ports:
+      - "127.0.0.1:3000:3000"
+
+  ws-gateway:
+    ports:
+      - "127.0.0.1:3004:3004"
