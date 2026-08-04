@@ -48,7 +48,8 @@ export const routes = {
 	user: (id: string) => `/user/${id}`,
 } as const;
 
-export const HOME = routes.chats.root;
+/** Where `/` sends you, and where signing in lands: the personal chat list. */
+export const HOME = routes.chats.list('personal');
 export const PUBLIC_PAGES: string[] = [routes.login, routes.register, '/ui'];
 
 /**
