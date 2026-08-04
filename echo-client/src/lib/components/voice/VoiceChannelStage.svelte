@@ -22,7 +22,7 @@
 <div class="vc-page">
 	<div class="vc-header">
 		<button class="back-btn body-sm text-muted" onclick={voice.back}>
-			<ArrowLeft size={18} />
+			<ArrowLeft size={20} />
 			<span>{t.voice.backToChannels}</span>
 		</button>
 		{#if voice.showQuality}

@@ -22,17 +22,17 @@
 {#if link}
 	<div class="invite-link-row">
 		<div class="invite-link body-sm">
-			<Link2 size={14} />
+			<Link2 size={16} />
 			<span>{link}</span>
 		</div>
 		<div class="invite-link-actions">
 			<Button variant="ghost" onclick={oncopy}>
-				{#if copied}<Check size={14} />{t.groupSettings.copied}
-				{:else}<Copy size={14} />{t.common.copy}{/if}
+				{#if copied}<Check size={16} />{t.groupSettings.copied}
+				{:else}<Copy size={16} />{t.common.copy}{/if}
 			</Button>
 			{#if canRegenerate}
 				<Button variant="ghost" disabled={regenerating} onclick={onregenerate}>
-					<RefreshCw size={14} />
+					<RefreshCw size={16} />
 					{regenerating ? '...' : t.groupSettings.regenerate}
 				</Button>
 			{/if}
@@ -42,7 +42,7 @@
 	<p class="body-sm text-faint">{t.groupSettings.noInviteLink}</p>
 	{#if canRegenerate}
 		<Button variant="primary" disabled={regenerating} onclick={onregenerate}>
-			<Link2 size={14} />
+			<Link2 size={16} />
 			{t.groupSettings.createLink}
 		</Button>
 	{/if}

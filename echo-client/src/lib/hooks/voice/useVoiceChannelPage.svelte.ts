@@ -4,6 +4,7 @@ import { goto } from '$app/navigation';
 import { voiceClient, ConnectionState } from '$lib/stores/voiceClient.svelte.js';
 import { ws } from '$lib/stores/ws.svelte.js';
 import { i18n } from '$lib/i18n/i18n.svelte.js';
+import { routes } from '$lib/routes.js';
 import type { VoiceParticipant } from '$lib/stores/voiceClient.svelte.js';
 
 /**
@@ -16,15 +17,7 @@ export function useVoiceChannelPage() {
 
 	const groupId = $derived(page.params.id!);
 	const channelId = $derived(page.params.channelId!);
-	// Mounted under /chats/groups/... and (via a thin import shell) under
-	// /chats/allchats/... — hardcoded back-links would yank people out of the
-	// hierarchy they arrived through, so read the prefix and stay inside it.
-	const basePath = $derived(
-		page.url.pathname.startsWith('/chats/allchats/')
-			? '/chats/allchats/groups'
-			: '/chats/groups',
-	);
-	const channelsHref = $derived(`${basePath}/${groupId}/voice`);
+	const channelsHref = $derived(routes.chats.groupVoice(groupId));
 
 	let error = $state<string | null>(null);
 	let chatOpen = $state(false);

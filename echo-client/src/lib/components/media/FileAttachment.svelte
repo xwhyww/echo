@@ -67,7 +67,7 @@
 		<span class="card-name body-xs">{filename}</span>
 		<span class="body-xs text-faint">{formatSize(size)}</span>
 	{:else}
-		<FileText size={16} />
+		<FileText size={18} />
 		<span class="info">
 			<span class="file-name body-xs fw-medium">{filename}</span>
 			<span class="file-size body-xs">{formatSize(size)}{hint ? ` · ${hint}` : ''}</span>

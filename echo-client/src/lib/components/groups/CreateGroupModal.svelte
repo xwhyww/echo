@@ -57,7 +57,7 @@
 			oninput={form.onQueryInput}
 			placeholder={t.groupsPage.searchPlaceholder}
 		>
-			{#snippet icon()}<Search size={14} />{/snippet}
+			{#snippet icon()}<Search size={16} />{/snippet}
 		</Input>
 
 		{#if form.selected.length > 0}

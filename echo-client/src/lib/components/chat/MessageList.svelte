@@ -50,7 +50,7 @@
 		hidden = false,
 		pinnedToBottom,
 		unread = 0,
-		jumpButtonBottom = '64px',
+		jumpButtonBottom = '74px',
 		selection,
 		onscroll,
 		onjumptobottom,

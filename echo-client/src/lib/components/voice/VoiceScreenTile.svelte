@@ -58,7 +58,7 @@
 			aria-label={t.voice.screenTile.backToAll}
 			title={t.voice.screenTile.backToAll}
 		>
-			<ArrowLeft size={16} />
+			<ArrowLeft size={18} />
 			<span>{t.common.back}</span>
 		</button>
 	{/if}
@@ -71,9 +71,9 @@
 		title={fullscreen.active ? t.voice.screenTile.exitFullscreen : t.voice.screenTile.fullscreen}
 	>
 		{#if fullscreen.active}
-			<Minimize size={16} />
+			<Minimize size={18} />
 		{:else}
-			<Maximize size={16} />
+			<Maximize size={18} />
 		{/if}
 	</button>
 

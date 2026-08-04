@@ -20,12 +20,12 @@
 			download={item.attachment.filename}
 			target="_blank"
 		>
-			<FileText size={18} />
+			<FileText size={20} />
 			<span class="file-info">
 				<span class="file-name body-sm">{item.attachment.filename}</span>
 				<span class="body-xs">{formatSize(item.attachment.size)}</span>
 			</span>
-			<Download size={16} />
+			<Download size={18} />
 		</a>
 	{/each}
 </div>

@@ -23,7 +23,7 @@
 	{#snippet actions()}
 		<div class="delete-choices">
 			<Button variant="danger" onclick={() => ondelete('for_everyone')}>
-				<Trash2 size={14} />
+				<Trash2 size={16} />
 				{t.chat.deleteForEveryone}
 			</Button>
 			<Button variant="secondary" onclick={() => ondelete('for_me')}>

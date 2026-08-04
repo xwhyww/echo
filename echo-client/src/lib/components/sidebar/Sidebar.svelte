@@ -11,13 +11,15 @@
 
 	const t = $derived(i18n.t);
 
-	// Friends is a tab like the other three — it only looks different because
-	// it carries a count. Listing it here is also what makes the pill's "is the
-	// active route even on this bar" check a question about `tabs`.
+	// The first three tabs all lead to the same chat list — they only set the
+	// filter it reads off the query. Friends is a tab like them, it only looks
+	// different because it carries a count. Listing it here is also what makes
+	// the pill's "is the active route even on this bar" check a question about
+	// `tabs`.
 	const tabs = $derived([
-		{ id: 'pc', path: routes.chats.perschat, icon: User, title: t.nav.personalChats, badge: 0 },
-		{ id: 'gr', path: routes.chats.groups, icon: Users, title: t.nav.groups, badge: 0 },
-		{ id: 'ac', path: routes.chats.allchats, icon: MessagesSquare, title: t.nav.allChats, badge: 0 },
+		{ id: 'pc', path: routes.chats.list('personal'), icon: User, title: t.nav.personalChats, badge: 0 },
+		{ id: 'gr', path: routes.chats.list('groups'), icon: Users, title: t.nav.groups, badge: 0 },
+		{ id: 'ac', path: routes.chats.list(), icon: MessagesSquare, title: t.nav.allChats, badge: 0 },
 		{
 			id: 'friends',
 			path: routes.friends.root,
@@ -62,7 +64,7 @@
 					title={tab.title}
 				>
 					<span class="tab-icon">
-						<Icon size={14} />
+						<Icon size={20} />
 						{#if tab.badge > 0}
 							<span class="tab-badge body-xxs fw-semibold lh-none text-inverse">{tab.badge}</span>
 						{/if}
@@ -103,7 +105,7 @@
 	@media (max-width: 767px) {
 		.sidebar {
 			width: calc(100% - 16px);
-			height: calc(var(--bottom-nav-h) + var(--safe-bottom));
+			height: calc(var(--bottom-nav-h) + var(--safe-bottom) + 12px);
 			flex-direction: row;
 			position: absolute;
 			bottom: 10px;
@@ -187,7 +189,7 @@
 
 	.tab-btn {
 		width: 100%;
-		height: 30px;
+		height: 50px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -203,7 +205,7 @@
 
 		@include glass;
 		border-radius: 50%;
-		padding: 6px;
+		padding: var(--sp-2);
 	}
 
 	.tab-icon {

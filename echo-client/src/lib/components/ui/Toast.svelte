@@ -21,7 +21,7 @@
 	<div class="progress" style:scale="{countdown.progress} 1"></div>
 	<span class="message body-sm text-default">{message}</span>
 	<button class="close text-muted" onclick={onclose} aria-label={t.common.close}>
-		<X size={16} />
+		<X size={18} />
 	</button>
 </div>
 

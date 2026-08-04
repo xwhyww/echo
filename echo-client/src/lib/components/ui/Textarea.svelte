@@ -61,7 +61,7 @@
 		flex: 1;
 		width: 100%;
 		min-width: 0;
-		padding: var(--sp-2) var(--sp-3);
+		padding: var(--sp-3) var(--sp-4);
 		border-radius: var(--radius-md);
 		background: var(--c-bg-3);
 		resize: none;

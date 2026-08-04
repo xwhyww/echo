@@ -104,7 +104,7 @@
 		</p>
 
 		{#if loading}
-			<p class="acc-hint body-sm text-faint"><Loader size={12} /> {t.common.loading}</p>
+			<p class="acc-hint body-sm text-faint"><Loader size={14} /> {t.common.loading}</p>
 		{:else if loadError}
 			<p class="acc-error body-sm text-error">{loadError}</p>
 		{:else if roles.length === 0}

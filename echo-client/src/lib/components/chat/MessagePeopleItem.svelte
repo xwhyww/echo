@@ -39,18 +39,18 @@
 	onfocus={popup.show}
 	onblur={popup.hide}
 >
-	<TriggerIcon size={14} />
+	<TriggerIcon size={16} />
 	{#if rows.length === 1}
 		<span class="people-label">
 			{rows[0].name}
-			{#if rows[0].emoji}<AppleEmoji emoji={rows[0].emoji} size={14} />{/if}
+			{#if rows[0].emoji}<AppleEmoji emoji={rows[0].emoji} size={16} />{/if}
 		</span>
 		<span class="people-time-inline body-xs text-muted">
 			{formatSeenAt(rows[0].at, t.chat.yesterdayAt)}
 		</span>
 	{:else}
 		<span class="people-label">{countLabel}</span>
-		<ChevronRight size={14} class="people-chevron" />
+		<ChevronRight size={16} class="people-chevron" />
 	{/if}
 </button>
 

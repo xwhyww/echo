@@ -50,7 +50,7 @@
 				<span class="people-time body-xs text-muted">{formatSeenAt(row.at, t.chat.yesterdayAt)}</span>
 			</span>
 			{#if row.emoji}
-				<span class="people-emoji"><AppleEmoji emoji={row.emoji} size={18} /></span>
+				<span class="people-emoji"><AppleEmoji emoji={row.emoji} size={20} /></span>
 			{/if}
 		</button>
 	{/each}

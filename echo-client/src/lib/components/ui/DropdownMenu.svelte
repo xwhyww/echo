@@ -18,7 +18,7 @@
 
 <div class="menu-wrap">
 	<button class="menu-btn text-muted" onclick={ontoggle} aria-label={label} aria-expanded={open}>
-		<MoreVertical size={16} />
+		<MoreVertical size={18} />
 	</button>
 	{#if open}
 		<!-- svelte-ignore a11y_click_events_have_key_events -->

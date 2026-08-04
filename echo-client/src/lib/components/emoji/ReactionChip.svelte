@@ -27,7 +27,7 @@
 	onclick={(e) => { e.stopPropagation(); onreact?.(emoji); }}
 	title={`${count} ${count === 1 ? 'reaction' : 'reactions'}`}
 >
-	<div class="reaction-emoji"><AppleEmoji {emoji} size={14} /></div>
+	<div class="reaction-emoji"><AppleEmoji {emoji} size={16} /></div>
 	{#if withCounter}
 		<span class="reaction-count">{count}</span>
 	{:else if reactorLookup}
@@ -35,7 +35,7 @@
 			{#each userIds.slice(0, 2) as uid (uid)}
 				{@const u = reactorLookup(uid)}
 				{#if u}
-					<Avatar name={u.name} avatarUrl={u.avatarUrl} size={16} />
+					<Avatar name={u.name} avatarUrl={u.avatarUrl} size={18} />
 				{/if}
 			{/each}
 		</span>

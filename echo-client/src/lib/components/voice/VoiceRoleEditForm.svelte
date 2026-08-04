@@ -93,7 +93,7 @@
 				onchange={() => (permissions = togglePermission(permissions, p.bit))}
 				disabled={saving}
 			>
-				{#snippet icon()}<PermIcon size={13} />{/snippet}
+				{#snippet icon()}<PermIcon size={15} />{/snippet}
 				{p.label}
 			</Checkbox>
 		{/each}

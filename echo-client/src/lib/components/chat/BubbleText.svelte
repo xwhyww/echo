@@ -18,7 +18,7 @@
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <span
-  class="bubble-text body-xs"
+  class="bubble-text body-sm"
   class:own
   {oncontextmenu}
 >

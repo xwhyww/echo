@@ -3,6 +3,7 @@
 	import SidebarVoiceAccordion from '$lib/components/sidebar/SidebarVoiceAccordion.svelte';
 	import { ChevronRight, ChevronDown } from 'lucide-svelte';
 	import { gotoKeepSearch, lastMessageLabel, lastMessageIcon } from '$lib/utils.js';
+	import { routes } from '$lib/routes.js';
 	import { authorPrefix } from '$lib/utils/groupRow.js';
 	import { auth } from '$lib/stores/auth.svelte.js';
 	import { useSidebarVoiceChannels } from '$lib/hooks/voice/useSidebarVoiceChannels.svelte.js';
@@ -15,17 +16,11 @@
 		group: GroupListItem;
 		active: boolean;
 		subtitle?: string;
-		// Route prefix used by both the row click (navigates to `${basePath}/${id}`)
-		// and the channel-join handler (`${basePath}/${id}/voice/${channelId}`).
-		// The two sidebars use different bases — `/chats/groups` for the dedicated
-		// Groups sidebar, `/chats/allchats/groups` for the merged All Chats view —
-		// but the voice-list behaviour is identical, so we parameterise the path.
-		basePath?: string;
 	}
 
-	let { group, active, subtitle, basePath = '/chats/groups' }: Props = $props();
+	let { group, active, subtitle }: Props = $props();
 
-	const voice = useSidebarVoiceChannels(() => group.id, () => basePath);
+	const voice = useSidebarVoiceChannels(() => group.id);
 
 	// The last-message summary wins whenever there's been a message at all; the
 	// caller's `subtitle` (typically the description) only stands in for a group
@@ -58,7 +53,7 @@
 			timestamp={group.lastMessage?.createdAt ?? null}
 			messageRead={group.isLastMessageRead ?? null}
 			{active}
-			onclick={() => gotoKeepSearch(`${basePath}/${group.id}`)}
+			onclick={() => gotoKeepSearch(routes.chats.group(group.id))}
 		/>
 		<button
 			type="button"

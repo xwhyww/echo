@@ -68,19 +68,19 @@
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div class="pinned-bar" onclick={handleBarClick}>
 		<div class="pin-icon text-accent">
-			<Pin size={14} />
+			<Pin size={16} />
 		</div>
 		<div class="pinned-content">
 			<div class="pinned-label body-xs fw-semibold text-accent">
 				{t.chat.pinnedHeader(pinned.length)}
 			</div>
 			<div class="pinned-preview body-xs text-default">
-				{#if latestPreview.clip}<span class="clip text-muted"><Paperclip size={12} /></span>{/if}{latestPreview.text}
+				{#if latestPreview.clip}<span class="clip text-muted"><Paperclip size={14} /></span>{/if}{latestPreview.text}
 			</div>
 		</div>
 		{#if pinned.length > 1}
 			<div class="chevron text-muted" class:open={listOpen}>
-				<ChevronDown size={16} />
+				<ChevronDown size={18} />
 			</div>
 		{/if}
 	</div>
@@ -99,12 +99,12 @@
 								<span class="pinned-item-date body-xs text-muted">{formatDate(msg.createdAt)}</span>
 							</div>
 							<div class="pinned-item-preview body-sm text-default">
-								{#if itemPreview.clip}<span class="clip text-muted"><Paperclip size={12} /></span>{/if}{itemPreview.text}
+								{#if itemPreview.clip}<span class="clip text-muted"><Paperclip size={14} /></span>{/if}{itemPreview.text}
 							</div>
 						</div>
 						{#if onunpin}
 							<button class="pinned-item-unpin text-muted" onclick={(e) => handleUnpin(e, msg.id)} aria-label={t.chat.unpin}>
-								<X size={14} />
+								<X size={16} />
 							</button>
 						{/if}
 					</div>
@@ -124,7 +124,7 @@
 		display: flex;
 		align-items: center;
 		gap: var(--sp-3);
-		padding: var(--sp-1) var(--sp-2);
+		padding: var(--sp-2) var(--sp-4);
 
 		border-radius: 32px;
 		background: var(--c-bg-2);

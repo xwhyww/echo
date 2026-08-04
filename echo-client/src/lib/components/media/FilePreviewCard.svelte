@@ -50,7 +50,7 @@
 		<FileAttachment {horizontal} filename={name} size={itemSize(item)} />
 	{/if}
 	<button class="remove-btn" onclick={onremove} aria-label={t.chat.removeItem(name)}>
-		<X size={12} />
+		<X size={14} />
 	</button>
 </div>
 

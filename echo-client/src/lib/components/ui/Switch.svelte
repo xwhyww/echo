@@ -28,8 +28,8 @@
 	.switch {
 		position: relative;
 		flex-shrink: 0;
-		width: 38px;
-		height: 22px;
+		width: 44px;
+		height: 26px;
 		border-radius: var(--radius-full);
 		border: none;
 		background: var(--c-bg-3);
@@ -51,8 +51,8 @@
 		position: absolute;
 		top: 3px;
 		left: 3px;
-		width: 16px;
-		height: 16px;
+		width: 20px;
+		height: 20px;
 		border-radius: 50%;
 		background: var(--c-text);
 		transition:

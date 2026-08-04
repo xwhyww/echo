@@ -24,13 +24,13 @@
 	<span class="selection-count body-sm fw-medium text-muted">{count} selected</span>
 	<div class="selection-actions">
 		<button class="selection-forward-btn body-sm text-accent" onclick={onforward}>
-			<Forward size={14} />
+			<Forward size={16} />
 		</button>
 		<button class="selection-delete-btn body-sm" onclick={ondelete}>
-			<Trash2 size={14} />
+			<Trash2 size={16} />
 		</button>
 		<button class="selection-cancel-btn body-sm text-muted" onclick={oncancel}>
-			<X size={14} />
+			<X size={16} />
 			{t.common.cancel}
 		</button>
 	</div>

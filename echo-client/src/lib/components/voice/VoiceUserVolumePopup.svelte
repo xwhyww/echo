@@ -90,9 +90,9 @@
 >
 	<div class="vu-head text-default">
 		{#if isLocal}
-			<Mic size={14} />
+			<Mic size={16} />
 		{:else}
-			<Volume2 size={14} />
+			<Volume2 size={16} />
 		{/if}
 		<span class="vu-name fw-semibold">{name}{isLocal ? t.common.youSuffix : ''}</span>
 	</div>

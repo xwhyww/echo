@@ -30,10 +30,10 @@
 		<div class="failed">
 			<div class="failed-actions">
 				<button class="round-btn retry" onclick={onretry} aria-label={t.chat.retryUpload}>
-					<RotateCcw size={16} />
+					<RotateCcw size={18} />
 				</button>
 				<button class="round-btn remove" onclick={onremove} aria-label={t.chat.removeUpload}>
-					<Trash2 size={16} />
+					<Trash2 size={18} />
 				</button>
 			</div>
 			<span class="error-text body-xs text-error">{t.chat.uploadFailed}</span>
@@ -53,7 +53,7 @@
 			</svg>
 			{#if !processing}
 				<button class="cancel-btn" onclick={oncancel} aria-label={t.chat.cancelUpload}>
-					<X size={14} />
+					<X size={16} />
 				</button>
 			{/if}
 		</div>

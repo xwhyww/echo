@@ -87,7 +87,7 @@
 							<span class="picker-name body-sm">{m.displayName ?? m.username}</span>
 							<span class="picker-sub body-xs text-faint">@{m.username}</span>
 						</div>
-						<Plus size={14} />
+						<Plus size={16} />
 					</button>
 				</li>
 			{/each}

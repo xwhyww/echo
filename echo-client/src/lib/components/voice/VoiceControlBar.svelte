@@ -36,9 +36,9 @@
 		aria-label={voiceClient.isMuted ? t.call.unmute : t.call.mute}
 	>
 		{#if voiceClient.isMuted}
-			<MicOff size={18} />
+			<MicOff size={20} />
 		{:else}
-			<Mic size={18} />
+			<Mic size={20} />
 		{/if}
 	</button>
 
@@ -51,9 +51,9 @@
 		aria-label={voiceClient.isDeafened ? t.voice.undeafen : t.voice.deafen}
 	>
 		{#if voiceClient.isDeafened}
-			<HeadphoneOff size={18} />
+			<HeadphoneOff size={20} />
 		{:else}
-			<Headphones size={18} />
+			<Headphones size={20} />
 		{/if}
 	</button>
 
@@ -67,15 +67,15 @@
 			aria-label={t.voice.shareScreen}
 		>
 			{#if voiceClient.isScreenSharing}
-				<ScreenShareOff size={18} />
+				<ScreenShareOff size={20} />
 			{:else}
-				<ScreenShare size={18} />
+				<ScreenShare size={20} />
 			{/if}
 		</button>
 	{/if}
 
 	<button type="button" class="vc-ctrl vc-leave text-inverse" onclick={onleave} title={t.voice.disconnect} aria-label={t.voice.disconnect}>
-		<PhoneOff size={18} />
+		<PhoneOff size={20} />
 	</button>
 
 	<button
@@ -87,7 +87,7 @@
 		aria-label={chatOpen ? t.voice.closeChannelChat : t.voice.openChannelChat}
 		aria-pressed={chatOpen}
 	>
-		<MessageSquare size={18} />
+		<MessageSquare size={20} />
 	</button>
 </div>
 

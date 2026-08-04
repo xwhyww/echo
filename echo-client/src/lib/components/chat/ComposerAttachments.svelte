@@ -47,11 +47,11 @@
 />
 
 <ButtonIcon
-	size="sm"
+	size="md"
 	title={t.chat.attachFile}
 	onclick={(e: MouseEvent) => { e.stopPropagation(); input?.click(); }}
 >
-	<Paperclip size={16} />
+	<Paperclip size={20} />
 </ButtonIcon>
 
 {#if files.length > 0}

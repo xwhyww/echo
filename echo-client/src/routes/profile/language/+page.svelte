@@ -32,7 +32,7 @@
 						<span class="translated body-xs text-faint">{t.language.names[loc.code]}</span>
 					</span>
 					{#if active}
-						<Check size={16} />
+						<Check size={18} />
 					{/if}
 				</button>
 			{/each}

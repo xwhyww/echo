@@ -3,9 +3,27 @@
 	import Badge from '$lib/components/ui/Badge.svelte';
 	import Status from '$lib/components/user/Status.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
+	import TextField from '$lib/components/ui/TextField.svelte';
+	import EmojiPicker from '$lib/components/emoji/EmojiPicker.svelte';
+
+	let tf = $state<ReturnType<typeof TextField>>();
+	let open = $state(true);
+	let log = $state('');
+	function note() {
+		const a = document.activeElement as HTMLElement | null;
+		log = `active=${a?.tagName}.${a?.className || ''} ce=${a?.getAttribute?.('contenteditable')}`;
+	}
 </script>
 
 <div class="preview">
+	<div class="section" id="composer-probe" style="width: 420px">
+		<h2 class="body-xs overline fw-semibold">Composer probe</h2>
+		<TextField bind:this={tf} placeholder="Message someone with a very long name here" onemojitoggle={() => (open = !open)} emojiOpen={open} onvoice={() => {}} />
+		<div style="height: 300px; margin-top: 8px">
+			<EmojiPicker onselect={(e) => { tf?.insertAtCursor(e); note(); }} />
+		</div>
+		<p class="body-xs" id="focus-log">{log}</p>
+	</div>
 	<h1 class="logo heading-2xl text-accent">Echo</h1>
 	<p class="tagline heading-lg text-muted">Your space. Your voice.</p>
 

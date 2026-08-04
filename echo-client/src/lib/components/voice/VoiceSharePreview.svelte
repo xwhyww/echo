@@ -35,7 +35,7 @@
 	<span class="sp-dot"></span>
 	<span class="sp-name">{label}</span>
 	{#if micMuted}
-		<MicOff size={11} class="sp-mic" />
+		<MicOff size={12} class="sp-mic" />
 	{/if}
 </div>
 
@@ -47,7 +47,7 @@
 		onwatch();
 	}}
 >
-	<ScreenShare size={13} />
+	<ScreenShare size={15} />
 	<span>{t.voice.watch}</span>
 </button>
 

@@ -21,11 +21,11 @@
 >
 	{#snippet actions()}
 		<Button variant="ghost" onclick={info.openVoice}>
-			<Volume2 size={14} />
+			<Volume2 size={16} />
 			{t.groupInfo.voiceChannels}
 		</Button>
 		<Button variant="ghost" onclick={info.openSettings}>
-			<Settings size={14} />
+			<Settings size={16} />
 			{t.groupInfo.openSettings}
 		</Button>
 	{/snippet}

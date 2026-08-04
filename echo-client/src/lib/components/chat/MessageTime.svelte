@@ -25,9 +25,9 @@
 	{#if own}
 		<span class="check" class:read>
 			{#if read}
-				<CheckCheck size={12} />
+				<CheckCheck size={14} />
 			{:else}
-				<Check size={12} />
+				<Check size={14} />
 			{/if}
 		</span>
 	{/if}

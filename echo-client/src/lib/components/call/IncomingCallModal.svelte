@@ -19,9 +19,9 @@
 				<span class="ic-name heading-lg text-default">{name}</span>
 				<span class="ic-sub body-sm text-muted">
 					{#if call.incomingVideo}
-						<Video size={13} /> Incoming video call
+						<Video size={15} /> Incoming video call
 					{:else}
-						<Phone size={13} /> Incoming call
+						<Phone size={15} /> Incoming call
 					{/if}
 				</span>
 			</div>

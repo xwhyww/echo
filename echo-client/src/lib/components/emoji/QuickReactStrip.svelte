@@ -37,7 +37,7 @@
 			onclick={onmore}
 			aria-label={t.chat.moreEmojis}
 		>
-			<SmilePlus size={16} />
+			<SmilePlus size={18} />
 		</button>
 	{/if}
 </div>

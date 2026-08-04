@@ -27,7 +27,7 @@
 							onclick={() => requests.cancel(req.addresseeId)}
 							disabled={requests.acting}
 						>
-							<X size={14} />
+							<X size={16} />
 							{t.common.cancel}
 						</Button>
 					{/snippet}

@@ -22,13 +22,13 @@
 </script>
 
 <div class="reply-preview">
-	<Reply size={14} class="reply-icon" />
+	<Reply size={16} class="reply-icon" />
 	<div class="reply-preview-body">
 		<span class="reply-preview-author body-xs fw-semibold lh-tight text-accent">{snapshot.authorName}</span>
 		<span class="reply-preview-text body-xs text-muted">{snippetLabel(snapshot)}</span>
 	</div>
 	<button class="reply-preview-close text-muted" onclick={oncancel} aria-label={t.chat.cancelReply}>
-		<X size={14} />
+		<X size={16} />
 	</button>
 </div>
 

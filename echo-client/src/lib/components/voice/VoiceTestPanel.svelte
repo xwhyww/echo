@@ -36,33 +36,33 @@
 	<div class="vt-row">
 		{#if mic.phase === 'idle'}
 			<Button variant="primary" onclick={mic.start}>
-				<Mic size={14} />
+				<Mic size={16} />
 				<span>{t.audio.test.start}</span>
 			</Button>
 		{:else if mic.phase === 'starting'}
 			<Button variant="secondary" disabled>
-				<Loader size={14} />
+				<Loader size={16} />
 				<span>{t.audio.test.starting}</span>
 			</Button>
 		{:else}
 			<Button variant="secondary" onclick={mic.stop}>
-				<MicOff size={14} />
+				<MicOff size={16} />
 				<span>{t.audio.test.stop}</span>
 			</Button>
 			{#if mic.recording}
 				<Button variant="ghost" onclick={mic.stopRecording}>
-					<Square size={14} />
+					<Square size={16} />
 					<span>{t.audio.test.stopRecording}</span>
 				</Button>
 			{:else}
 				<Button variant="ghost" onclick={mic.record}>
-					<CircleDot size={14} />
+					<CircleDot size={16} />
 					<span>{t.audio.test.record}</span>
 				</Button>
 			{/if}
 			{#if mic.recordedUrl}
 				<Button variant="ghost" onclick={play}>
-					<Play size={14} />
+					<Play size={16} />
 					<span>{t.audio.test.playBack}</span>
 				</Button>
 			{/if}

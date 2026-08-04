@@ -4,6 +4,7 @@ import { goto } from '$app/navigation';
 import { groupsService } from '$lib/api/groupsService.js';
 import { groupsStore } from '$lib/stores/groups.svelte.js';
 import { i18n } from '$lib/i18n/i18n.svelte.js';
+import { routes } from '$lib/routes.js';
 import type { Group } from '$lib/api/groups.js';
 
 /**
@@ -16,15 +17,7 @@ export function useGroupVoiceSettings() {
 	const t = $derived(i18n.t);
 
 	const groupId = $derived(page.params.id!);
-	// Mounted under /chats/groups/... and (via thin import shell) under
-	// /chats/allchats/.../ — staying inside whichever hierarchy the user
-	// arrived through requires reading the URL prefix.
-	const basePath = $derived(
-		page.url.pathname.startsWith('/chats/allchats/')
-			? '/chats/allchats/groups'
-			: '/chats/groups',
-	);
-	const voiceHref = $derived(`${basePath}/${groupId}/voice`);
+	const voiceHref = $derived(routes.chats.groupVoice(groupId));
 
 	let group = $state<Group | null>(null);
 	let loading = $state(true);

@@ -17,7 +17,7 @@
 </script>
 
 <button class="jump-to-reaction" class:stacked {onclick} title={t.chat.jumpToReaction}>
-	<AppleEmoji {emoji} size={18} />
+	<AppleEmoji {emoji} size={20} />
 </button>
 
 <style>

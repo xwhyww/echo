@@ -52,7 +52,7 @@
 		/>
 	{:else if chat.blockedReason}
 		<p class="chat-restricted body-sm text-muted">
-			<Lock size={14} />
+			<Lock size={16} />
 			<span>{chat.blockedReason}</span>
 		</p>
 	{:else if canMessage}
@@ -79,7 +79,7 @@
 		{/key}
 	{:else}
 		<p class="chat-restricted body-sm text-muted">
-			<Lock size={14} />
+			<Lock size={16} />
 			<span>{t.chat.onlyExistingChats}</span>
 		</p>
 	{/if}

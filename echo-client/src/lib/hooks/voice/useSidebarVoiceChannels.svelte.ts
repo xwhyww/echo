@@ -1,4 +1,5 @@
 import { goto } from '$app/navigation';
+import { routes } from '$lib/routes.js';
 import { voiceService } from '$lib/api/voiceService.js';
 import { voiceClient } from '$lib/stores/voiceClient.svelte.js';
 import { ws, type WsEvent } from '$lib/stores/ws.svelte.js';
@@ -18,7 +19,7 @@ import type { VoiceChannel, VoiceCategory } from '$lib/api/voice.js';
  * The full-page equivalent is `useGroupVoiceChannels` — same data, but it also
  * owns creating, renaming and deleting. This one is read-and-join only.
  */
-export function useSidebarVoiceChannels(getGroupId: () => string, getBasePath: () => string) {
+export function useSidebarVoiceChannels(getGroupId: () => string) {
 	const t = $derived(i18n.t);
 
 	let expanded = $state(false);
@@ -151,7 +152,7 @@ export function useSidebarVoiceChannels(getGroupId: () => string, getBasePath: (
 			joiningId = channel.id;
 			try {
 				await voiceClient.connect(channel.id);
-				goto(`${getBasePath()}/${getGroupId()}/voice/${channel.id}`);
+				goto(`${routes.chats.groupVoice(getGroupId())}/${channel.id}`);
 			} catch (err) {
 				console.error('[useSidebarVoiceChannels] join failed', err);
 			} finally {
@@ -160,7 +161,7 @@ export function useSidebarVoiceChannels(getGroupId: () => string, getBasePath: (
 		},
 
 		openManagePage() {
-			goto(`${getBasePath()}/${getGroupId()}/voice`);
+			goto(routes.chats.groupVoice(getGroupId()));
 		},
 	};
 }

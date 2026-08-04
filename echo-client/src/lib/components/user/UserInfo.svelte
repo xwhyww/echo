@@ -14,7 +14,7 @@
 
 	const name = $derived(getDisplayName(displayName, username));
 
-	const sizeMap = { sm: 28, md: 30, mm: 42, lg: 52, xl: 104, sidebar: 34 };
+	const sizeMap = { sm: 32, md: 36, mm: 48, lg: 60, xl: 112, sidebar: 50 };
 </script>
 
 <div class="user-info user-info-{size}">

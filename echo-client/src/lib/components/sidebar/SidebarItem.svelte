@@ -63,7 +63,7 @@
 		}
 	}
 
-	const avatarSize = $derived(size === 's' ? 28 : 42);
+	const avatarSize = $derived(size === 's' ? 34 : 48);
 
 	function formatTimestamp(iso: string): string {
 		const d = new Date(iso);
@@ -94,14 +94,14 @@
 
 	{#if subtitle}
 		<div class="item-info">
-			<span class="item-name truncate">{chatName || name}</span>
+			<span class="item-name truncate body-xs">{chatName || name}</span>
 			<span class="item-subtitle truncate body-xs text-faint" class:accent={subtitleAccent}>
 				{#if messageRead !== null}
 					<span class="msg-status text-faint" class:read={messageRead}>
 						{#if messageRead}
-							<CheckCheck size={12} />
+							<CheckCheck size={14} />
 						{:else}
-							<Check size={12} />
+							<Check size={14} />
 						{/if}
 					</span>
 				{/if}
@@ -121,7 +121,7 @@
 			{/if}
 		</div>
 	{:else}
-		<span class="item-name truncate">{name}</span>
+		<span class="item-name body-xs truncate">{name}</span>
 	{/if}
 
 	{#if badge}
@@ -199,6 +199,7 @@
 		text-overflow: ellipsis;
 		white-space: nowrap;
 		text-align: left;
+		margin-top: 4px;
 	}
 
 	.item-subtitle.accent {

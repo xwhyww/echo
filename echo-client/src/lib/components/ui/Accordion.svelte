@@ -15,7 +15,7 @@
 <div class="accordion">
 	<button class="accordion-header body-xs overline fw-semibold text-muted" onclick={() => open = !open}>
 		<span class="chevron" class:open>
-			<ChevronRight size={14} />
+			<ChevronRight size={16} />
 		</span>
 		<span class="accordion-title">{title}</span>
 		{#if actions}

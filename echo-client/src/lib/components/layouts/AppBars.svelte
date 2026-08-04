@@ -59,7 +59,7 @@
 	}
 
 	.doc-top {
-		top: var(--header-h-padding-s);
+		top: var(--header-h-padding-l);
 	}
 	
 	.doc-bottom {

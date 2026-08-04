@@ -73,7 +73,7 @@
 					disabled={moving}
 					onclick={() => moveTo(cat.id)}
 				>
-					<FolderOpen size={14} />
+					<FolderOpen size={16} />
 					<span>{cat.name}</span>
 				</button>
 			</li>

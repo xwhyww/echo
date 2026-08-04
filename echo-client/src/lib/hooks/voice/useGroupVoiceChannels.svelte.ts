@@ -15,6 +15,7 @@ import {
 	splitByCategory,
 } from '$lib/utils/voiceChannels.js';
 import { i18n } from '$lib/i18n/i18n.svelte.js';
+import { routes } from '$lib/routes.js';
 import type { VoiceChannel, VoiceCategory } from '$lib/api/voice.js';
 import type { Group } from '$lib/api/groups.js';
 
@@ -28,15 +29,6 @@ export function useGroupVoiceChannels() {
 	const t = $derived(i18n.t);
 
 	const groupId = $derived(page.params.id!);
-	// Mounted under /chats/groups/... and (via thin import shell) under
-	// /chats/allchats/.../ — staying inside whichever hierarchy the user
-	// arrived through requires reading the URL prefix.
-	const basePath = $derived(
-		page.url.pathname.startsWith('/chats/allchats/')
-			? '/chats/allchats/groups'
-			: '/chats/groups',
-	);
-
 	let group = $state<Group | null>(null);
 	let channels = $state<VoiceChannel[]>([]);
 	let categories = $state<VoiceCategory[]>([]);
@@ -137,7 +129,7 @@ export function useGroupVoiceChannels() {
 		get visibleCategories() { return visibleCategories; },
 		get uncategorized() { return split.uncategorized; },
 		channelsIn(categoryId: string) { return split.byCategory.get(categoryId) ?? []; },
-		get settingsHref() { return `${basePath}/${groupId}/voice/settings`; },
+		get settingsHref() { return routes.chats.groupVoiceSettings(groupId); },
 
 		isCollapsed(categoryId: string) { return collapsed.has(categoryId); },
 		toggleCategory(categoryId: string) {
@@ -167,7 +159,7 @@ export function useGroupVoiceChannels() {
 			joiningId = channel.id;
 			try {
 				await voiceClient.connect(channel.id);
-				goto(`${basePath}/${groupId}/voice/${channel.id}`);
+				goto(`${routes.chats.groupVoice(groupId)}/${channel.id}`);
 			} catch (err) {
 				console.error('[useGroupVoiceChannels] join failed', err);
 				toasts.error((err as Error).message ?? t.voice.joinFailed);

@@ -16,7 +16,7 @@
 
 	let { playing, onclick, size = 'md', own = false }: Props = $props();
 
-	const iconSize = $derived(size === 'sm' ? 10 : 14);
+	const iconSize = $derived(size === 'sm' ? 12 : 14);
 </script>
 
 <button
@@ -41,8 +41,8 @@
 	}
 
 	.play-btn.sm {
-		width: 24px;
-		height: 24px;
+		width: 28px;
+		height: 28px;
 	}
 
 	.play-btn.own {

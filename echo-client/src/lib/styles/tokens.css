@@ -126,9 +126,9 @@
 	--font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
 
 	--fs-xxs: 0.6rem;   /* 11px — timestamps, badges */
-	--fs-xs: 0.6875rem;   /* 11px — timestamps, badges */
-	--fs-sm: 0.8125rem;   /* 13px — labels, secondary */
-	--fs-base: 0.9375rem; /* 15px — body text, messages */
+	--fs-xs: 0.8rem;   /* 11px — timestamps, badges */
+	--fs-sm: 0.9rem;   /* 13px — labels, secondary */
+	--fs-base: 1.0rem; /* 15px — body text, messages */
 	--fs-md: 1.0625rem;   /* 17px — channel names */
 	--fs-lg: 1.25rem;     /* 20px — section headers */
 	--fs-xl: 1.5rem;      /* 24px — space name */
@@ -199,8 +199,9 @@
 	   the home indicator instead of the notch. */
 	--footer-h-padding-m: calc(58px + var(--safe-bottom));
 	--footer-h-padding-l: calc(68px + var(--safe-bottom));
+	--footer-h-padding-xl: calc(78px + var(--safe-bottom));
 	--bottom-nav-h: 56px;    /* mobile bottom tab bar */
-	--input-h: 38px;         /* message input */
+	--input-h: 48px;         /* message input */
 	--count-badge-size: 24px; /* round "how many" chip beside a section title */
 
 	/* --- Z-index layers ---

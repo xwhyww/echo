@@ -39,7 +39,7 @@
 
 	<div class="middle">
 		<div class="title body-xs {own ? 'text-on-accent-muted' : 'text-muted'}">
-			<Music size={12} />
+			<Music size={14} />
 			<!-- Inverse rather than the primary ink inside an own bubble: in the
 			     light theme `--c-text` is near-black, and the bubble under it is
 			     deep blue either way. -->

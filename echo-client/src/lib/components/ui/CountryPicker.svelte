@@ -50,7 +50,7 @@
 	<button type="button" class="country-toggle body-sm text-default" onclick={toggle}>
 		<img class="flag" src="/flags/{selected.code}.svg" alt={name(selected)} />
 		<span class="dial-code body-sm fw-bold text-muted">{selected.dial}</span>
-		<span class="chevron text-faint" class:open><ChevronDown size={14} /></span>
+		<span class="chevron text-faint" class:open><ChevronDown size={16} /></span>
 	</button>
 
 	{#if open}

@@ -14,7 +14,7 @@
 <div class="link-list">
 	{#each items as item (item.messageId + item.url)}
 		<a href={item.url} class="link-row text-default" target="_blank" rel="noopener noreferrer">
-			<ExternalLink size={18} />
+			<ExternalLink size={20} />
 			<span class="link-info">
 				<span class="link-url body-sm text-accent">{item.url}</span>
 				<span class="body-xs text-muted">{new Date(item.createdAt).toLocaleDateString()}</span>

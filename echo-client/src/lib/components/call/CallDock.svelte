@@ -19,7 +19,7 @@
 		<div class="cd-info" onclick={() => call.expand()} title={t.call.openCall}>
 			<Avatar name={name} avatarUrl={peer.avatarUrl} size={28} />
 			<div class="cd-text lh-tight">
-				<span class="cd-status body-xs text-success"><Phone size={11} /> {statusLabel}</span>
+				<span class="cd-status body-xs text-success"><Phone size={12} /> {statusLabel}</span>
 				<span class="cd-name body-sm text-default">{name}</span>
 			</div>
 		</div>
@@ -31,7 +31,7 @@
 				title={client.isMuted ? t.call.unmute : t.call.mute}
 				aria-label={client.isMuted ? t.call.unmute : t.call.mute}
 			>
-				{#if client.isMuted}<MicOff size={14} />{:else}<Mic size={14} />{/if}
+				{#if client.isMuted}<MicOff size={16} />{:else}<Mic size={16} />{/if}
 			</button>
 			<button
 				class="cd-btn cd-leave text-muted text-error"
@@ -39,7 +39,7 @@
 				title={t.call.hangUp}
 				aria-label={t.call.hangUp}
 			>
-				<PhoneOff size={14} />
+				<PhoneOff size={16} />
 			</button>
 		</div>
 	</div>

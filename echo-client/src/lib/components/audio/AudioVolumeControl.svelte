@@ -96,11 +96,11 @@
 		{#if changing}
 			<span class="volume-label body-xs text-muted">{Math.round(audioVolume.value * 100)}%</span>
 		{:else if audioVolume.value === 0}
-			<VolumeX size={16} />
+			<VolumeX size={18} />
 		{:else if audioVolume.value <= 0.5}
-			<Volume1 size={16} />
+			<Volume1 size={18} />
 		{:else}
-			<Volume2 size={16} />
+			<Volume2 size={18} />
 		{/if}
 	</button>
 

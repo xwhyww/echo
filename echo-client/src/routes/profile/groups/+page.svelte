@@ -22,7 +22,7 @@
 		<div class="head-title">
 			<h1 class="heading-xl">{t.groupsPage.title}</h1>
 			<Button variant="primary" onclick={() => (showCreate = true)}>
-				<Plus size={14} /> {t.groupsPage.create}
+				<Plus size={16} /> {t.groupsPage.create}
 			</Button>
 		</div>
 		<p class="body-sm text-faint">{t.groupsPage.subtitle}</p>
@@ -34,7 +34,7 @@
 				<Users size={28} />
 				<p class="body-sm">{t.groupsPage.emptyText}</p>
 				<Button variant="primary" onclick={() => (showCreate = true)}>
-					<Plus size={14} /> {t.groupsPage.createFirst}
+					<Plus size={16} /> {t.groupsPage.createFirst}
 				</Button>
 			</div>
 		{:else}

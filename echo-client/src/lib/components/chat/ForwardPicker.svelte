@@ -78,7 +78,7 @@
 
 <Modal title={t.chat.forwardTo} {onclose} maxWidth="400px">
 	<div class="forward-search text-muted">
-		<Search size={16} />
+		<Search size={18} />
 		<input
 			bind:this={inputEl}
 			bind:value={search}
@@ -97,7 +97,7 @@
 						avatarUrl={group.avatarUrl}
 						onclick={() => onselect({ kind: 'group', group })}
 					>
-						{#snippet icon()}<Users size={18} />{/snippet}
+						{#snippet icon()}<Users size={20} />{/snippet}
 					</ForwardTargetRow>
 				{/each}
 			{/if}

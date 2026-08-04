@@ -21,18 +21,18 @@
 
 <div class="actions">
 	<Button variant="primary" onclick={onmessage}>
-		<MessageSquare size={14} />
+		<MessageSquare size={16} />
 		{t.userProfile.message}
 	</Button>
 
 	{#if friendship.status === 'none'}
 		<Button variant="ghost" onclick={friendship.sendRequest} disabled={friendship.acting}>
-			<UserPlus size={14} />
+			<UserPlus size={16} />
 			{t.userProfile.addFriend}
 		</Button>
 	{:else if friendship.status === 'friends' && allowRemove}
 		<Button variant="ghost" onclick={onremove} disabled={friendship.acting}>
-			<UserMinus size={14} />
+			<UserMinus size={16} />
 			{t.userProfile.removeFriend}
 		</Button>
 	{:else if friendship.status === 'pending' && friendship.direction === 'outgoing'}

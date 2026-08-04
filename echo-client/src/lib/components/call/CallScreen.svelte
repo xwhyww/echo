@@ -46,7 +46,7 @@
 				<span class="cs-status body-xs text-muted">{statusLabel}</span>
 			</div>
 			<button class="cs-min text-muted" onclick={() => call.collapse()} title={t.call.minimize} aria-label={t.call.minimizeCall}>
-				<Minimize2 size={18} />
+				<Minimize2 size={20} />
 			</button>
 		</div>
 

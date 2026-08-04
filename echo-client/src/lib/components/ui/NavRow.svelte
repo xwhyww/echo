@@ -28,7 +28,7 @@
 				<span class="nav-row-desc body-xs text-faint">{desc}</span>
 			{/if}
 		</span>
-		<ChevronRight size={16} />
+		<ChevronRight size={18} />
 	</a>
 </BlockWrapper>
 
@@ -37,7 +37,7 @@
 		display: flex;
 		align-items: center;
 		gap: var(--sp-3);
-		padding: var(--sp-3) var(--sp-4);
+		padding: var(--sp-4);
 		border-radius: var(--radius-lg);
 		transition: background var(--duration-fast) var(--ease-default);
 	}

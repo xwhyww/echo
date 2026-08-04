@@ -17,7 +17,7 @@
 	.badge {
 		padding: 2px 6px;
 		border-radius: var(--radius-full);
-		min-width: 20px;
+		min-width: 22px;
 		text-align: center;
 		display: inline-block;
 	}

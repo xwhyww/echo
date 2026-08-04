@@ -13,7 +13,7 @@
 
 <header class="app-header">
 	<div class="header-back">
-		<BackButton {backHref} size={36} />
+		<BackButton {backHref} size={48} />
 	</div>
 	{#if title}
 		<h2 class="title body-base">{title}</h2>
@@ -34,7 +34,7 @@
 		background: transparent;
 		position: absolute;
 		width: 100%;
-		top: 0;
+		top: 10px;
 		right: 0;
 	}
 

@@ -9,7 +9,7 @@
 
 <div class="mark" class:checked class:text-inverse={checked}>
 	{#if checked}
-		<Check size={12} strokeWidth={3} />
+		<Check size={14} strokeWidth={3} />
 	{/if}
 </div>
 

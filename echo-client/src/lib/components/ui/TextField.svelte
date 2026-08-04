@@ -88,10 +88,31 @@
 		editor.focus();
 	}
 
+	// Picking an emoji must not pull focus into the editor: on a phone that
+	// would throw the keyboard up over the picker the user is still using. The
+	// emoji lands at the caret if the field was already focused, and is appended
+	// otherwise.
 	export function insertAtCursor(text: string) {
-		editor.focus();
 		editor.insert(text);
 		onEditorInput();
+	}
+
+	// The field focuses the editor when you click its empty space, but a click
+	// on something inside it — attach, emoji, send, the recorder — belongs to
+	// that control alone.
+	function onFieldClick(e: MouseEvent) {
+		if (recordingActive) return;
+		if ((e.target as HTMLElement | null)?.closest('button, input, label, [role="button"]')) return;
+		editor.focus();
+	}
+
+	// …and pressing one of those controls must not pull focus *out* of the
+	// editor either: a button takes focus on mousedown, which drops the caret,
+	// so opening the emoji picker would leave the next pick with nowhere to go
+	// but the end of the text. Suppressing the default keeps the caret exactly
+	// where the user left it.
+	function onFieldMouseDown(e: MouseEvent) {
+		if ((e.target as HTMLElement | null)?.closest('button')) e.preventDefault();
 	}
 
 	function send() {
@@ -116,7 +137,8 @@
 	<div
 		class="textfield"
 		class:recording={recordingActive}
-		onclick={() => { if (!recordingActive) editor.focus(); }}
+		onclick={onFieldClick}
+		onmousedown={onFieldMouseDown}
 	>
 		{#if !recordingActive}
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -137,11 +159,11 @@
 			<ComposerAttachments bind:text={value} onsend={(f, text) => submit(text.trim(), f)} />
 			{#if onemojitoggle}
 				<ButtonIcon
-					size="sm"
+					size="md"
 					title={t.common.emoji}
-					onclick={(e: MouseEvent) => { e.stopPropagation(); onemojitoggle?.(); }}
+					onclick={() => onemojitoggle?.()}
 				>
-					<Smile size={16} class={emojiOpen ? 'emoji-active' : ''} />
+					<Smile size={20} class={emojiOpen ? 'emoji-active' : ''} />
 				</ButtonIcon>
 			{/if}
 		{/if}
@@ -155,8 +177,8 @@
 				onactive={(a) => (recordingActive = a)}
 			/>
 		{:else if !recordingActive}
-			<ButtonIcon size="sm" title={t.common.send} onclick={send} disabled={!canSend}>
-				<Send size={16} />
+			<ButtonIcon size="md" title={t.common.send} onclick={send} disabled={!canSend}>
+				<Send size={20} />
 			</ButtonIcon>
 		{/if}
 		
@@ -187,12 +209,13 @@
 	.textfield {
 		display: flex;
 		flex-direction: row;
-		align-items: flex-start;
+		align-items: center;
 		gap: var(--sp-2);
-		padding: var(--sp-1) var(--sp-2);
+		min-height: var(--input-h);
+		padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-6);
 		cursor: text;
 		@include glass-more;
-		border-radius: 12px;
+		border-radius: 32px;
 		transition: border-color var(--duration-fast) var(--ease-default);
 		border: none;
 	}
@@ -208,14 +231,22 @@
 		padding: 0;
 		white-space: pre-wrap;
 		overflow-wrap: anywhere;
-		padding-top: 5px;
-		padding-bottom: 5px;
+		padding-top: var(--sp-2);
+		padding-bottom: var(--sp-2);
 	}
 
+	/* The editor wraps freely, but the placeholder must not: a long "Message
+	   <name>" would otherwise open the field to two rows before a single
+	   character is typed. One row, clipped with an ellipsis. */
 	.textfield-input.empty::before {
 		content: attr(data-placeholder);
 		color: var(--c-text-faint);
 		pointer-events: none;
+		display: block;
+		max-width: 100%;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
 	/* The emoji images the editor builds; they only exist at runtime, so the

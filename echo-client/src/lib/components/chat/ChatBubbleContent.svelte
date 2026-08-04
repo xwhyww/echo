@@ -201,7 +201,6 @@
 
 	.bubble-content {
 		@include bubble-content;
-		min-width: 130px;
 	}
 
 	.bubble-body.own .bubble-content {

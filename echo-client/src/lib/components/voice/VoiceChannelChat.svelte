@@ -113,7 +113,7 @@
 					aria-label={t.voice.channelChat.closeAria}
 					title={t.voice.channelChat.close}
 				>
-					<X size={16} />
+					<X size={18} />
 				</button>
 			{/if}
 		</div>

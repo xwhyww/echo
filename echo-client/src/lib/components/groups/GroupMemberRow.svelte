@@ -64,20 +64,20 @@
 		>
 			{#if member.role === 'member'}
 				<button onclick={() => onchangerole('admin')}>
-					<Shield size={14} /> {t.groupSettings.makeAdmin}
+					<Shield size={16} /> {t.groupSettings.makeAdmin}
 				</button>
 			{:else if member.role === 'admin' && isOwner}
 				<button onclick={() => onchangerole('member')}>
-					<ShieldOff size={14} /> {t.groupSettings.demote}
+					<ShieldOff size={16} /> {t.groupSettings.demote}
 				</button>
 			{/if}
 			{#if isOwner}
 				<button onclick={ontransfer}>
-					<Crown size={14} /> {t.groupSettings.transferOwnership}
+					<Crown size={16} /> {t.groupSettings.transferOwnership}
 				</button>
 			{/if}
 			<button class="danger" onclick={onremove}>
-				<UserMinus size={14} /> {t.groupSettings.remove}
+				<UserMinus size={16} /> {t.groupSettings.remove}
 			</button>
 		</DropdownMenu>
 	{/if}

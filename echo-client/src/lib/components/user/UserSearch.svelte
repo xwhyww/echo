@@ -22,7 +22,7 @@
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div class="search-input text-muted" onclick={() => inputEl?.focus()}>
-		<Search size={14} />
+		<Search size={16} />
 		<input
 			class="body-sm"
 			bind:this={inputEl}
@@ -35,7 +35,7 @@
 
 	{#if search.searching}
 		<div class="search-status body-xs text-faint">
-			<Loader size={14} />
+			<Loader size={16} />
 			<span>{t.common.searching}</span>
 		</div>
 	{:else if search.error}

@@ -17,7 +17,7 @@
 </script>
 
 <header class="vp-header">
-	<Volume2 size={14} />
+	<Volume2 size={16} />
 	{#if voice.group}
 		<span class="body-xl">{voice.group.name}</span>
 	{/if}
@@ -28,7 +28,7 @@
 			title={t.voice.settings.open}
 			aria-label={t.voice.settings.open}
 		>
-			<Settings size={16} />
+			<Settings size={18} />
 		</a>
 	{/if}
 </header>
@@ -79,11 +79,11 @@
 {#if voice.canManage}
 	<div class="vp-actions">
 		<Button variant="secondary" onclick={dialogs.openCreateCategory}>
-			<FolderPlus size={16} />
+			<FolderPlus size={18} />
 			<span>{t.voice.newCategory}</span>
 		</Button>
 		<Button variant="primary" onclick={() => dialogs.openCreateChannel(null)}>
-			<Plus size={16} />
+			<Plus size={18} />
 			<span>{t.voice.newChannel}</span>
 		</Button>
 	</div>

@@ -22,7 +22,7 @@
 					title={t.voice.settings.rolesRow}
 					desc={t.voice.settings.rolesRowDesc}
 				>
-					{#snippet icon()}<Shield size={18} />{/snippet}
+					{#snippet icon()}<Shield size={20} />{/snippet}
 				</NavRow>
 			</nav>
 		{/if}

@@ -53,22 +53,22 @@
 	/* xs is for dense inline rows (list-row actions, chip affordances) where a
 	   32px target would break the row's rhythm. */
 	.btn-icon-xs {
-		min-width: 24px;
-		min-height: 24px;
+		min-width: 28px;
+		min-height: 28px;
 	}
 
 	.btn-icon-sm {
-		min-width: 32px;
-		min-height: 32px;
+		min-width: 36px;
+		min-height: 36px;
 	}
 
 	.btn-icon-md {
-		min-width: 40px;
-		min-height: 40px;
+		min-width: 44px;
+		min-height: 44px;
 	}
 
 	.btn-icon-lg {
-		min-width: 48px;
-		min-height: 48px;
+		min-width: 52px;
+		min-height: 52px;
 	}
 </style>

@@ -91,12 +91,12 @@
 					title={t.voice.roles.dragToReorder}
 					aria-hidden="true"
 				>
-					<GripVertical size={14} />
+					<GripVertical size={16} />
 				</span>
 			{/if}
 			<div class="vrp-role-info">
 				<TitleIcon color={tint}>
-					{#snippet icon()}<Shield size={15} />{/snippet}
+					{#snippet icon()}<Shield size={17} />{/snippet}
 					<span class="fw-semibold">{role.name}</span>
 				</TitleIcon>
 
@@ -104,7 +104,7 @@
 					{#each permissionMeta.filter((p) => hasPermission(role.permissions, p.bit)) as p (p.bit)}
 						{@const PermIcon = p.icon}
 						<Pill>
-							{#snippet icon()}<PermIcon size={11} />{/snippet}
+							{#snippet icon()}<PermIcon size={12} />{/snippet}
 							{p.label}
 						</Pill>
 					{/each}
@@ -118,14 +118,14 @@
 							removeTitle={t.voice.roles.removeFromRole}
 						>
 							{#snippet leading()}
-								<Avatar name={memberLabel(m)} avatarUrl={m.avatarUrl} size={18} />
+								<Avatar name={memberLabel(m)} avatarUrl={m.avatarUrl} size={20} />
 							{/snippet}
 							{memberLabel(m)}
 						</Chip>
 					{/each}
 					{#if canManage}
 						<Button variant="dashed" onclick={() => onaddmember(role.id)}>
-							<UserPlus size={12} />
+							<UserPlus size={14} />
 							<span>{t.voice.roles.addMember}</span>
 						</Button>
 					{/if}
@@ -134,7 +134,7 @@
 			{#if canManage}
 				<div class="vrp-role-actions">
 					<ButtonIcon size="xs" onclick={() => onedit(role)} title={t.voice.roles.editRole}>
-						<Pencil size={14} />
+						<Pencil size={16} />
 					</ButtonIcon>
 					<ButtonIcon
 						size="xs"
@@ -142,7 +142,7 @@
 						onclick={() => ondelete(role)}
 						title={t.voice.roles.deleteRole}
 					>
-						<Trash2 size={14} />
+						<Trash2 size={16} />
 					</ButtonIcon>
 				</div>
 			{/if}

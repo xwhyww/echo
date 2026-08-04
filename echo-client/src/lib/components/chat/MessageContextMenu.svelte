@@ -174,13 +174,13 @@
 		{#each items as item (item.label)}
 			{@const Icon = item.icon}
 			<button class="context-item body-sm text-default" class:danger={item.danger} onclick={item.run}>
-				<Icon size={14} />
+				<Icon size={16} />
 				{item.label}
 			</button>
 		{/each}
 		{#if onselect}
 			<button class="context-item body-sm text-default" onclick={() => run(onselect)}>
-				<CheckSquare size={14} />
+				<CheckSquare size={16} />
 				{t.chat.select}
 			</button>
 		{/if}

@@ -104,10 +104,10 @@
 
 			{#if hasMany}
 				<button class="nav-btn nav-prev" onclick={scrollPrev} aria-label={t.media.previous}>
-					<ChevronLeft size={14} />
+					<ChevronLeft size={16} />
 				</button>
 				<button class="nav-btn nav-next" onclick={scrollNext} aria-label={t.media.next}>
-					<ChevronRight size={14} />
+					<ChevronRight size={16} />
 				</button>
 			{/if}
 		</div>

@@ -24,7 +24,7 @@
 </script>
 
 <button class="back-btn text-muted" style="--back-size: {size}px" onclick={goBack} aria-label={t.common.back}>
-	<ArrowLeft size={18} />
+	<ArrowLeft size={22} />
 </button>
 
 <style lang="scss">

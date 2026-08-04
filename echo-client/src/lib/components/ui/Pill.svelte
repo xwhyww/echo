@@ -25,7 +25,7 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 4px;
-		padding: 2px 7px;
+		padding: 4px 10px;
 		border-radius: var(--radius-full);
 		@include glass;
 	}

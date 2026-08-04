@@ -24,14 +24,14 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="chat-header" onclick={onopeninfo}>
 	<div class="chat-header-back">
-		<BackButton backHref={routes.chats.perschat} size={36} />
+		<BackButton backHref={routes.chats.root} size={48} />
 	</div>
 
 	<div class="header-info">
 		<div class="header-text">
 			<h2 class="body-sm">{group?.name ?? '...'}</h2>
 			<span class="body-xs text-faint">
-				<Users size={10} />
+				<Users size={12} />
 				{t.groupInfo.memberCount(memberCount)}
 			</span>
 		</div>
@@ -47,7 +47,7 @@
 			title={t.groupInfo.groupSettings}
 			aria-label={t.groupInfo.groupSettings}
 		>
-			<Avatar name={group?.name ?? '?'} avatarUrl={group?.avatarUrl ?? null} size={32} />
+			<Avatar name={group?.name ?? '?'} avatarUrl={group?.avatarUrl ?? null} size={48} />
 		</button>
 	</div>
 </div>
@@ -61,14 +61,17 @@
 		@include chat-header-overlay;
 		justify-content: space-between;
 		cursor: pointer;
+		padding-top: 20px;
 	}
 
 	.header-info {
 		display: flex;
 		align-items: center;
+		justify-content: center;
 		gap: var(--sp-3);
 		padding: 0 var(--sp-10);
 		border-radius: var(--radius-full);
+		height: 48px;
 
 		@include glass;
 	}
@@ -76,6 +79,7 @@
 	.header-text {
 		display: flex;
 		flex-direction: column;
+		text-align: center;
 	}
 
 	.header-text h2 {
@@ -87,7 +91,6 @@
 		align-items: center;
 		gap: 4px;
 		/* Pulls the count up against the name — they read as one block. */
-		margin-top: -2px;
 	}
 
 	.header-actions {

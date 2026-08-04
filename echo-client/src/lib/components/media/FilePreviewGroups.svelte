@@ -18,7 +18,7 @@
 
 {#if splitInto > 1}
 	<div class="split-warning body-xs text-accent">
-		<AlertTriangle size={14} />
+		<AlertTriangle size={16} />
 		<span>{t.chat.willSplit(splitInto)}</span>
 	</div>
 {/if}

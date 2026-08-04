@@ -59,9 +59,9 @@
 		title={volume.muted ? t.voice.screenTile.unmuteShared : t.voice.screenTile.muteShared}
 	>
 		{#if volume.muted}
-			<VolumeX size={16} />
+			<VolumeX size={18} />
 		{:else}
-			<Volume2 size={16} />
+			<Volume2 size={18} />
 		{/if}
 	</button>
 </div>

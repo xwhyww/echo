@@ -22,7 +22,7 @@
 	<div class="progress" style:scale="{countdown.progress} 1"></div>
 	<span class="message body-sm text-default">{message}</span>
 	<button class="cancel body-sm text-accent" onclick={oncancel}>
-		<X size={16} />
+		<X size={18} />
 		{t.common.cancel}
 	</button>
 </div>

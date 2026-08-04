@@ -103,7 +103,10 @@ export function useEmojiEditor(element: () => HTMLElement | null | undefined) {
 
 			if (!sel || sel.rangeCount === 0 || !el.contains(sel.anchorNode)) {
 				el.appendChild(frag);
-				placeCaretAtEnd(el);
+				// Moving the caret into an unfocused editor would focus it, and an
+				// insert from outside (the emoji picker) must leave focus where the
+				// user put it.
+				if (document.activeElement === el) placeCaretAtEnd(el);
 				return;
 			}
 

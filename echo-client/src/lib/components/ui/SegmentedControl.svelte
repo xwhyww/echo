@@ -38,7 +38,7 @@
 
 	.segment {
 		flex: 1;
-		padding: var(--sp-2) var(--sp-3);
+		padding: var(--sp-3) var(--sp-4);
 		background: var(--c-bg-2);
 		border: none;
 		border-right: 1px solid var(--c-border);

@@ -34,7 +34,7 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <header class="chat-header" {onclick}>
 	<div class="chat-header-back">
-		<BackButton backHref={routes.chats.perschat} size={36} />
+		<BackButton backHref={routes.chats.root} size={48} />
 	</div>
 
 	<div class="chat-header-center">
@@ -61,7 +61,7 @@
 			username={companion?.username}
 			avatarUrl={companion?.avatarUrl}
 			showName={false}
-			size="md"
+			size="mm"
 		/>
 	</div>
 </header>
@@ -75,6 +75,7 @@
 		@include chat-header-overlay;
 		gap: var(--sp-3);
 		cursor: pointer;
+		padding-top: 20px;
 	}
 
 	.chat-header-back,

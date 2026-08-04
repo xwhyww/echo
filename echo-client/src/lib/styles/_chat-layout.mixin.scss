@@ -54,7 +54,7 @@
 	width: 100%;
 	margin-top: auto;
 	padding-top: var(--chat-list-clearance, var(--header-h-padding-m));
-	padding-bottom: var(--chat-list-clearance, var(--footer-h-padding-m));
+	padding-bottom: var(--chat-list-clearance, var(--footer-h-padding-xl));
 }
 
 /* The floating chrome. Both anchor to the nearest positioned ancestor, so
@@ -64,7 +64,7 @@
 	position: absolute;
 	top: 0;
 	left: 0;
-	right: 0;
+	right: var(--sp-2);
 	/* Taller by the status-bar inset so the scrim reaches the top edge while
 	   the avatar and name stay below the notch. */
 	height: calc(var(--header-h) + var(--safe-top));

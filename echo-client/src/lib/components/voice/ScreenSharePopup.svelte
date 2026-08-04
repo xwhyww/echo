@@ -87,7 +87,7 @@
 			<span class="ss-active-dot"></span>
 			<span class="ss-active-text body-sm text-default">{t.voice.screenShare.currentlySharing}</span>
 			<button class="ss-stop body-sm" onclick={stop} disabled={starting !== null}>
-				<StopCircle size={14} />
+				<StopCircle size={16} />
 				<span>{t.voice.screenShare.stopSharing}</span>
 			</button>
 		</div>

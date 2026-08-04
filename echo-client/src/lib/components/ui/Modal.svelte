@@ -75,7 +75,7 @@
 		tabindex="-1"
 	>
 		<button class="modal-close text-muted" onclick={close} disabled={closeDisabled} aria-label={t.common.close}>
-			<X size={16} />
+			<X size={18} />
 		</button>
 		{#if icon}
 			<div class="modal-icon modal-icon-{tone}">{@render icon()}</div>

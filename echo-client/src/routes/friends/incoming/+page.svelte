@@ -27,7 +27,7 @@
 							onclick={() => requests.accept(req.requesterId)}
 							disabled={requests.acting}
 						>
-							<Check size={14} />
+							<Check size={16} />
 							{t.common.accept}
 						</Button>
 						<Button
@@ -35,7 +35,7 @@
 							onclick={() => requests.decline(req.requesterId)}
 							disabled={requests.acting}
 						>
-							<X size={14} />
+							<X size={16} />
 							{t.common.decline}
 						</Button>
 					{/snippet}

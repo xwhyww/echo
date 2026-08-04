@@ -157,9 +157,9 @@
 	.status-indicator {
 		position: absolute;
 		bottom: -1px;
-		right: -1px;
-		width: 12px;
-		height: 12px;
+		right: -4px;
+		width: 14px;
+		height: 14px;
 		border-radius: var(--radius-full);
 		background: var(--c-offline);
 		border: 2px solid var(--c-bg-2);

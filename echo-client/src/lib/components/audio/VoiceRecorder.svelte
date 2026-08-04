@@ -133,7 +133,7 @@
 {#if recording}
 	<div class="recorder-strip">
 		<button type="button" class="cancel text-error" onclick={cancel} aria-label={t.chat.cancelRecording}>
-			<Trash2 size={16} />
+			<Trash2 size={18} />
 		</button>
 		<div class="indicator">
 			<span class="dot" style="opacity: {0.5 + level}"></span>
@@ -146,13 +146,13 @@
 				<span class="bar" style="height: {Math.max(MIN_BAR_PCT, pct)}%"></span>
 			{/each}
 		</div>
-		<ButtonIcon size="sm" title={t.chat.sendVoice} onclick={send}>
-			<Send size={16} />
+		<ButtonIcon size="md" title={t.chat.sendVoice} onclick={send}>
+			<Send size={20} />
 		</ButtonIcon>
 	</div>
 {:else}
-	<ButtonIcon size="sm" title={t.chat.recordVoice} onclick={start}>
-		<Mic size={16} />
+	<ButtonIcon size="md" title={t.chat.recordVoice} onclick={start}>
+		<Mic size={20} />
 	</ButtonIcon>
 {/if}
 

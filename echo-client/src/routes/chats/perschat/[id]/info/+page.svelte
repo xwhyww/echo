@@ -21,7 +21,7 @@
 	{#snippet actions()}
 		{#if !info.isSelf}
 			<Button variant="ghost" onclick={info.openProfile}>
-				<User size={14} />
+				<User size={16} />
 				{t.chat.viewProfile}
 			</Button>
 		{/if}

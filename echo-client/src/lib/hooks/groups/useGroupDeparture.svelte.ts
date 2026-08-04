@@ -34,7 +34,7 @@ export function useGroupDeparture(deps: {
 		try {
 			await groupsService.leave(deps.groupId(), auth.user.id);
 			groupsStore.remove(deps.groupId());
-			goto(routes.chats.groups);
+			goto(routes.chats.root);
 		} catch (err) {
 			console.error('[useGroupDeparture] leave failed', err);
 			toasts.error(t.groupSettings.leaveFailed);
@@ -49,7 +49,7 @@ export function useGroupDeparture(deps: {
 		try {
 			await groupsService.remove(deps.groupId());
 			groupsStore.remove(deps.groupId());
-			goto(routes.chats.groups);
+			goto(routes.chats.root);
 		} catch (err) {
 			console.error('[useGroupDeparture] delete failed', err);
 			toasts.error(t.groupSettings.deleteFailed);

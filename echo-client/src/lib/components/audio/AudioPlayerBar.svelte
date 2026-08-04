@@ -75,7 +75,7 @@
 			<AudioVolumeControl {dockTop} />
 
 			<button type="button" class="icon-btn text-muted" onclick={() => audioPlayer.close()} aria-label={t.chat.closePlayer}>
-				<X size={16} />
+				<X size={18} />
 			</button>
 		</div>
 	</div>
@@ -89,7 +89,7 @@
 		 * to fill the width it's given. */
 		display: flex;
 		flex-direction: column;
-		padding: var(--sp-2) var(--sp-2);
+		padding: var(--sp-4) var(--sp-4);
 
 		position: relative;
 		width: 100%;

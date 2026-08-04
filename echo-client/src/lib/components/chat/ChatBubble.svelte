@@ -109,7 +109,7 @@
 		onpointerup={bubble.handleBubblePointerUp}
 	>
 		{#if isPinned}
-			<div class="pin-indicator text-accent" title={t.chat.pinned}><Pin size={14} /></div>
+			<div class="pin-indicator text-accent" title={t.chat.pinned}><Pin size={16} /></div>
 		{/if}
 
 		{#if showAvatar}

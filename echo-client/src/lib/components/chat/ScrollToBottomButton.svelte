@@ -28,7 +28,7 @@
 	{#if unread > 0}
 		<span class="badge body-xs fw-semibold text-inverse">{unread > 99 ? '99+' : unread}</span>
 	{/if}
-	<ArrowDown size={18} />
+	<ArrowDown size={22} />
 </button>
 
 <style lang="scss">
@@ -38,8 +38,8 @@
 		position: absolute;
 		bottom: var(--scroll-btn-bottom);
 		right: 12px;
-		width: 40px;
-		height: 40px;
+		width: 48px;
+		height: 48px;
 		border-radius: 50%;
 		display: flex;
 		align-items: center;

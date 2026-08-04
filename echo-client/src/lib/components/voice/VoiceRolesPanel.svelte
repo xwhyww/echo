@@ -31,14 +31,14 @@
 <section>
 	<SectionHeader>
 		{#snippet title()}
-			<Shield size={16} />
+			<Shield size={18} />
 			<h2 class="heading-md fw-semibold">{t.voice.roles.title}</h2>
 			<span class="vrp-count body-xs">{panel.roles.length}</span>
 		{/snippet}
 		{#snippet actions()}
 			{#if panel.canManage}
 				<Button variant="primary" onclick={panel.openCreate} title={t.voice.roles.newRole}>
-					<Plus size={14} />
+					<Plus size={16} />
 					<span>{t.voice.roles.newRole}</span>
 				</Button>
 			{/if}

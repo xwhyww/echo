@@ -8,11 +8,6 @@
 	import Header from '$lib/components/layouts/Header.svelte';
 	import { getActiveSidebar } from '$lib/stores/sidebar.svelte.js';
 	import { HOME, routes, isChatRoute } from '$lib/routes.js';
-	import ChannelSidebar from '$lib/components/sidebar/ChannelSidebar.svelte';
-	import FriendsSidebar from '$lib/components/sidebar/FriendsSidebar.svelte';
-	import GroupsSidebar from '$lib/components/sidebar/GroupsSidebar.svelte';
-	import AllChatsSidebar from '$lib/components/sidebar/AllChatsSidebar.svelte';
-	import SettingsSidebar from '$lib/components/sidebar/SettingsSidebar.svelte';
 	import IncomingCallModal from '$lib/components/call/IncomingCallModal.svelte';
 	import ToastHost from '$lib/components/ui/ToastHost.svelte';
 	import ConfirmHost from '$lib/components/ui/ConfirmHost.svelte';
@@ -41,10 +36,7 @@
 		[routes.friends.root]: t.nav.friends,
 		[routes.friends.incoming]: t.nav.incomingRequests,
 		[routes.friends.outgoing]: t.nav.outgoingRequests,
-		[routes.chats.perschat]: t.nav.personalChats,
-		[routes.chats.groups]: t.nav.groups,
 		[routes.chats.groupsInvites]: t.nav.invites,
-		[routes.chats.allchats]: t.nav.allChats,
 	});
 
 	// Section fallback for dynamic routes (open chat, /user/[id], …) where

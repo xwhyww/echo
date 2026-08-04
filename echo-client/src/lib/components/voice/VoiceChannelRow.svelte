@@ -50,7 +50,7 @@
 
 <li class="vp-item" class:active={current}>
 	<button class="vp-item-main body-sm text-default" onclick={onjoin} disabled={joining}>
-		<span class="vp-icon text-muted"><Volume2 size={16} /></span>
+		<span class="vp-icon text-muted"><Volume2 size={18} /></span>
 		<span class="vp-name">{channel.name}</span>
 
 		{#if people.length > 0}
@@ -79,13 +79,13 @@
 		{/if}
 
 		{#if joining}
-			<Loader size={14} />
+			<Loader size={16} />
 		{:else if current}
 			<span class="vp-badge body-xs text-accent">{t.voice.inCall}</span>
 		{:else if people.length > 0}
 			<span class="vp-count body-xs text-muted" title={t.voice.inCallCount(people.length)}>{people.length}</span>
 		{:else}
-			<Phone size={14} />
+			<Phone size={16} />
 		{/if}
 	</button>
 
@@ -97,10 +97,10 @@
 				onclose={onmenuclose}
 				label={t.voice.channelOptions}
 			>
-				<button onclick={onmove}><Move size={14} /> {t.voice.moveTo}</button>
-				<button onclick={onaccess}><Lock size={14} /> {t.voice.manageAccess}</button>
+				<button onclick={onmove}><Move size={16} /> {t.voice.moveTo}</button>
+				<button onclick={onaccess}><Lock size={16} /> {t.voice.manageAccess}</button>
 				<button class="danger" onclick={ondelete}>
-					<Trash2 size={14} /> {t.voice.deleteChannel}
+					<Trash2 size={16} /> {t.voice.deleteChannel}
 				</button>
 			</DropdownMenu>
 		</div>

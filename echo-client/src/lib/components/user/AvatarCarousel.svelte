@@ -86,7 +86,7 @@
 				onclick={() => handleDeleteAvatar(avatar)}
 				aria-label={t.account.deleteAvatar}
 			>
-				<X size={10} />
+				<X size={12} />
 			</button>
 		</div>
 	{/each}

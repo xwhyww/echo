@@ -3,7 +3,8 @@
 	align-items: center;
 	justify-content: center;
 	gap: var(--sp-2);
-	padding: var(--sp-2) var(--sp-5);
+	padding: var(--sp-3) var(--sp-5);
+	min-height: 40px;
 	border: none;
 	border-radius: var(--radius-md);
 	font-family: var(--font-sans), serif;
@@ -71,8 +72,8 @@
    uploaded audio share it so a bubble never shows two different players. */
 @mixin play-button {
 	flex-shrink: 0;
-	width: 30px;
-	height: 30px;
+	width: 36px;
+	height: 36px;
 	border-radius: 50%;
 	border: none;
 	background: var(--c-accent);
@@ -118,7 +119,8 @@
 @mixin button-dashed {
 	@include button-base;
 	gap: var(--sp-1);
-	padding: 2px var(--sp-2);
+	padding: 4px var(--sp-3);
+	min-height: 28px;
 	border-radius: var(--radius-full);
 	font-size: var(--fs-xs);
 	background: transparent;
@@ -157,7 +159,7 @@
 	align-items: center;
 	gap: var(--sp-2);
 	width: 100%;
-	padding: var(--sp-2) var(--sp-3);
+	padding: var(--sp-3);
 	background: none;
 	border: none;
 	cursor: pointer;
@@ -173,7 +175,8 @@
    "reset". Reads as a link but behaves as a button. */
 @mixin button-link {
 	@include button-base;
-	padding: var(--sp-1) var(--sp-2);
+	padding: var(--sp-2) var(--sp-3);
+	min-height: 32px;
 	border-radius: var(--radius-sm);
 	background: none;
 	color: var(--c-accent-text);

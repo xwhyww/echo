@@ -42,7 +42,7 @@
 <section class="vp-cat">
 	<header class="vp-cat-head">
 		<button class="vp-cat-toggle body-xs overline fw-semibold text-muted" onclick={ontoggle} aria-expanded={open}>
-			{#if open}<ChevronDown size={14} />{:else}<ChevronRight size={14} />{/if}
+			{#if open}<ChevronDown size={16} />{:else}<ChevronRight size={16} />{/if}
 			<span class="vp-cat-name">{name}</span>
 			<span class="vp-cat-count body-xxs text-faint">{count}</span>
 		</button>
@@ -53,10 +53,10 @@
 				onclose={onmenuclose}
 				label={t.voice.categoryOptions}
 			>
-				<button onclick={onaddchannel}><Plus size={14} /> {t.voice.newChannelHere}</button>
-				<button onclick={onrename}><Pencil size={14} /> {t.voice.rename}</button>
+				<button onclick={onaddchannel}><Plus size={16} /> {t.voice.newChannelHere}</button>
+				<button onclick={onrename}><Pencil size={16} /> {t.voice.rename}</button>
 				<button class="danger" onclick={ondelete}>
-					<Trash2 size={14} /> {t.voice.deleteCategory}
+					<Trash2 size={16} /> {t.voice.deleteCategory}
 				</button>
 			</DropdownMenu>
 		{/if}

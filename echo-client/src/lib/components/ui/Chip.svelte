@@ -26,7 +26,7 @@
 	<span class="chip-label">{@render children()}</span>
 	{#if onremove}
 		<button class="chip-remove text-faint" onclick={onremove} title={removeTitle} aria-label={removeTitle}>
-			<X size={11} />
+			<X size={12} />
 		</button>
 	{/if}
 </span>
@@ -38,7 +38,7 @@
 		display: inline-flex;
 		align-items: center;
 		gap: var(--sp-1);
-		padding: 2px var(--sp-1) 2px 2px;
+		padding: 3px var(--sp-2) 3px 3px;
 		border-radius: var(--radius-full);
 		max-width: var(--chip-max-width);
 		@include glass;
@@ -60,8 +60,8 @@
 		align-items: center;
 		justify-content: center;
 		flex-shrink: 0;
-		width: 16px;
-		height: 16px;
+		width: 18px;
+		height: 18px;
 		border-radius: var(--radius-full);
 		background: transparent;
 		border: none;

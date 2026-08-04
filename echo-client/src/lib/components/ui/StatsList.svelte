@@ -32,7 +32,7 @@
 				onclick={() => (item.action ? item.action() : onmedia(item.mediaKind!))}
 			>
 				<div class="stat-left text-muted">
-					<item.icon size={16} />
+					<item.icon size={18} />
 					<span>{item.label}</span>
 				</div>
 				<span class="stat-value text-muted">{item.value.toLocaleString()}</span>
@@ -40,7 +40,7 @@
 		{:else}
 			<div class="stat-row body-sm text-default">
 				<div class="stat-left text-muted">
-					<item.icon size={16} />
+					<item.icon size={18} />
 					<span>{item.label}</span>
 				</div>
 				<span class="stat-value text-muted">{item.value.toLocaleString()}</span>

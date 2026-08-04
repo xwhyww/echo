@@ -28,7 +28,7 @@
 	.select {
 		flex: 1;
 		min-width: 0;
-		padding: var(--sp-2) var(--sp-3);
+		padding: var(--sp-3) var(--sp-4);
 		background: var(--c-bg-2);
 		border: 1px solid var(--c-border);
 		border-radius: var(--radius-sm);

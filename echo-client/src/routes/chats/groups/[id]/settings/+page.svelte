@@ -79,13 +79,13 @@
 				{#snippet actions()}
 					{#if settings.canInvitePeople}
 						<Button variant="primary" onclick={() => (showInvite = true)}>
-							<UserPlus size={14} /> {t.groupSettings.invite}
+							<UserPlus size={16} /> {t.groupSettings.invite}
 						</Button>
 					{/if}
 				{/snippet}
 
 				<Input bind:value={settings.memberQuery} placeholder={t.groupSettings.searchMembers}>
-					{#snippet icon()}<Search size={14} />{/snippet}
+					{#snippet icon()}<Search size={16} />{/snippet}
 				</Input>
 
 				{#if settings.filteredMembers.length === 0}
@@ -122,7 +122,7 @@
 					/>
 				{:else}
 					<div class="locked text-faint">
-						<Lock size={14} />
+						<Lock size={16} />
 						<p class="body-sm">{t.groupSettings.inviteLocked((group.invitePolicy ?? 'admins') === 'owner')}</p>
 					</div>
 				{/if}
@@ -151,7 +151,7 @@
 						disabled={settings.leaving || settings.pendingLeave}
 						onclick={settings.startLeave}
 					>
-						<LogOut size={14} />
+						<LogOut size={16} />
 						{settings.leaving
 							? t.groupSettings.leaving
 							: settings.pendingLeave
@@ -164,7 +164,7 @@
 						disabled={settings.deleting || settings.pendingDelete}
 						onclick={settings.startDelete}
 					>
-						<Trash2 size={14} />
+						<Trash2 size={16} />
 						{settings.deleting
 							? t.groupSettings.deleting
 							: settings.pendingDelete

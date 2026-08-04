@@ -21,9 +21,9 @@
 	<span class="content">{@render children()}</span>
 	<span class="icon text-muted" class:copied>
 		{#if copied}
-			<Check size={14} />
+			<Check size={16} />
 		{:else}
-			<Copy size={14} />
+			<Copy size={16} />
 		{/if}
 	</span>
 </button>

@@ -23,7 +23,7 @@
 		<Avatar {name} {avatarUrl} size={36} />
 	{/if}
 	<span class="forward-item-name body-sm text-default">{name}</span>
-	<Send size={16} />
+	<Send size={18} />
 </button>
 
 <style>

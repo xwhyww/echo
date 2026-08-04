@@ -109,7 +109,7 @@ export function useGroupChatPage() {
 					if (e.groupId !== id) return;
 					members = members.filter((m) => m.userId !== e.userId);
 					// Being the one who left means this page is no longer ours to see.
-					if (e.userId === auth.user?.id) goto(routes.chats.groups);
+					if (e.userId === auth.user?.id) goto(routes.chats.root);
 					return;
 				case 'group_member_role':
 					if (e.groupId !== id) return;
@@ -122,7 +122,7 @@ export function useGroupChatPage() {
 					return;
 				case 'group_deleted':
 					if (e.groupId !== id) return;
-					goto(routes.chats.groups);
+					goto(routes.chats.root);
 					return;
 			}
 		});

@@ -62,9 +62,26 @@
 			container?.replaceChildren();
 		};
 	});
+
+	// Picking an emoji must not move focus. Suppressing mousedown's default
+	// leaves it wherever it was — so a focused composer keeps its caret and gets
+	// the emoji there, and an unfocused one is not woken up (no keyboard sliding
+	// over the picker on a phone). The picker lives in a shadow root, so the
+	// real target is read off the composed path; its own search box is the one
+	// thing that still has to be able to take focus.
+	function keepFocus(e: MouseEvent) {
+		const inner = e.composedPath()[0] as HTMLElement | undefined;
+		if (inner?.tagName === 'INPUT') return;
+		e.preventDefault();
+	}
 </script>
 
-<div class="emoji-picker-wrapper {pickerStyle}" bind:this={container}></div>
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div
+	class="emoji-picker-wrapper {pickerStyle}"
+	bind:this={container}
+	onmousedown={keepFocus}
+></div>
 
 <style lang="scss">
   @use '$lib/styles/glass.mixin' as *;

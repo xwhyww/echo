@@ -129,10 +129,10 @@
 		<div class="preview-actions">
 			<div class="preview-tools">
 				<ButtonIcon size="sm" title={t.chat.addFiles} onclick={() => fileInput?.click()}>
-					<Paperclip size={16} />
+					<Paperclip size={18} />
 				</ButtonIcon>
 				<ButtonIcon size="sm" title={t.common.emoji} onclick={() => (showEmoji = !showEmoji)}>
-					<Smile size={16} class={showEmoji ? 'emoji-active' : ''} />
+					<Smile size={18} class={showEmoji ? 'emoji-active' : ''} />
 				</ButtonIcon>
 			</div>
 

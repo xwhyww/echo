@@ -17,7 +17,7 @@
 
 <header class="mobile-header">
 	<button class="back-btn text-muted" onclick={() => goto(backHref)} aria-label={t.common.back}>
-		<ArrowLeft size={18} />
+		<ArrowLeft size={20} />
 	</button>
 	{#if title}
 		<span class="title body-sm fw-medium text-default">{title}</span>

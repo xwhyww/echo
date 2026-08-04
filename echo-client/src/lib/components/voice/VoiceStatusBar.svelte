@@ -22,7 +22,7 @@
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div class="vsb-info" onclick={openCallScreen}>
 				<div class="vsb-icon text-inverse">
-					<Volume2 size={14} />
+					<Volume2 size={16} />
 				</div>
 				<div class="vsb-text lh-tight">
 					<span class="vsb-status body-xs text-success">
@@ -46,9 +46,9 @@
 					title={voiceClient.isMuted ? t.call.unmute : t.call.mute}
 				>
 					{#if voiceClient.isMuted}
-						<MicOff size={14} />
+						<MicOff size={16} />
 					{:else}
-						<Mic size={14} />
+						<Mic size={16} />
 					{/if}
 				</button>
 				<button
@@ -59,9 +59,9 @@
 					title={voiceClient.isDeafened ? t.voice.undeafen : t.voice.deafen}
 				>
 					{#if voiceClient.isDeafened}
-						<HeadphoneOff size={14} />
+						<HeadphoneOff size={16} />
 					{:else}
-						<Headphones size={14} />
+						<Headphones size={16} />
 					{/if}
 				</button>
 				<button
@@ -70,7 +70,7 @@
 					onclick={() => voiceClient.disconnect()}
 					title={t.voice.disconnect}
 				>
-					<PhoneOff size={14} />
+					<PhoneOff size={16} />
 				</button>
 			</div>
 		</div>
