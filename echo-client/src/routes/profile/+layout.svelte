@@ -23,7 +23,7 @@
   /* Clear the fixed mobile header so page content starts below it. */
   @media (max-width: 767px) {
     .body {
-      padding-top: calc(var(--bottom-nav-h) + 20px + env(safe-area-inset-top, 0px));
+      padding-top: calc(var(--bottom-nav-h) + 20px + var(--safe-top));
     }
   }
 </style>

@@ -175,16 +175,30 @@
 	--duration-base: 180ms;
 	--duration-slow: 300ms;
 
+	/* --- Phone chrome ---
+	 * The status bar / notch above the page and the home indicator below it.
+	 * `viewport-fit=cover` (app.html) is what makes these report real values;
+	 * everywhere else they resolve to 0, so they are safe to add anywhere.
+	 * Never write `env(safe-area-inset-*)` in a component — use these. */
+	--safe-top: env(safe-area-inset-top, 0px);
+	--safe-bottom: env(safe-area-inset-bottom, 0px);
+
 	/* --- Layout --- */
 	--sidebar-w: 72px;       /* space icon rail */
 	--channel-list-w: 240px; /* channel sidebar */
 	--member-list-w: 240px;  /* member panel */
-	--header-h: 48px;        /* top bar */
-	--header-h-padding-s: 48px;        /* top bar */
-	--header-h-padding-m: 58px;        /* top bar */
-	--header-h-padding-l: 68px;        /* top bar */
-	--header-h-padding-xl: 78px;        /* top bar */
-	--header-h-padding-xxl: 98px;        /* top bar */
+	--header-h: 48px;        /* top bar, content height — no inset */
+	/* Top offsets: how far down a page starts. They clear the header *and* the
+	   status bar, so anything anchored to the top edge uses these, not raw px. */
+	--header-h-padding-s: calc(48px + var(--safe-top));
+	--header-h-padding-m: calc(58px + var(--safe-top));
+	--header-h-padding-l: calc(68px + var(--safe-top));
+	--header-h-padding-xl: calc(78px + var(--safe-top));
+	--header-h-padding-xxl: calc(98px + var(--safe-top));
+	/* Bottom offsets: the same steps measured from the other edge, so they clear
+	   the home indicator instead of the notch. */
+	--footer-h-padding-m: calc(58px + var(--safe-bottom));
+	--footer-h-padding-l: calc(68px + var(--safe-bottom));
 	--bottom-nav-h: 56px;    /* mobile bottom tab bar */
 	--input-h: 38px;         /* message input */
 	--count-badge-size: 24px; /* round "how many" chip beside a section title */

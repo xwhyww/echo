@@ -34,7 +34,7 @@
 	@media (max-width: 767px) {
 		.mobile-header {
 			position: fixed;
-			top: calc(8px + env(safe-area-inset-top, 0px));
+			top: calc(8px + var(--safe-top));
 			left: 8px;
 			width: calc(100% - 16px);
 			z-index: var(--z-sticky);

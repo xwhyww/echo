@@ -103,7 +103,7 @@
 	@media (max-width: 767px) {
 		.sidebar {
 			width: calc(100% - 16px);
-			height: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom, 0px));
+			height: calc(var(--bottom-nav-h) + var(--safe-bottom));
 			flex-direction: row;
 			position: absolute;
 			bottom: 10px;

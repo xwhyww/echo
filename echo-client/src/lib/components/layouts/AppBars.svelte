@@ -63,6 +63,6 @@
 	}
 	
 	.doc-bottom {
-		bottom: var(--header-h-padding-l);
+		bottom: var(--footer-h-padding-l);
 	}
 </style>

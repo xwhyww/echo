@@ -21,13 +21,16 @@
 </header>
 
 <style>
+	/* The header sits at the very top edge, so on a phone the status bar/notch
+	   overlaps it. It keeps its own height and wears the inset as padding — the
+	   bar grows taller, the content inside it stays put. */
 	.app-header {
-		height: var(--header-h);
+		height: calc(var(--header-h) + var(--safe-top));
 		flex-shrink: 0;
 		display: flex;
 		align-items: center;
 		gap: var(--sp-2);
-		padding: 0 var(--sp-2);
+		padding: var(--safe-top) var(--sp-2) 0;
 		background: transparent;
 		position: absolute;
 		width: 100%;
@@ -35,11 +38,16 @@
 		right: 0;
 	}
 
+	/* Stretched between the inset and the bottom edge rather than centred on
+	   50%, which would measure against the padding box and sit half an inset
+	   too high. */
 	.header-back {
 		position: absolute;
 		left: var(--sp-2);
-		top: 50%;
-		transform: translateY(-50%);
+		top: var(--safe-top);
+		bottom: 0;
+		display: flex;
+		align-items: center;
 	}
 
 	.title {

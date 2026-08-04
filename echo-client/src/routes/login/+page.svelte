@@ -82,7 +82,7 @@
 		justify-content: center;
 		min-height: 100vh;
 		min-height: 100svh;
-		padding: var(--sp-10) var(--sp-4) var(--sp-4);
+		padding: calc(var(--sp-10) + var(--safe-top)) var(--sp-4) var(--sp-4);
 	}
 
 	/* Mobile: the card stretches to the full screen height; the footer's
@@ -135,7 +135,7 @@
 		gap: var(--sp-1);
 		text-align: center;
 		margin-top: auto;
-		padding-bottom: env(safe-area-inset-bottom, 0px);
+		padding-bottom: var(--safe-bottom);
 	}
 
 	@media (min-width: 480px) {
