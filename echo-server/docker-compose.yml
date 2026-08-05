@@ -95,6 +95,7 @@ services:
       BLOB_SERVICE_URL: http://blobs:3006
       GROUPS_SERVICE_URL: http://groups:3007
       VOICE_SERVICE_URL: http://voice:3008
+      PUSH_SERVICE_URL: http://push:3009
       WS_GATEWAY_URL: ws://ws-gateway:3004
     depends_on:
       auth:
@@ -112,6 +113,8 @@ services:
       groups:
         condition: service_started
       voice:
+        condition: service_started
+      push:
         condition: service_started
 
   auth:
@@ -225,6 +228,7 @@ services:
       NATS_URL: nats://nats:4222
       USER_SERVICE_URL: http://user:3002
       FRIENDS_SERVICE_URL: http://friends:3005
+      INTERNAL_API_KEY: dev-internal-key
     depends_on:
       redis:
         condition: service_started
@@ -326,6 +330,42 @@ services:
       nats:
         condition: service_started
       livekit:
+        condition: service_started
+
+  # Turns the events ws-gateway already broadcasts into phone notifications for
+  # users whose app isn't connected. Runs happily without APNs credentials —
+  # it registers devices and logs what it would have sent.
+  #
+  # The .p8 APNs key is a secret: mount it read-only from outside the repo, e.g.
+  #   volumes: ["${APNS_KEY_PATH}:/run/secrets/apns.p8:ro"]
+  #   environment: { APNS_KEY_PATH: /run/secrets/apns.p8 }
+  push:
+    profiles: ["full"]
+    build:
+      context: .
+      args:
+        SERVICE: push-service
+    ports:
+      - "3009:3009"
+    environment:
+      PORT: 3009
+      DATABASE_URL: postgresql://echo:echo_dev@postgres:5432/echo_push
+      PUSH_DATABASE_URL: postgresql://echo:echo_dev@postgres:5432/echo_push
+      JWT_SECRET: dev-secret-change-in-production
+      NATS_URL: nats://nats:4222
+      WS_GATEWAY_HTTP_URL: http://ws-gateway:3004
+      INTERNAL_API_KEY: dev-internal-key
+      APNS_KEY_PATH: ${APNS_KEY_PATH:-}
+      APNS_KEY_ID: ${APNS_KEY_ID:-}
+      APNS_TEAM_ID: ${APNS_TEAM_ID:-}
+      APNS_BUNDLE_ID: ${APNS_BUNDLE_ID:-}
+      PUSH_MESSAGE_PREVIEW: ${PUSH_MESSAGE_PREVIEW:-false}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_started
+      ws-gateway:
         condition: service_started
 
 volumes:

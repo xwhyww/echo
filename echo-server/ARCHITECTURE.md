@@ -85,6 +85,25 @@ Manages all real-time WebSocket connections.
 - **Incoming messages**: handles `typing` and `typing_channel` events (broadcast to other users)
 - **Redis subscriber**: listens to `ws:events` channel and delivers events (`dm`, `chat_read`) to the target user's WebSocket connections
 - Supports multiple connections per user (tabs/devices)
+- **`GET /internal/presence/:userId`** (internal key): whether the user has a live
+  socket. push-service asks before turning an event into a phone notification.
+
+### Push Service (`:3009`)
+
+Turns NATS events into APNs notifications for users whose app isn't connected.
+
+| Endpoint | Description |
+|---|---|
+| `POST /push/devices` | Register a device token for the authenticated user |
+| `DELETE /push/devices/:token` | Unregister — called on sign-out |
+
+- A **second reader** of `DM_EVENTS`, `FRIEND_EVENTS` and `GROUP_EVENTS`, under its
+  own durable consumers — ws-gateway is unchanged, and neither path can drift
+- Skips anyone ws-gateway reports as connected (the open app already showed it),
+  and skips the author of a group message
+- Runs fine without Apple credentials: registration works, notifications are logged
+- See `services/push-service/README.md` for APNs setup and what is still missing
+  (the native client plugin, Android/FCM, localisation)
 
 ## Shared Package (`@echo/shared`)
 

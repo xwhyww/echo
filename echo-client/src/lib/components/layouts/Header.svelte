@@ -1,5 +1,6 @@
 <script lang="ts">
 	import BackButton from '$lib/components/ui/BackButton.svelte';
+	import { useSwipeBack } from '$lib/hooks/ui/useSwipeBack.svelte.js';
 
 	interface Props {
 		// Fallback destination: landing on the page directly (deep link,
@@ -9,6 +10,9 @@
 	}
 
 	let { backHref, title = '' }: Props = $props();
+
+	// The touch equivalent of the back button beside it.
+	useSwipeBack(() => backHref);
 </script>
 
 <header class="app-header">
@@ -31,11 +35,18 @@
 		align-items: center;
 		gap: var(--sp-2);
 		padding: var(--safe-top) var(--sp-2) 0;
-		background: transparent;
+		/* Scrim so content scrolling under the header stays legible. */
+		background: linear-gradient(
+			to bottom,
+			rgba(0, 0, 0, 0.9),
+			rgba(0, 0, 0, 0.6) 60%,
+			rgba(0, 0, 0, 0)
+		);
 		position: absolute;
 		width: 100%;
 		top: 0;
 		right: 0;
+		z-index: 2;
 	}
 
 	/* Stretched between the inset and the bottom edge rather than centred on

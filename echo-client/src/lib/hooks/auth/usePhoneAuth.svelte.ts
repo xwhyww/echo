@@ -42,9 +42,13 @@ export function usePhoneAuth() {
 		error = err instanceof ApiError ? err.message : i18n.t.errors.somethingWentWrong;
 	}
 
+	// `replaceState`: signing in consumes the login page rather than stacking on
+	// top of it. Pushing would leave /login one step back, where the back button
+	// would land on it only for the auth guard to bounce straight home again — a
+	// back press that visibly goes nowhere.
 	function finish(user: User, token: string) {
 		auth.setAuth(user, token);
-		goto(HOME);
+		goto(HOME, { replaceState: true });
 	}
 
 	async function sendCode() {

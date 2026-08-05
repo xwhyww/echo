@@ -36,7 +36,7 @@
 	}
 </script>
 
-<PageColumn gap="var(--sp-5)" paddingTop="var(--header-h-padding-l)">
+<PageColumn gap="var(--sp-6)">
 	<LoadState loading={settings.loading}>
 		{#if settings.group}
 			{@const group = settings.group}

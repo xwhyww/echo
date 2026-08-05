@@ -108,11 +108,17 @@
 	}
 
 	// …and pressing one of those controls must not pull focus *out* of the
-	// editor either: a button takes focus on mousedown, which drops the caret,
-	// so opening the emoji picker would leave the next pick with nowhere to go
-	// but the end of the text. Suppressing the default keeps the caret exactly
-	// where the user left it.
-	function onFieldMouseDown(e: MouseEvent) {
+	// editor either: a button takes focus on press, which drops the caret, so
+	// opening the emoji picker would leave the next pick with nowhere to go but
+	// the end of the text. Suppressing the default keeps the caret exactly where
+	// the user left it.
+	//
+	// This has to be pointerdown, not mousedown. A touch fires mousedown only as
+	// a compatibility event after the finger lifts — far too late to stop the
+	// blur, so on a phone the first tap merely dismissed the keyboard, the bar
+	// slid down out from under the finger, and the click never reached the
+	// button. pointerdown fires on finger-down for touch and mouse alike.
+	function onFieldPointerDown(e: PointerEvent) {
 		if ((e.target as HTMLElement | null)?.closest('button')) e.preventDefault();
 	}
 
@@ -135,11 +141,15 @@
 <div class="textfield-wrapper">
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<!-- `data-keeps-keyboard`: the field's own controls are part of the field, not
+	     "outside" it, so pressing send/emoji/attach must not trip the global
+	     keyboard dismisser in `useKeyboardDismiss`. -->
 	<div
 		class="textfield"
 		class:recording={recordingActive}
 		onclick={onFieldClick}
-		onmousedown={onFieldMouseDown}
+		onpointerdown={onFieldPointerDown}
+		data-keeps-keyboard
 	>
 		{#if !recordingActive}
 			<!-- svelte-ignore a11y_no_static_element_interactions -->

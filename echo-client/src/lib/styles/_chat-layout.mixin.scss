@@ -61,10 +61,10 @@
    whoever includes these must be `position: relative` — otherwise they
    escape to the viewport and overhang the emoji sidebar. */
 @mixin chat-header-overlay {
-	position: absolute;
+	position: fixed;
 	top: 0;
 	left: 0;
-	width: 100%;
+	width: calc(100% - var(--sp-2));
 	/* Taller by the status-bar inset so the scrim reaches the top edge while
 	   the avatar and name stay below the notch. */
 	height: calc(var(--header-h) + var(--safe-top));

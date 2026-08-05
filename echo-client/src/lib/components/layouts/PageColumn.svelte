@@ -38,7 +38,17 @@
 		width: 100%;
 		margin: 0 auto;
 		padding: var(--sp-3);
-		padding-top: var(--page-padding-top);
+		padding-top: var(--header-h-padding-l);
 		gap: var(--page-gap);
+		padding-bottom: calc(var(--safe-bottom) + 88px);
+		/* The column is the page's scroller. Without this it just grows and
+		   `.app-shell` — which is `overflow: hidden` — clips whatever doesn't fit,
+		   with no way to reach it.
+		   100% of the shell rather than 100vh: the shell is `100svh`, the *small*
+		   viewport left when a mobile browser's toolbars are showing, so a 100vh
+		   scrollport would hang below that clip by the height of the toolbars and
+		   the last screenful would stay cut off even at the end of the scroll. */
+		height: 100%;
+		overflow: auto;
 	}
 </style>

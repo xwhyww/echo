@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import { ArrowLeft } from 'lucide-svelte';
+	import { goBack } from '$lib/utils/navigation';
 	import { i18n } from '$lib/i18n/i18n.svelte.js';
 
 	const t = $derived(i18n.t);
@@ -14,16 +14,9 @@
 
 	let { backHref, size = 32 }: Props = $props();
 
-	function goBack() {
-		if (history.length > 1) {
-			history.back();
-		} else {
-			goto(backHref);
-		}
-	}
 </script>
 
-<button class="back-btn text-muted" style="--back-size: {size}px" onclick={goBack} aria-label={t.common.back}>
+<button class="back-btn text-muted" style="--back-size: {size}px" onclick={() => goBack(backHref)} aria-label={t.common.back}>
 	<ArrowLeft size={22} />
 </button>
 

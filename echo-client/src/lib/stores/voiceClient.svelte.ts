@@ -91,6 +91,7 @@ const screenShare = createScreenShare({
 // one of these: read the room back out into the arrays the UI renders.
 function refreshParticipants() {
 	participants = snapshotParticipants(room, speakingIds, audio.muted);
+	console.log(333, participants);
 }
 
 function refreshShares() {

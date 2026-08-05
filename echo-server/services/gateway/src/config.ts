@@ -18,6 +18,7 @@ export const config = {
 	blobServiceUrl: process.env.BLOB_SERVICE_URL || 'http://localhost:3006',
 	groupsServiceUrl: process.env.GROUPS_SERVICE_URL || 'http://localhost:3007',
 	voiceServiceUrl: process.env.VOICE_SERVICE_URL || 'http://localhost:3008',
+	pushServiceUrl: process.env.PUSH_SERVICE_URL || 'http://localhost:3009',
 	// Comma-separated web origins allowed to call the API with credentials.
 	// Required in production — localhost/LAN origins are dev-only (see app.ts).
 	allowedOrigins: (process.env.ALLOWED_ORIGINS || '')

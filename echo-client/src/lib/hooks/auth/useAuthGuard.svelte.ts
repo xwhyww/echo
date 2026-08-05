@@ -43,16 +43,21 @@ export function useAuthGuard() {
 		return unsub;
 	});
 
-	// Route protection
+	// Route protection.
+	//
+	// Both redirects replace rather than push: they are corrections to a page the
+	// user should never have been on, not places they navigated to. Pushing would
+	// leave that page sitting in the back stack for the back button to return to,
+	// where the same guard would immediately bounce them off it again.
 	$effect(() => {
 		if (auth.loading) return;
 
 		if (!auth.isAuthenticated && !isPublicPage) {
-			goto(routes.login);
+			goto(routes.login, { replaceState: true });
 		}
 
 		if (auth.isAuthenticated && (page.url.pathname === routes.login || page.url.pathname === routes.register)) {
-			goto(HOME);
+			goto(HOME, { replaceState: true });
 		}
 	});
 

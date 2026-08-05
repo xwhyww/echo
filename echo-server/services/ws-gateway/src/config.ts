@@ -13,4 +13,5 @@ export const config = {
 	natsUrl: process.env.NATS_URL || 'nats://localhost:4222',
 	userServiceUrl: process.env.USER_SERVICE_URL || 'http://localhost:3002',
 	friendsServiceUrl: process.env.FRIENDS_SERVICE_URL || 'http://localhost:3005',
+	internalApiKey: process.env.INTERNAL_API_KEY || 'dev-internal-key',
 };

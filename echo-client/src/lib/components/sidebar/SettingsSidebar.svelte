@@ -12,9 +12,11 @@
 	const activePath = $derived(page.url.pathname);
 	const t = $derived(i18n.t);
 
+	// Replaces rather than pushes, so back out of the login screen cannot walk
+	// into the signed-out app.
 	function handleLogout() {
 		auth.logout();
-		goto(routes.login);
+		goto(routes.login, { replaceState: true });
 	}
 </script>
 

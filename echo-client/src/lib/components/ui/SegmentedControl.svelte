@@ -28,7 +28,9 @@
 	{/each}
 </div>
 
-<style>
+<style lang="scss">
+	@use '$lib/styles/glass.mixin' as *;
+	
 	.segmented {
 		display: flex;
 		border-radius: var(--radius-md);
@@ -39,7 +41,7 @@
 	.segment {
 		flex: 1;
 		padding: var(--sp-3) var(--sp-4);
-		background: var(--c-bg-2);
+		@include glass;
 		border: none;
 		border-right: 1px solid var(--c-border);
 		cursor: pointer;
@@ -52,13 +54,7 @@
 		border-right: none;
 	}
 
-	.segment:hover:not(:disabled) {
-		background: var(--c-bg-3);
-		color: var(--c-accent-text);
-	}
-
-	.segment.active,
-	.segment.active:hover:not(:disabled) {
+	.segment.active {
 		background: var(--c-accent);
 		color: var(--c-text-inverse);
 	}

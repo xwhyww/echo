@@ -62,6 +62,26 @@ async function fetchUserFriends(userId: string, token: string): Promise<void> {
 
 app.get('/health', (c) => c.json({ status: 'ok' }));
 
+/**
+ * Whether a user has a live socket here right now.
+ *
+ * push-service asks before turning an event into a phone notification, so an
+ * app that is already open and has rendered the event doesn't also get a
+ * banner. This reads the raw connection table on purpose: the `echo.presence.*`
+ * events are filtered by the user's online-status privacy, so someone hiding
+ * their presence is published as offline while still connected, and would be
+ * notified twice.
+ *
+ * Internal only — the gateway proxies no path to this service, and the shared
+ * key is defense in depth.
+ */
+app.get('/internal/presence/:userId', (c) => {
+	if (c.req.header('X-Internal-Key') !== config.internalApiKey) {
+		return c.json({ error: 'Unauthorized' }, 401);
+	}
+	return c.json({ online: isUserOnline(c.req.param('userId')) });
+});
+
 app.get(
 	'/ws',
 	upgradeWebSocket((c) => {

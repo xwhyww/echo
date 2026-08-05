@@ -61,7 +61,7 @@
 		/>
 	{:else}
 		<div class="vc-avatar-wrap">
-			<Avatar name={p.name} avatarUrl={null} size={avatarSize} />
+			<Avatar name={p.name} avatarUrl={p?.avatarUrl ?? null} size={avatarSize} />
 			{#if p.isMuted}
 				<div class="vc-mute-indicator text-inverse" style="width: {muteSize}px; height: {muteSize}px">
 					<MicOff size={muteIcon} />

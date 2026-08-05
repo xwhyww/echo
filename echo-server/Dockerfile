@@ -16,6 +16,7 @@ COPY services/ws-gateway/package.json services/ws-gateway/
 COPY services/blob-service/package.json services/blob-service/
 COPY services/groups-service/package.json services/groups-service/
 COPY services/voice-service/package.json services/voice-service/
+COPY services/push-service/package.json services/push-service/
 RUN pnpm install --frozen-lockfile
 
 # Copy source

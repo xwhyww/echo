@@ -83,7 +83,9 @@
 	{/if}
 </li>
 
-<style>
+<style lang="scss">
+	@use '$lib/styles/glass.mixin' as *;
+	
 	.member {
 		display: flex;
 		align-items: center;
@@ -91,6 +93,7 @@
 		padding: var(--sp-2) var(--sp-3);
 		background: var(--c-bg-3);
 		border-radius: var(--radius-md);
+		@include glass;
 	}
 
 	.member-meta {

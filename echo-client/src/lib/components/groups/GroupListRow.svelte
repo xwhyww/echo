@@ -26,7 +26,9 @@
 	<span class="group-row-badge body-xs badge-{role} text-muted">{t.groupsPage.roles[role]}</span>
 </button>
 
-<style>
+<style lang="scss">
+	@use '$lib/styles/glass.mixin' as *;
+	
 	.group-row {
 		width: 100%;
 		display: flex;
@@ -39,6 +41,7 @@
 		text-align: left;
 		cursor: pointer;
 		transition: background var(--duration-fast) var(--ease-default);
+		@include glass;
 	}
 
 	.group-row:hover { background: var(--c-bg-3); }

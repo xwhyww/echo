@@ -48,6 +48,7 @@ const SERVICE_MAP: Record<string, string> = {
 	'/blobs': config.blobServiceUrl,
 	'/groups': config.groupsServiceUrl,
 	'/voice': config.voiceServiceUrl,
+	'/push': config.pushServiceUrl,
 };
 
 app.get('/health', (c) => c.json({ status: 'ok' }));
@@ -58,7 +59,7 @@ app.get('/ws-info', (c) =>
 
 // Proxy routes (CORS preflight is handled by the cors() middleware above)
 const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
-for (const prefix of ['/auth', '/users', '/personal-chats', '/friends', '/blobs', '/groups', '/voice']) {
+for (const prefix of ['/auth', '/users', '/personal-chats', '/friends', '/blobs', '/groups', '/voice', '/push']) {
 	app.on(METHODS, `${prefix}/*`, proxy(prefix));
 	app.on(METHODS, prefix, proxy(prefix));
 	app.on(METHODS, `${prefix}/`, proxy(prefix));

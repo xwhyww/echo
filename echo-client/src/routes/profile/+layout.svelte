@@ -13,17 +13,8 @@
 <style>
   .body {
     flex: 1;
-    height: 100vh;
+    height: 100%;
     overflow-y: auto;
-    padding: var(--sp-6) var(--sp-3);
-    padding-bottom: 92px;
     width: 100vw;
-  }
-
-  /* Clear the fixed mobile header so page content starts below it. */
-  @media (max-width: 767px) {
-    .body {
-      padding-top: calc(var(--bottom-nav-h) + 20px + var(--safe-top));
-    }
   }
 </style>

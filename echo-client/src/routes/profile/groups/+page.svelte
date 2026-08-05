@@ -57,7 +57,7 @@
 	<CreateGroupModal onclose={() => (showCreate = false)} />
 {/if}
 
-<style>
+<style lang="scss">
 	.head {
 		display: flex;
 		flex-direction: column;
