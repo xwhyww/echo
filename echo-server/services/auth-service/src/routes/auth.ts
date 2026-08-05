@@ -46,6 +46,30 @@ const OTP_MAX_ATTEMPTS = 5;
 // Never echo the code back in production — dev has no real SMS provider.
 const DEV_ECHO_CODE = process.env.NODE_ENV !== 'production';
 
+/**
+ * Test accounts: a fixed sign-in code and no provider round trip.
+ *
+ * Store review needs a login that works for someone who cannot receive our SMS,
+ * and automated tests need an account they can drive without a phone. Both hold
+ * in production, which is why this is not gated on NODE_ENV — see config.ts for
+ * the security trade-off that comes with that.
+ *
+ * The bypass is deliberately narrow: it changes which code is stored and skips
+ * delivery, and nothing else. Verification, attempt counting, expiry, account
+ * creation and the optional password step all run exactly as they do for a real
+ * number, so there is no second path through sign-in to keep correct.
+ */
+function isTestPhone(phone: string): boolean {
+	return config.testAuth.enabled && config.testAuth.phones.has(phone);
+}
+
+if (config.testAuth.enabled && process.env.NODE_ENV === 'production') {
+	log.warn(
+		{ count: config.testAuth.phones.size },
+		'test phone numbers are enabled in production — they sign in with a fixed code',
+	);
+}
+
 function normalizePhone(raw: unknown): string | null {
 	if (typeof raw !== 'string') return null;
 	const digits = raw.replace(/[\s\-().]/g, '');
@@ -120,16 +144,24 @@ authRoutes.post('/otp/request', async (c) => {
 		return c.json({ error: 'Invalid phone number' }, 400);
 	}
 
-	const existing = await db.query.phoneOtps.findFirst({ where: eq(phoneOtps.phone, phone) });
-	if (existing) {
-		const sinceLast = Date.now() - existing.lastSentAt.getTime();
-		if (sinceLast < OTP_RESEND_COOLDOWN_MS) {
-			const retryAfter = Math.ceil((OTP_RESEND_COOLDOWN_MS - sinceLast) / 1000);
-			return c.json({ error: 'Code already sent. Try again later.', retryAfter }, 429);
+	const isTest = isTestPhone(phone);
+
+	// The cooldown exists to stop a caller running up an SMS bill and to slow
+	// code guessing. Neither applies to a test number: nothing is sent, and the
+	// code is published in the config. Enforcing it here would only make the
+	// accounts useless for repeated test runs.
+	if (!isTest) {
+		const existing = await db.query.phoneOtps.findFirst({ where: eq(phoneOtps.phone, phone) });
+		if (existing) {
+			const sinceLast = Date.now() - existing.lastSentAt.getTime();
+			if (sinceLast < OTP_RESEND_COOLDOWN_MS) {
+				const retryAfter = Math.ceil((OTP_RESEND_COOLDOWN_MS - sinceLast) / 1000);
+				return c.json({ error: 'Code already sent. Try again later.', retryAfter }, 429);
+			}
 		}
 	}
 
-	const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
+	const code = isTest ? config.testAuth.code : String(randomInt(0, 1_000_000)).padStart(6, '0');
 	const row = {
 		codeHash: hashCode(code),
 		attempts: 0,
@@ -141,20 +173,25 @@ authRoutes.post('/otp/request', async (c) => {
 		.values({ phone, ...row })
 		.onConflictDoUpdate({ target: phoneOtps.phone, set: row });
 
-	try {
-		await sendVerificationCode(phone, code);
-	} catch (err) {
-		// The OTP row is already stored, so a retry reuses the resend cooldown
-		// rather than piling up rows. Surfaced as 502: it's the provider that
-		// failed, not the request.
-		log.error({ err, phone }, 'failed to deliver verification code');
-		return c.json({ error: 'Could not send the code. Try again in a moment.' }, 502);
+	// A test number never reaches a provider — that is the whole point. Its code
+	// is already what the caller will type.
+	if (!isTest) {
+		try {
+			await sendVerificationCode(phone, code);
+		} catch (err) {
+			// The OTP row is already stored, so a retry reuses the resend cooldown
+			// rather than piling up rows. Surfaced as 502: it's the provider that
+			// failed, not the request.
+			log.error({ err, phone }, 'failed to deliver verification code');
+			return c.json({ error: 'Could not send the code. Try again in a moment.' }, 502);
+		}
 	}
 
 	return c.json({
 		ok: true,
 		expiresIn: OTP_TTL_MS / 1000,
-		resendIn: OTP_RESEND_COOLDOWN_MS / 1000,
+		// Nothing to wait for on a test number — no message was sent.
+		resendIn: isTest ? 0 : OTP_RESEND_COOLDOWN_MS / 1000,
 		...(DEV_ECHO_CODE ? { devCode: code } : {}),
 	});
 });

@@ -180,6 +180,14 @@ services:
       SMSC_SENDER: ${SMSC_SENDER:-}
       TELEGRAM_GATEWAY_TOKEN: ${TELEGRAM_GATEWAY_TOKEN:-}
       TELEGRAM_GATEWAY_BASE_URL: ${TELEGRAM_GATEWAY_BASE_URL:-}
+      # Test accounts — phones that sign in with a fixed code and send no
+      # message. On in production on purpose (store reviewers, end-to-end
+      # tests); AUTH_TEST_ENABLED=false is the off switch. Leaving the phone
+      # list blank means the defaults in auth-service/src/config.ts, which is
+      # why clearing it is not how you disable this.
+      AUTH_TEST_ENABLED: ${AUTH_TEST_ENABLED:-}
+      AUTH_TEST_PHONES: ${AUTH_TEST_PHONES:-}
+      AUTH_TEST_CODE: ${AUTH_TEST_CODE:-}
     # Telegram Gateway's IPv4 is unreachable from some networks while its IPv6
     # answers instantly. Mapping the real hostname at the host gateway lets a
     # relay there forward over v6 — the name has to stay real so TLS validates,

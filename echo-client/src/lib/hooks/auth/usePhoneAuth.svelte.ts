@@ -26,6 +26,9 @@ export function usePhoneAuth() {
 	function startResendTimer(seconds: number) {
 		if (timer) clearInterval(timer);
 		resendLeft = seconds;
+		// Test numbers come back with no cooldown at all — don't start an
+		// interval just to tick it into the negatives.
+		if (seconds <= 0) return;
 		timer = setInterval(() => {
 			resendLeft -= 1;
 			if (resendLeft <= 0 && timer) {

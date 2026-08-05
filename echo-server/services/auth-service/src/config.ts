@@ -15,6 +15,26 @@ export const config = {
 	blobServiceUrl: process.env.BLOB_SERVICE_URL || 'http://localhost:3006',
 	// See sms.ts for what each driver needs. Defaults to `log` so a fresh clone
 	// runs without any provider account.
+	// Test accounts that sign in with a fixed code and never touch a provider.
+	// Deliberately active in production too: the App Store and Play Store both
+	// require a working demo login from reviewers who cannot receive an SMS on
+	// our numbers, and end-to-end tests need an account they can drive.
+	//
+	// The trade-off is real and worth naming — the numbers are guessable and the
+	// code is public, so these nine accounts are open to anyone who tries them.
+	// They are throwaway by construction: never give one a password, and treat
+	// anything in them as public. AUTH_TEST_ENABLED=false switches it off.
+	//
+	// That toggle is a separate variable from the list, rather than "set the
+	// list to empty", because docker compose passes an unset variable through as
+	// an empty string: under `${AUTH_TEST_PHONES:-}` there is no way to tell
+	// "left alone" from "deliberately cleared", and either reading would
+	// surprise somebody.
+	testAuth: {
+		enabled: process.env.AUTH_TEST_ENABLED !== 'false',
+		phones: parseTestPhones(process.env.AUTH_TEST_PHONES),
+		code: process.env.AUTH_TEST_CODE || '000000',
+	},
 	sms: {
 		driver: parseSmsDriver(process.env.SMS_DRIVER) ?? 'log',
 		fallbackDriver: parseSmsDriver(process.env.SMS_FALLBACK_DRIVER),
@@ -43,6 +63,32 @@ export const config = {
 		},
 	},
 };
+
+// +7 followed by ten repeated digits. None of these is an assignable Russian
+// mobile number — those start +79 and never repeat like this — so a real user
+// can't collide with one.
+const DEFAULT_TEST_PHONES = [
+	'+71111111111',
+	'+72222222222',
+	'+73333333333',
+	'+74444444444',
+	'+75555555555',
+	'+76666666666',
+	'+77777777777',
+	'+78888888888',
+	'+79999999999',
+];
+
+// A Set because the only question ever asked of it is membership, on every
+// sign-in request. Blank (unset, or empty via compose) means the defaults —
+// AUTH_TEST_ENABLED is what turns the mechanism off.
+function parseTestPhones(value: string | undefined): Set<string> {
+	const list = (value ?? '')
+		.split(',')
+		.map((p) => p.trim())
+		.filter(Boolean);
+	return new Set(list.length > 0 ? list : DEFAULT_TEST_PHONES);
+}
 
 function parseSmsDriver(value: string | undefined): 'log' | 'smsc' | 'telegram' | undefined {
 	if (value === 'log' || value === 'smsc' || value === 'telegram') return value;
