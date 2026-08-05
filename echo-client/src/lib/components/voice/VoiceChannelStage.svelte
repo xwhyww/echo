@@ -7,6 +7,8 @@
 	import VoiceScreenTile from '$lib/components/voice/VoiceScreenTile.svelte';
 	import { i18n } from '$lib/i18n/i18n.svelte.js';
 	import type { useVoiceChannelPage } from '$lib/hooks/voice/useVoiceChannelPage.svelte.js';
+	import BackButton from '$lib/components/ui/BackButton.svelte'
+	import { routes } from '$lib/routes.js'
 
 	const t = $derived(i18n.t);
 
@@ -21,10 +23,7 @@
 
 <div class="vc-page">
 	<div class="vc-header">
-		<button class="back-btn body-sm text-muted" onclick={voice.back}>
-			<ArrowLeft size={20} />
-			<span>{t.voice.backToChannels}</span>
-		</button>
+		<BackButton backHref={routes.chats.groupVoice(id)} size={48}/>
 		{#if voice.showQuality}
 			<ConnectionQualityIndicator />
 		{/if}
@@ -82,6 +81,9 @@
 		flex: 1;
 		min-width: 0;
 		padding: var(--sp-2);
+		padding-top: var(--safe-top);
+		padding-bottom: var(--safe-bottom);
+		
 		gap: var(--sp-6);
 	}
 
