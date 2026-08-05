@@ -154,9 +154,10 @@ services:
       BLOB_SERVICE_URL: http://blobs:3006
       GROUPS_SERVICE_URL: http://groups:3007
       VOICE_SERVICE_URL: http://voice:3008
+      PUSH_SERVICE_URL: http://push:3009
       # Handed to clients by GET /ws-info, so it must be the public wss:// URL.
       WS_GATEWAY_URL: wss://${WS_DOMAIN}
-    depends_on: [auth, user, pers-chats, friends, ws-gateway, blobs, groups, voice]
+    depends_on: [auth, user, pers-chats, friends, ws-gateway, blobs, groups, voice, push]
 
   auth:
     <<: *app
@@ -334,6 +335,50 @@ services:
       redis: { condition: service_started }
       nats: { condition: service_started }
       livekit: { condition: service_started }
+
+  # Phone notifications for users whose app isn't connected. Reads the same NATS
+  # streams ws-gateway does, under its own consumers.
+  #
+  # NOTE: `echo_push` is NOT created automatically on an existing deployment.
+  # init-dbs.sql only runs when the postgres volume is empty, so on an upgrade
+  # you must create it by hand first, or this container crash-loops on migrate:
+  #
+  #   docker compose -f docker-compose.prod.yml exec postgres \
+  #     psql -U echo -d postgres -c 'CREATE DATABASE echo_push'
+  #
+  # Runs fine with no APNs credentials: it registers devices and logs what it
+  # would have sent. Leaving APNS_* unset is the correct state until the iOS app
+  # can actually obtain a device token.
+  push:
+    <<: *app
+    build:
+      context: ..
+      args:
+        SERVICE: push-service
+    environment:
+      <<: *app-env
+      PORT: 3009
+      DATABASE_URL: postgresql://${POSTGRES_USER:-echo}:${POSTGRES_PASSWORD}@postgres:5432/echo_push
+      # Asked, per notification, whether the user's app is connected — if it is,
+      # the event was already delivered over the socket and no push is sent.
+      WS_GATEWAY_HTTP_URL: http://ws-gateway:3004
+      # The .p8 from the Apple Developer portal, dropped into deploy/apns/ on the
+      # server. It is mounted read-only below and gitignored; APNS_KEY_PATH is
+      # the path *inside* the container, e.g.
+      #   APNS_KEY_PATH=/run/secrets/apns/AuthKey_ABCD123456.p8
+      APNS_KEY_PATH: ${APNS_KEY_PATH:-}
+      APNS_KEY_ID: ${APNS_KEY_ID:-}
+      APNS_TEAM_ID: ${APNS_TEAM_ID:-}
+      APNS_BUNDLE_ID: ${APNS_BUNDLE_ID:-}
+      # Off by default: messages are encrypted at rest, and a preview would put
+      # their plaintext on Apple's servers and on the lock screen.
+      PUSH_MESSAGE_PREVIEW: ${PUSH_MESSAGE_PREVIEW:-false}
+    volumes:
+      - ./apns:/run/secrets/apns:ro
+    depends_on:
+      postgres: { condition: service_healthy }
+      nats: { condition: service_started }
+      ws-gateway: { condition: service_started }
 
 volumes:
   pgdata:

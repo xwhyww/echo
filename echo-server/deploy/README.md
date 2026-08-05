@@ -157,6 +157,22 @@ docker compose -f docker-compose.prod.yml up -d --build
 Compose recreates only the containers whose image or config changed. Migrations
 run again on start and are no-ops when there is nothing new.
 
+### When an update adds a service with its own database
+
+`scripts/init-dbs.sql` runs **only when the Postgres volume is empty**, i.e. on
+the very first deploy. A service added later therefore finds no database and
+crash-loops on `drizzle-kit migrate` with `database "echo_x" does not exist`.
+Create it by hand *before* bringing the stack up:
+
+```bash
+docker compose -f docker-compose.prod.yml exec postgres \
+  psql -U echo -d postgres -c 'CREATE DATABASE echo_push'
+```
+
+This applies to **push-service** (`echo_push`), added after the first
+deployment. It is safe to run against a database that already exists — the
+command simply errors and changes nothing.
+
 ## Logs
 
 Everything is JSON on stdout, one object per line, with `name` (service),

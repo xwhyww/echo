@@ -1,0 +1,3 @@
+
+# APNs signing key — private credential, mounted into push-service at runtime.
+deploy/apns/*.p8
