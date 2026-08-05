@@ -76,7 +76,7 @@
 					{:else}
 						<ChevronRight size={11} />
 					{/if}
-					<span class="g-cat-name truncate">{cat.name}</span>
+					<span class="g-cat-name body-xs truncate">{cat.name}</span>
 				</button>
 				{#if open}
 					{#if catChannels.length === 0}

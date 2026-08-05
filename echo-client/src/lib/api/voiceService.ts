@@ -42,6 +42,15 @@ class VoiceService {
 		return api<JoinVoiceResponse>(`/voice/channels/${channelId}/join`, { method: 'POST' });
 	}
 
+	// Publish-only token for the native iOS screen-share connection. Fetched at
+	// the moment of sharing rather than at join: tokens live five minutes, and
+	// people present an hour into a call. See $lib/utils/voiceIdentity.ts.
+	screenToken(channelId: string) {
+		return api<{ url: string; token: string }>(`/voice/channels/${channelId}/screen-token`, {
+			method: 'POST',
+		});
+	}
+
 	// Fire-and-forget presence signal so other group members see realtime
 	// join/leave/mic-state updates. The sidebar list endpoint stays the
 	// authoritative source for late-joiners or after a reconnect.

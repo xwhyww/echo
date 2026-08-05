@@ -1,4 +1,5 @@
 import { Track, type LocalVideoTrack, type Participant, type RemoteVideoTrack, type Room } from 'livekit-client';
+import { baseIdentity, isScreenIdentity } from './voiceIdentity.js';
 
 /**
  * Turning a LiveKit `Room` into the models the UI renders.
@@ -73,24 +74,50 @@ export function snapshotParticipants(
 	localMuted: boolean,
 ): VoiceParticipant[] {
 	if (!room) return [];
-	return everyone(room).map(({ p, isLocal }) => ({
-		identity: p.identity,
-		name: displayName(p),
-		isSpeaking: speakingIds.has(p.identity),
-		// Our own mute is the flag we keep: the local publication reports muted
-		// only after the round trip, and the button must not lag behind the click.
-		isMuted: isLocal ? localMuted : !p.isMicrophoneEnabled,
-		isLocal,
-	}));
+	return everyone(room)
+		// A `#screen` sidecar is one user's iOS screen arriving over its own
+		// connection, not a person in the channel. It contributes a share and
+		// nothing else — see snapshotScreenShares.
+		.filter(({ p }) => !isScreenIdentity(p.identity))
+		.map(({ p, isLocal }) => ({
+			identity: p.identity,
+			name: displayName(p),
+			isSpeaking: speakingIds.has(p.identity),
+			// Our own mute is the flag we keep: the local publication reports muted
+			// only after the round trip, and the button must not lag behind the click.
+			isMuted: isLocal ? localMuted : !p.isMicrophoneEnabled,
+			isLocal,
+		}));
 }
 
 export function snapshotScreenShares(room: Room | null): VoiceScreenShare[] {
 	if (!room) return [];
 	const list: VoiceScreenShare[] = [];
+	// Sidecars are remote connections even when they carry our own screen, so
+	// "is this mine" has to be decided on the user behind the identity rather
+	// than on LiveKit's local/remote split.
+	const localUser = baseIdentity(room.localParticipant.identity);
+	// A sidecar's token carries the user's display name, but the real
+	// participant is the better source — it is what the rest of the UI shows.
+	const nameByUser = new Map<string, string>();
+	for (const { p } of everyone(room)) {
+		if (!isScreenIdentity(p.identity)) nameByUser.set(p.identity, displayName(p));
+	}
+
 	for (const { p, isLocal } of everyone(room)) {
+		// `isLocal` here is LiveKit's: it decides whether a publication needs a
+		// subscription before its track is usable. Our own iOS share arrives from
+		// a remote sidecar we *are* subscribed to, so it resolves correctly.
 		const hasAudio = hasShareAudio(p, isLocal);
+		const user = baseIdentity(p.identity);
 		for (const track of shareVideoTracks(p, isLocal)) {
-			list.push({ identity: p.identity, name: displayName(p), isLocal, track, hasAudio });
+			list.push({
+				identity: user,
+				name: nameByUser.get(user) ?? displayName(p),
+				isLocal: user === localUser,
+				track,
+				hasAudio,
+			});
 		}
 	}
 	return list;

@@ -26,4 +26,7 @@ rm -f src-tauri/gen/apple/project.yml
 
 echo "[ios-clean] removed Externals/ and project.yml — regenerating"
 sh scripts/ios-native.sh
-exec sh scripts/with-env.sh tauri ios init
+sh scripts/with-env.sh tauri ios init
+# Re-adds the broadcast extension target, which init knows nothing about and
+# a deleted project.yml therefore takes with it.
+exec node scripts/ios-postinit.mjs

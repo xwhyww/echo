@@ -9,6 +9,7 @@
 	import type { useVoiceChannelPage } from '$lib/hooks/voice/useVoiceChannelPage.svelte.js';
 	import BackButton from '$lib/components/ui/BackButton.svelte'
 	import { routes } from '$lib/routes.js'
+	import { page } from '$app/state'
 
 	const t = $derived(i18n.t);
 
@@ -17,13 +18,15 @@
 	interface Props {
 		voice: ReturnType<typeof useVoiceChannelPage>;
 	}
+	
+	const voiceId = $derived(page.params.id!);
 
 	let { voice }: Props = $props();
 </script>
 
 <div class="vc-page">
 	<div class="vc-header">
-		<BackButton backHref={routes.chats.groupVoice(id)} size={48}/>
+		<BackButton backHref={routes.chats.groupVoice(voiceId)} size={48}/>
 		{#if voice.showQuality}
 			<ConnectionQualityIndicator />
 		{/if}

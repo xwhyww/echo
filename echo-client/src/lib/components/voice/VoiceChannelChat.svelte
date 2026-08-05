@@ -161,6 +161,8 @@
 		min-width: 320px;
 		height: 100%;
 		position: relative;
+		padding-top: var(--safe-top);
+		padding-bottom: var(--safe-bottom);
 	}
 
 	.vc-chat-header {
@@ -168,9 +170,9 @@
 		display: flex;
 		align-items: center;
 		gap: var(--sp-2);
-		padding: var(--sp-1) var(--sp-2) var(--sp-1) var(--sp-4);
+		padding: var(--sp-3) var(--sp-4) var(--sp-3) var(--sp-6);
 		border-bottom: 1px solid var(--c-border);
-		margin: var(--sp-1) var(--sp-2) 0;
+		margin: 0 var(--sp-2) 0;
 		border-radius: var(--radius-full);
 
 		@include glass;

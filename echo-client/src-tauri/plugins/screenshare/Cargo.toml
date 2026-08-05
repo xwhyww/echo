@@ -1,0 +1,18 @@
+[package]
+name = "tauri-plugin-screenshare"
+version = "0.1.0"
+description = "Native iOS screen sharing for Echo, over a ReplayKit broadcast extension."
+edition = "2021"
+rust-version = "1.77.2"
+# Required by tauri-plugin's build script: it keys the mobile asset registration
+# (the Swift package under ios/) on the crate's `links` name.
+links = "tauri-plugin-screenshare"
+
+[dependencies]
+tauri = { version = "2" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build"] }

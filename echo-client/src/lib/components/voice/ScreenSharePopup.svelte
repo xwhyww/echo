@@ -1,10 +1,17 @@
 <script lang="ts">
-	import { Monitor, AppWindow, Globe, StopCircle } from 'lucide-svelte';
+	import { Monitor, AppWindow, Globe, StopCircle, Radio } from 'lucide-svelte';
 	import { voiceClient, type ScreenShareSurface } from '$lib/stores/voiceClient.svelte.js';
 	import Modal from '$lib/components/ui/Modal.svelte';
+	import { isNativeScreenShareSupported } from '$lib/voice/iosScreenShare.js';
 	import { i18n } from '$lib/i18n/i18n.svelte.js';
 
 	const t = $derived(i18n.t);
+
+	// iOS captures through ReplayKit, which offers no choice of surface — it is
+	// always the whole device, picked in a system sheet we don't draw. So the
+	// three-tile grid collapses to one button that raises that sheet.
+	let native = $state(false);
+	void isNativeScreenShareSupported().then((v) => (native = v));
 
 	interface Props {
 		onclose: () => void;
@@ -45,10 +52,22 @@
      than taking the shell's default near-full-width card. -->
 <Modal
 	title={t.voice.screenShare.title}
-	desc={t.voice.screenShare.desc}
+	desc={native ? t.voice.screenShare.broadcastDesc : t.voice.screenShare.desc}
 	maxWidth="640px"
 	{onclose}
 >
+	{#if native}
+		<div class="ss-tiles ss-tiles-single">
+			<button class="ss-tile text-default" disabled={starting !== null} onclick={() => pick()}>
+				<span class="ss-tile-icon text-default text-accent">
+					<Radio size={28} />
+				</span>
+				<span class="ss-tile-title body-sm fw-semibold text-default">{t.voice.screenShare.startBroadcast}</span>
+				<span class="ss-tile-sub body-xs text-default text-faint">{t.voice.screenShare.startBroadcastDesc}</span>
+				{#if starting}<span class="ss-tile-busy body-xxs overline text-default text-accent">{t.voice.screenShare.requesting}</span>{/if}
+			</button>
+		</div>
+	{:else}
 	<div class="ss-tiles">
 		<button class="ss-tile text-default" disabled={starting !== null} onclick={() => pick('monitor')}>
 			<span class="ss-tile-icon text-default text-accent">
@@ -77,6 +96,7 @@
 			{#if starting === 'browser'}<span class="ss-tile-busy body-xxs overline text-default text-accent">{t.voice.screenShare.requesting}</span>{/if}
 		</button>
 	</div>
+	{/if}
 
 	{#if errorMessage}
 		<p class="ss-error body-xs text-error">{errorMessage}</p>
@@ -106,6 +126,9 @@
 	@media (max-width: 720px) {
 		.ss-tiles { grid-template-columns: 1fr; }
 	}
+
+	// ReplayKit offers one destination, so the grid holds one tile at any width.
+	.ss-tiles-single { grid-template-columns: 1fr; }
 
 	.ss-tile {
 		display: flex;

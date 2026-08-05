@@ -61,11 +61,13 @@
 			onclick={toggle}
 			title={voice.expanded ? t.sidebar.hideVoiceChannels : t.sidebar.showVoiceChannels}
 		>
-			{#if voice.expanded}
+			<span class="chevron">
+							{#if voice.expanded}
 				<ChevronDown size={14} />
 			{:else}
 				<ChevronRight size={14} />
 			{/if}
+			</span>
 		</button>
 	</div>
 
@@ -81,22 +83,27 @@
 
 	.g-toggle {
 		position: absolute;
-		right: var(--sp-3);
-		bottom: var(--sp-1);
-		width: 22px;
-		height: 22px;
+		right: 0;
+		bottom: 0;
+		width: 30%;
+		height: 100%;
 		border: none;
 		border-radius: var(--radius-sm);
 		background: transparent;
 		display: flex;
-		align-items: center;
-		justify-content: center;
+		align-items: flex-end;
+		justify-content: flex-end;
 		cursor: pointer;
 		opacity: 0;
 		transition:
 			opacity var(--duration-fast) var(--ease-default),
 			background var(--duration-fast) var(--ease-default),
 			color var(--duration-fast) var(--ease-default);
+	}
+	
+	.chevron {
+		margin-right: var(--sp-2);
+		margin-bottom: var(--sp-2);
 	}
 
 	/* Hidden until the row is hovered so the list stays quiet, but pinned open
@@ -106,10 +113,5 @@
 	.g-row.expanded .g-toggle,
 	.g-toggle:focus-visible {
 		opacity: 1;
-	}
-
-	.g-toggle:hover {
-		background: var(--c-bg-3);
-		color: var(--c-text);
 	}
 </style>

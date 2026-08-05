@@ -213,7 +213,7 @@
 		border-radius: var(--radius-md);
 	}
 
-	.chat-input { flex-shrink: 0; margin: 0 12px 12px; }
+	.chat-input { flex-shrink: 0; margin: 0 12px 0; }
 
 	.overlay-chrome .chat-input {
 		@include chat-composer-overlay;

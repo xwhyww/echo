@@ -4,7 +4,7 @@ import { authMiddleware, type AuthEnv, type VoiceParticipantEvent } from '@echo/
 import { createDb } from '../db/index.js';
 import { voiceChannels, voiceChannelCategories, groupMembersMirror, userCache } from '../db/schema.js';
 import { config } from '../config.js';
-import { createJoinToken, listActiveParticipants, deleteRoom } from '../livekit.js';
+import { createJoinToken, createScreenToken, listActiveParticipants, deleteRoom } from '../livekit.js';
 import { fanOutParticipantEvent } from '../presence.js';
 import {
 	publishVoiceChannelCreated,
@@ -534,4 +534,45 @@ channelsRoutes.post('/channels/:id/join', async (c) => {
 		// user's role doesn't grant it (the token enforces it regardless).
 		canShare: access.canShare,
 	});
+});
+
+// ─── Screen-share sidecar token ────────────────────────────────
+// Only iOS asks for this. Its ReplayKit broadcast extension delivers frames to
+// the native process, which cannot reach the webview's WebRTC stack, so the
+// share is published over a second LiveKit connection under `<userId>#screen`.
+// See `screenIdentity` in ../livekit.ts for why it needs its own identity.
+//
+// Deliberately not folded into the join response: a token lives five minutes,
+// and the user may present an hour into a call.
+
+channelsRoutes.post('/channels/:id/screen-token', async (c) => {
+	const me = c.get('user');
+	const id = c.req.param('id');
+
+	const [ch] = await db.select().from(voiceChannels).where(eq(voiceChannels.id, id)).limit(1);
+	if (!ch) return c.json({ error: 'not found' }, 404);
+
+	const role = await membership(ch.groupId, me.userId);
+	if (!role) return c.json({ error: 'forbidden' }, 403);
+
+	const access = await channelAccess(id, ch.groupId, me.userId, role);
+	if (!access.visible || !access.canConnect) return c.json({ error: 'forbidden' }, 403);
+	// Unlike join, CAN_SHARE is a hard gate here rather than a token detail:
+	// there is no reason to hand out a publish-only token to someone who may
+	// not publish.
+	if (!access.canShare) return c.json({ error: 'forbidden' }, 403);
+
+	// No capacity check: the sidecar is not a participant, and the user whose
+	// screen it carries already holds a slot.
+
+	const [u] = await db
+		.select({ username: userCache.username, displayName: userCache.displayName })
+		.from(userCache)
+		.where(eq(userCache.id, me.userId))
+		.limit(1);
+	const displayName = u?.displayName ?? u?.username ?? me.userId;
+
+	const token = await createScreenToken({ channelId: id, userId: me.userId, displayName });
+
+	return c.json({ url: config.livekitPublicUrl, token });
 });

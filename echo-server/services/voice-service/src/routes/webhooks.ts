@@ -1,7 +1,13 @@
 import { Hono } from 'hono';
 import { WebhookReceiver } from 'livekit-server-sdk';
 import { config } from '../config.js';
-import { channelIdFromRoom, participantStateFrom } from '../livekit.js';
+import {
+	baseIdentity,
+	channelIdFromRoom,
+	getParticipantState,
+	isScreenIdentity,
+	participantStateFrom,
+} from '../livekit.js';
 import { fanOutParticipantEvent } from '../presence.js';
 import { log } from '../log.js';
 
@@ -60,13 +66,43 @@ webhooksRoutes.post('/webhooks/livekit', async (c) => {
 	const channelId = channelIdFromRoom(room);
 	if (!channelId) return c.json({ ok: true });
 
-	const kind = event.event === 'participant_joined' ? 'joined' : 'left';
-	const state = participantStateFrom(participant);
+	const joined = event.event === 'participant_joined';
+
+	// An iOS screen-share sidecar (`<userId>#screen`) is not a participant — it
+	// is one user starting or stopping a presentation over a second connection.
+	// Emitting it verbatim would put a silent ghost in everyone's sidebar, so it
+	// is re-expressed as an `updated` for the user it belongs to.
+	//
+	// Its own mic/deafened flags are meaningless (it publishes no mic and sets no
+	// attributes), so the owner's real state is read back from LiveKit. If they
+	// aren't connected there is nothing to update: that is the ordinary race
+	// where a sidecar outlives the disconnect that killed it.
+	//
+	// This path is a backstop rather than the main signal — a client that starts
+	// or stops a broadcast normally announces it over /presence, and does so as
+	// soon as frames flow rather than at connect. What only this catches is the
+	// ungraceful end: the app killed mid-broadcast, where no announcement ever
+	// comes and the sidecar's death is the sole evidence.
+	let userId = participant.identity;
+	let kind: 'joined' | 'left' | 'updated' = joined ? 'joined' : 'left';
+	let state = participantStateFrom(participant);
+
+	if (isScreenIdentity(participant.identity)) {
+		userId = baseIdentity(participant.identity);
+		kind = 'updated';
+		const owner = await getParticipantState(channelId, userId);
+		if (!owner) return c.json({ ok: true });
+		// On join, `owner` is authoritative: a sidecar that hasn't published yet
+		// correctly reports the user as not sharing. On leave it is not, because
+		// LiveKit may still be listing the participant we were just told about —
+		// and its departure is exactly what we're recording.
+		state = joined ? owner : { ...owner, sharing: false };
+	}
 
 	try {
 		await fanOutParticipantEvent({
 			channelId,
-			userId: participant.identity,
+			userId,
 			kind,
 			state: { micMuted: state.micMuted, deafened: state.deafened, sharing: state.sharing },
 		});

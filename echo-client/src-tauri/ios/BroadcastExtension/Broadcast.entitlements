@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+	The extension's half of the App Group. This is the entire channel between
+	the capture process and the app: LiveKit opens its socket inside this
+	group's container. It must match app.entitlements exactly, and both App IDs
+	must have the App Groups capability enabled in the developer portal — a
+	mismatch fails at runtime, silently, with a broadcast that starts and
+	immediately stops.
+-->
+<plist version="1.0">
+<dict>
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.evgenij.echo</string>
+	</array>
+</dict>
+</plist>

@@ -185,6 +185,7 @@
 		position: relative;
 		align-self: stretch;
 		flex-shrink: 0;
+		min-width: 100px;
 	}
 
 	.item-timestamp {

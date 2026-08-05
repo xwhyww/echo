@@ -37,5 +37,17 @@
 	<array>
 		<string>audio</string>
 	</array>
+
+	<!-- Screen sharing. iOS has no getDisplayMedia, so the screen is captured by
+	     the ReplayKit broadcast extension and handed to the app over a socket in
+	     the shared App Group container; a native LiveKit connection publishes it.
+	     These two keys are how the LiveKit SDK finds both ends — without them it
+	     looks for `group.<bundle-id>` and `<bundle-id>.broadcast` by convention,
+	     which happens to be what we use, but naming them is what makes the
+	     coupling visible from here. See src-tauri/ios/. -->
+	<key>RTCAppGroupIdentifier</key>
+	<string>group.com.evgenij.echo</string>
+	<key>RTCScreenSharingExtension</key>
+	<string>com.evgenij.echo.broadcast</string>
 </dict>
 </plist>

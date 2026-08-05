@@ -25,6 +25,36 @@ function roomService(): RoomServiceClient {
 	return _roomService;
 }
 
+// ─── Screen sidecar identities ─────────────────────────────────
+//
+// iOS cannot screen share from the webview: WKWebView has no getDisplayMedia,
+// and ReplayKit's broadcast extension hands its frames to the *native* process,
+// which has no way to inject a track into the webview's sealed WebRTC stack.
+// So an iPhone presenting a screen opens a second, native LiveKit connection
+// that publishes nothing but the share.
+//
+// LiveKit evicts the older session when two connections claim one identity, so
+// the sidecar must join under its own: `<userId>#screen`. `#` is safe here
+// because our identities are UUIDs and can never contain one.
+//
+// Everything downstream of LiveKit — sidebar heads, the participant cap, the
+// presence firehose — must fold that sidecar back onto the user it belongs to,
+// or a presenting iPhone shows up as a second, silent ghost in the channel.
+const SCREEN_SUFFIX = '#screen';
+
+export function screenIdentity(userId: string): string {
+	return userId + SCREEN_SUFFIX;
+}
+
+export function isScreenIdentity(identity: string): boolean {
+	return identity.endsWith(SCREEN_SUFFIX);
+}
+
+/** The user behind an identity, whether or not it is a sidecar. */
+export function baseIdentity(identity: string): string {
+	return isScreenIdentity(identity) ? identity.slice(0, -SCREEN_SUFFIX.length) : identity;
+}
+
 export async function createJoinToken(opts: {
 	channelId: string;
 	userId: string;
@@ -62,6 +92,35 @@ export async function createJoinToken(opts: {
 		canPublishData: true,
 	});
 
+	return await token.toJwt();
+}
+
+// Token for the native screen-share sidecar described above. Publish-only and
+// subscribe-nothing: the user's real connection is already subscribed to the
+// room, and a second subscriber would double every downstream track.
+//
+// Gated on CAN_SHARE by the caller, and enforced here too — the source
+// allowlist is what a tampered client actually runs into.
+export async function createScreenToken(opts: {
+	channelId: string;
+	userId: string;
+	displayName: string;
+}): Promise<string> {
+	const token = new AccessToken(config.livekitApiKey, config.livekitApiSecret, {
+		identity: screenIdentity(opts.userId),
+		name: opts.displayName,
+		ttl: TOKEN_TTL_SECONDS,
+	});
+	token.addGrant({
+		roomJoin: true,
+		room: roomName(opts.channelId),
+		canPublish: true,
+		canPublishSources: [TrackSource.SCREEN_SHARE, TrackSource.SCREEN_SHARE_AUDIO],
+		canSubscribe: false,
+		// No presence attributes come from this connection — the user's real one
+		// owns muted/deafened.
+		canPublishData: false,
+	});
 	return await token.toJwt();
 }
 
@@ -162,6 +221,66 @@ export function participantStateFrom(p: ParticipantInfoLike): ParticipantState {
 	return { identity: p.identity, micMuted, deafened, sharing };
 }
 
+/**
+ * Collapse `<userId>#screen` sidecars onto the user they belong to.
+ *
+ * A sidecar is not a participant — it is one user's screen arriving over its
+ * own connection. It contributes exactly one thing: `sharing: true`. Everything
+ * else about the user (mic, deafened) comes from their real connection.
+ *
+ * Keyed on the sidecar's published track rather than on its mere existence: it
+ * connects a moment before the user confirms the system broadcast sheet, and
+ * again for as long as it takes to tear down. Reading existence would flag them
+ * as presenting across both windows, and — if they dismissed the sheet —
+ * indefinitely.
+ *
+ * Order is preserved for the real participants, and a sidecar whose owner isn't
+ * in the room is dropped rather than promoted: that pairing only exists during
+ * the moment between the two connections, and inventing a participant from it
+ * would flash a head into the sidebar with no mic state.
+ */
+export function foldScreenSidecars(states: ParticipantState[]): ParticipantState[] {
+	const sharingViaSidecar = new Set<string>();
+	let sawSidecar = false;
+	for (const s of states) {
+		if (!isScreenIdentity(s.identity)) continue;
+		sawSidecar = true;
+		if (s.sharing) sharingViaSidecar.add(baseIdentity(s.identity));
+	}
+	// A sidecar that is connected but not yet publishing still has to be
+	// stripped from the list, even though it grants nobody a `sharing` flag.
+	if (!sawSidecar) return states;
+	if (sharingViaSidecar.size === 0) return states;
+
+	return states
+		.filter((s) => !isScreenIdentity(s.identity))
+		.map((s) => (sharingViaSidecar.has(s.identity) ? { ...s, sharing: true } : s));
+}
+
+/**
+ * One user's current state in a channel, as LiveKit sees it — including a share
+ * published by their sidecar. Used by the webhook path, where a sidecar's
+ * join/leave has to be re-expressed as an update to its owner and the owner's
+ * mic/deafened flags have to come from somewhere.
+ *
+ * Returns null when the user isn't connected, which is the normal race on a
+ * sidecar that outlives its owner's disconnect.
+ */
+export async function getParticipantState(
+	channelId: string,
+	userId: string,
+): Promise<ParticipantState | null> {
+	let participants: ParticipantInfoLike[];
+	try {
+		participants = await roomService().listParticipants(roomName(channelId));
+	} catch (err) {
+		log.warn({ channelId, userId, err }, 'listParticipants failed for participant state');
+		return null;
+	}
+	const folded = foldScreenSidecars(participants.map(participantStateFrom));
+	return folded.find((p) => p.identity === userId) ?? null;
+}
+
 // `voice:<channelId>` → channelId. Returns null for rooms that aren't voice
 // channels (1-to-1 calls use the `dmcall:` prefix), so callers can ignore them.
 export function channelIdFromRoom(room: string): string | null {
@@ -197,7 +316,10 @@ export async function listActiveParticipants(channelIds: string[]): Promise<Map<
 			try {
 				const participants = await roomService().listParticipants(r.name);
 				const channelId = r.name.slice(ROOM_PREFIX.length);
-				result.set(channelId, participants.map(participantStateFrom));
+				// Fold here rather than in the callers: this is the one place the
+				// whole app learns who is in a channel, so it is also the only
+				// place a screen sidecar can leak out of.
+				result.set(channelId, foldScreenSidecars(participants.map(participantStateFrom)));
 			} catch (err) {
 				log.warn({ name: r.name, err }, 'listParticipants failed for');
 			}

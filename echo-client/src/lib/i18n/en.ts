@@ -606,6 +606,11 @@ export const en = {
 			currentlySharing: "You're currently sharing",
 			stopSharing: 'Stop sharing',
 			startFailed: 'Failed to start screen share',
+			// iOS: ReplayKit shares the whole device and picks nothing itself, so
+			// there are no sources to choose between — only a system sheet.
+			broadcastDesc: 'iOS shares your whole screen. Tap below, then confirm in the system sheet.',
+			startBroadcast: 'Start broadcast',
+			startBroadcastDesc: 'Everything on this device, including other apps',
 		},
 
 		screenTile: {

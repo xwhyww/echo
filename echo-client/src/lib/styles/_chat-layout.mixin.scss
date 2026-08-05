@@ -64,7 +64,7 @@
 	position: absolute;
 	top: 0;
 	left: 0;
-	right: var(--sp-2);
+	width: 100%;
 	/* Taller by the status-bar inset so the scrim reaches the top edge while
 	   the avatar and name stay below the notch. */
 	height: calc(var(--header-h) + var(--safe-top));

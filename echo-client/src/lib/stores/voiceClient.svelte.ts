@@ -81,6 +81,9 @@ const audio = createVoiceAudioState({
 // presence update on the channel we're currently in.
 const screenShare = createScreenShare({
 	room: () => room,
+	// iOS publishes the share over its own LiveKit connection and mints its own
+	// token for it, which needs the channel rather than the room.
+	channelId: () => currentChannel?.id ?? null,
 	announce: (sharing) => announcePresence(sharing),
 });
 

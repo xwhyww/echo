@@ -1,4 +1,13 @@
 import { Track, type Room } from 'livekit-client';
+import type { PluginListener } from '@tauri-apps/api/core';
+import { voiceService } from '$lib/api/voiceService.js';
+import {
+	isNativeScreenShareSupported,
+	onNativeScreenShareEnded,
+	setNativeScreenShareAudioMuted,
+	startNativeScreenShare,
+	stopNativeScreenShare,
+} from './iosScreenShare.js';
 
 // Hint passed to navigator.mediaDevices.getDisplayMedia to bias the OS picker.
 // The native picker is non-skippable — these values just bias which tab is
@@ -15,9 +24,19 @@ export type ScreenShareSurface = 'monitor' | 'window' | 'browser';
  *
  * The room is reached through a getter rather than held: it is replaced on every
  * connect, and a share started against a stale one would publish into nothing.
+ *
+ * Two mechanisms sit behind one interface. Everywhere with `getDisplayMedia` —
+ * browsers, desktop Tauri — the capture is ours and we publish it into the room
+ * above. iOS has no such API: the screen arrives through a ReplayKit broadcast
+ * extension that only native code can read, so a second native LiveKit
+ * connection publishes it and this module merely drives it. Callers never learn
+ * which one ran; only `teardown` and `setAudioMuted` need to know, and they read
+ * `native` to find out.
  */
 export function createScreenShare(deps: {
 	room: () => Room | null;
+	/** Which channel we're in — the native path needs it to mint its own token. */
+	channelId: () => string | null;
 	/** Tell the rest of the group that we started or stopped presenting. */
 	announce: (sharing: boolean) => void;
 }) {
@@ -25,9 +44,43 @@ export function createScreenShare(deps: {
 	let isAudioMuted = $state(false);
 	let videoTrack: MediaStreamTrack | null = null;
 	let audioTrack: MediaStreamTrack | null = null;
+	// Set for the lifetime of a native share. Also the flag teardown reads to
+	// decide which of the two mechanisms it is unwinding.
+	let native = false;
+	let unlistenEnded: PluginListener | null = null;
+
+	/**
+	 * The native counterpart of the "Stop sharing" bar: the user ended the
+	 * broadcast from Control Center, or iOS killed the extension. Unwind to the
+	 * same place the button would have.
+	 */
+	async function watchNativeEnd(): Promise<void> {
+		void unlistenEnded?.unregister();
+		unlistenEnded = await onNativeScreenShareEnded(() => {
+			void teardown();
+		});
+	}
 
 	async function teardown(opts: { silent?: boolean } = {}): Promise<void> {
-		if (!isSharing && !videoTrack && !audioTrack) return;
+		if (!isSharing && !videoTrack && !audioTrack && !native) return;
+
+		if (native) {
+			void unlistenEnded?.unregister();
+			unlistenEnded = null;
+			native = false;
+			try {
+				// Disconnects the sidecar, which unpublishes as a side effect —
+				// there is nothing in our own room to clean up.
+				await stopNativeScreenShare();
+			} catch (err) {
+				console.warn('[screenShare] native stop failed:', err);
+			}
+			isSharing = false;
+			isAudioMuted = false;
+			if (!opts.silent) deps.announce(false);
+			return;
+		}
+
 		const room = deps.room();
 		if (room) {
 			try {
@@ -50,8 +103,48 @@ export function createScreenShare(deps: {
 		if (!opts.silent) deps.announce(false);
 	}
 
+	/**
+	 * iOS: hand off to the native sidecar. The system broadcast sheet is raised
+	 * by the plugin, so there is no picker to bias and `surface` is ignored —
+	 * ScreenSharePopup already offers a single choice there.
+	 */
+	async function startNative(): Promise<void> {
+		const channelId = deps.channelId();
+		if (!channelId) throw new Error('not connected to a voice channel');
+
+		const { url, token } = await voiceService.screenToken(channelId);
+
+		// Arm the end-of-broadcast listener before starting: iOS can deliver the
+		// stop immediately if the extension fails to launch, and a listener
+		// attached afterwards would miss it and strand `isSharing` at true.
+		await watchNativeEnd();
+		try {
+			await startNativeScreenShare(url, token);
+		} catch (err) {
+			void unlistenEnded?.unregister();
+			unlistenEnded = null;
+			// Dismissing the system sheet is a no-op, exactly as dismissing the
+			// browser's picker is on the web path.
+			if ((err as Error)?.message === 'cancelled') return;
+			throw err;
+		}
+
+		native = true;
+		isSharing = true;
+		isAudioMuted = false;
+		deps.announce(true);
+	}
+
 	async function start(opts: { surface?: ScreenShareSurface; audio?: boolean } = {}): Promise<void> {
 		if (!deps.room()) throw new Error('not connected to a voice channel');
+
+		if (await isNativeScreenShareSupported()) {
+			// Replacing a native share means tearing the old sidecar down first:
+			// unlike the web path there is no picker to cancel out of, so there is
+			// no window where we could be left un-shared by mistake.
+			if (isSharing) await teardown({ silent: true });
+			return await startNative();
+		}
 
 		const videoConstraints: MediaTrackConstraints = opts.surface
 			? { displaySurface: opts.surface }
@@ -121,6 +214,18 @@ export function createScreenShare(deps: {
 	}
 
 	async function setAudioMuted(muted: boolean): Promise<void> {
+		// The native share's audio belongs to the sidecar's publication, which
+		// our own room has no handle on — the plugin mutes it there.
+		if (native) {
+			try {
+				await setNativeScreenShareAudioMuted(muted);
+				isAudioMuted = muted;
+			} catch (err) {
+				console.error('[screenShare] native setAudioMuted failed:', err);
+			}
+			return;
+		}
+
 		const room = deps.room();
 		if (!room || !audioTrack) return;
 		try {

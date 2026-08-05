@@ -37,7 +37,7 @@
 		flex-direction: column;
 		width: 100%;
 		margin: 0 auto;
-		padding: var(--sp-2);
+		padding: var(--sp-3);
 		padding-top: var(--page-padding-top);
 		gap: var(--page-gap);
 	}
