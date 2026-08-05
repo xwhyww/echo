@@ -25,4 +25,5 @@ rm -rf src-tauri/gen/apple/Externals
 rm -f src-tauri/gen/apple/project.yml
 
 echo "[ios-clean] removed Externals/ and project.yml — regenerating"
+sh scripts/ios-native.sh
 exec sh scripts/with-env.sh tauri ios init

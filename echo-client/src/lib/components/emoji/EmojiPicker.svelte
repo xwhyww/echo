@@ -81,6 +81,7 @@
 	class="emoji-picker-wrapper {pickerStyle}"
 	bind:this={container}
 	onmousedown={keepFocus}
+	data-keeps-keyboard
 ></div>
 
 <style lang="scss">

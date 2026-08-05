@@ -2,8 +2,12 @@
 
 Tap any input on iOS — the composer, the search field, the login code — and a
 grey bar appears above the keyboard with **‹ ›** arrows and a **Done** button.
-This documents what it is, why nothing in the client can hide it, and what it
-would cost to remove.
+This documents what it is, why nothing in the client can hide it, and how it was
+removed.
+
+**Status: removed.** `src-tauri/ios/EchoInputAccessory.m` takes the bar away,
+and `useKeyboardDismiss.svelte.ts` replaces the dismissal it used to provide.
+The rest of this file is why it had to be done that way.
 
 ## What it is
 
@@ -35,57 +39,51 @@ There is no web-facing switch. None of these do anything:
 
 So do not spend time looking for a CSS or Svelte fix. There isn't one.
 
-## What removing it takes
+## How it was removed
 
 Native code in the iOS shell: replace the accessory-view getter on the private
 class that backs text editing inside WKWebView so it returns `nil`.
+`src-tauri/ios/EchoInputAccessory.m` does that from `+load`, with the
+`UIApplicationDidFinishLaunching` notification as a second chance in case
+WebKit's classes are not registered that early. It is a class-level swizzle, so
+it covers the web view Tauri has already built as well as any created later —
+nothing has to race the shell's startup.
 
-The Xcode project does not exist in the repo yet — `src-tauri/gen/` holds only
-`schemas/`. This lands after `npm run tauri ios init`, as a Swift file added to
-`src-tauri/gen/apple`:
+Objective-C rather than the Swift originally sketched here: `+load` runs by
+itself, so there is no call to thread into `main.mm` and no bridging header.
 
-```swift
-import UIKit
-import WebKit
+### Where the file lives, and why not in `gen/`
 
-// WKWebView renders text input in a private WKContentView, and that is the
-// responder UIKit asks for an accessory view. Returning nil kills the
-// prev/next/Done bar app-wide — it is a class-level swizzle, so it applies to
-// every web view created afterwards.
-func removeWebViewInputAccessory() {
-    guard let contentView = NSClassFromString("WKContentView"),
-          let method = class_getInstanceMethod(
-              contentView,
-              #selector(getter: UIResponder.inputAccessoryView)
-          )
-    else { return }
+`src-tauri/.gitignore` ignores all of `/gen/`, because the generated
+`project.pbxproj` carries a per-developer `DEVELOPMENT_TEAM`. A source file
+dropped into `src-tauri/gen/apple` would therefore be untracked, and gone on the
+next clone or `ios:clean`.
 
-    let none: @convention(block) (AnyObject) -> UIView? = { _ in nil }
-    method_setImplementation(method, imp_implementationWithBlock(none))
-}
-```
+So the file is committed at `src-tauri/ios/` and copied in by
+`scripts/ios-native.sh`, which every `ios:*` script runs first. No `project.yml`
+edit is needed: it lists `Sources` as a *directory*, so xcodegen compiles
+whatever is sitting there when the project is generated — which is also why the
+copy has to happen before `tauri ios init`, not after.
 
-Call it once at launch, before the web view is created.
-
-### Two costs to weigh first
+### The two costs, as accepted
 
 **1. `WKContentView` is a private class name.** The swizzle ships in a great
 many App Store apps and has held across years of iOS releases, but it is not
-API. If Apple renames the class the `guard` simply no-ops and the bar returns —
+API. If Apple renames the class the lookup finds nothing and the bar returns —
 it does not crash, and it does not need a client-side fallback.
 
-**2. Done is how many people dismiss the keyboard.** Take the bar away and the
-composer has no blur affordance at all, so the keyboard covers the conversation
-with no obvious way out. Ship the dismissal first, in the client:
+**2. Done was how many people dismiss the keyboard.** With the bar gone the
+keyboard would otherwise cover the conversation with no way out, so
+`src/lib/hooks/ui/useKeyboardDismiss.svelte.ts` blurs the focused field on a tap
+outside it or a drag of the page under it. It is mounted once by the root
+layout, so it covers every text surface — composer, search, login code — not
+just the composer, which matters because the swizzle is app-wide too.
 
-- blur the editor on a tap outside the composer;
-- blur it when the message list is scrolled.
+Two details in that hook are load-bearing:
 
-Both belong in `TextField` / the composer, and neither depends on the native
-change — they are worth having regardless.
-
-## Decision
-
-Not done. The bar stays until the iOS shell is generated and the two costs above
-are accepted. When that happens, the client-side keyboard dismissal is the
-prerequisite, not an afterthought.
+- it listens for `touchmove`, not `scroll`. iOS fires scroll events while it
+  resizes the page around the keyboard it has just opened, which would blur the
+  field in the same breath as focusing it.
+- anything marked `data-keeps-keyboard` counts as part of the field rather than
+  as "outside". `EmojiPicker` carries it, so picking an emoji does not put the
+  keyboard away mid-message.

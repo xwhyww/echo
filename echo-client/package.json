@@ -13,10 +13,10 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"tauri": "tauri",
 		"desktop": "tauri dev",
-		"ios:init": "sh scripts/with-env.sh tauri ios init",
+		"ios:init": "sh scripts/ios-native.sh && sh scripts/with-env.sh tauri ios init",
 		"ios:clean": "sh scripts/ios-clean.sh",
-		"ios:dev": "sh scripts/with-env.sh tauri ios dev",
-		"ios:build": "sh scripts/with-env.sh tauri ios build"
+		"ios:dev": "sh scripts/ios-native.sh && sh scripts/with-env.sh tauri ios dev",
+		"ios:build": "sh scripts/ios-native.sh && sh scripts/with-env.sh tauri ios build"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^7.0.0",

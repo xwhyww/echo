@@ -14,12 +14,15 @@
 	import AppBars from '$lib/components/layouts/AppBars.svelte';
 	import CallScreen from '$lib/components/call/CallScreen.svelte';
 	import { useAuthGuard } from '$lib/hooks/auth/useAuthGuard.svelte.js';
+	import { useKeyboardDismiss } from '$lib/hooks/ui/useKeyboardDismiss.svelte.js';
 	import { i18n } from '$lib/i18n/i18n.svelte.js';
 	import { page } from '$app/state';
 
 	let { children } = $props();
 
 	const guard = useAuthGuard();
+	// Outside the guard on purpose: the login code field needs it too.
+	useKeyboardDismiss();
 	const activeSidebar = $derived(getActiveSidebar());
 	const settingsMode = $derived(activeSidebar === 'settings');
 	const t = $derived(i18n.t);
