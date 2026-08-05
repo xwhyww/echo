@@ -7,14 +7,32 @@ import { fileURLToPath } from 'url';
 // Real env vars (docker compose) take precedence over the file.
 loadEnv({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../.env') });
 
+// +7 followed by ten repeated digits. None of these is an assignable Russian
+// mobile number — those start +79 and never repeat like this — so a real user
+// can't collide with one.
+//
+// Declared above `config` rather than beside its parser at the bottom of the
+// file: `const` has no hoisting, and the object literal below calls
+// parseTestPhones() while it is being built. Moving this down puts the read
+// inside the temporal dead zone and the service dies on import.
+const DEFAULT_TEST_PHONES = [
+	'+71111111111',
+	'+72222222222',
+	'+73333333333',
+	'+74444444444',
+	'+75555555555',
+	'+76666666666',
+	'+77777777777',
+	'+78888888888',
+	'+79999999999',
+];
+
 export const config = {
 	port: Number(process.env.PORT) || 3001,
 	databaseUrl: process.env.AUTH_DATABASE_URL || process.env.DATABASE_URL!,
 	jwtSecret: process.env.JWT_SECRET!,
 	natsUrl: process.env.NATS_URL || 'nats://localhost:4222',
 	blobServiceUrl: process.env.BLOB_SERVICE_URL || 'http://localhost:3006',
-	// See sms.ts for what each driver needs. Defaults to `log` so a fresh clone
-	// runs without any provider account.
 	// Test accounts that sign in with a fixed code and never touch a provider.
 	// Deliberately active in production too: the App Store and Play Store both
 	// require a working demo login from reviewers who cannot receive an SMS on
@@ -35,6 +53,8 @@ export const config = {
 		phones: parseTestPhones(process.env.AUTH_TEST_PHONES),
 		code: process.env.AUTH_TEST_CODE || '000000',
 	},
+	// See sms.ts for what each driver needs. Defaults to `log` so a fresh clone
+	// runs without any provider account.
 	sms: {
 		driver: parseSmsDriver(process.env.SMS_DRIVER) ?? 'log',
 		fallbackDriver: parseSmsDriver(process.env.SMS_FALLBACK_DRIVER),
@@ -63,21 +83,6 @@ export const config = {
 		},
 	},
 };
-
-// +7 followed by ten repeated digits. None of these is an assignable Russian
-// mobile number — those start +79 and never repeat like this — so a real user
-// can't collide with one.
-const DEFAULT_TEST_PHONES = [
-	'+71111111111',
-	'+72222222222',
-	'+73333333333',
-	'+74444444444',
-	'+75555555555',
-	'+76666666666',
-	'+77777777777',
-	'+78888888888',
-	'+79999999999',
-];
 
 // A Set because the only question ever asked of it is membership, on every
 // sign-in request. Blank (unset, or empty via compose) means the defaults —
