@@ -130,7 +130,6 @@
 		text-align: left;
 		transition: background var(--duration-fast) var(--ease-default);
 	}
-	.picker-row:hover { background: var(--c-bg-4); }
 
 	.picker-info {
 		flex: 1;

@@ -16,8 +16,8 @@
 /* --- Text colour ---
    The single source of truth for text colour. Components must not write
    `color:` in their scoped CSS — compose these in the markup instead. State
-   changes (:hover, .active, …) are the exception: a class can't express them,
-   so those stay in the component. */
+   changes (.active, :focus-visible, …) are the exception: a class can't express
+   them, so those stay in the component. */
 .text-default { color: var(--c-text); }
 .text-muted { color: var(--c-text-muted); }
 .text-faint { color: var(--c-text-faint); }

@@ -153,10 +153,6 @@
 		transition: border-color var(--duration-slow) var(--ease-default);
 	}
 
-	.avatar-btn:hover {
-		border-color: var(--c-accent-solid);
-	}
-
 	.avatar-btn:disabled {
 		cursor: not-allowed;
 		opacity: 0.5;
@@ -178,17 +174,9 @@
 		position: absolute;
 	}
 
-	.clear-btn:hover {
-		color: var(--c-accent-text);
-	}
-
 	.upload-btn {
 		position: absolute;
 		border-style: dashed;
-	}
-
-	.upload-btn:hover {
-		color: var(--c-accent-text);
 	}
 
 	.delete-btn {
@@ -206,14 +194,5 @@
 		cursor: pointer;
 		opacity: 0;
 		transition: opacity var(--duration-fast) var(--ease-default);
-	}
-
-	.avatar-item:hover .delete-btn {
-		opacity: 1;
-	}
-
-	.delete-btn:hover {
-		color: var(--c-error);
-		border-color: var(--c-error);
 	}
 </style>

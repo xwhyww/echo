@@ -198,11 +198,6 @@
 			color var(--duration-fast) var(--ease-default);
 	}
 
-	.vc-chat-close:hover {
-		background: var(--c-bg-2);
-		color: var(--c-text);
-	}
-
 	/* Voice chat lives inside a side panel with no spare horizontal room, so
 	   the emoji picker overlays the messages area instead of slotting in as a
 	   sibling like it does on the group page. */

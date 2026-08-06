@@ -41,8 +41,8 @@
 <style>
 	.bar-stack {
 		position: fixed;
-		left: var(--sp-2);
-		right: var(--sp-2);
+		width: 100%;
+		z-index: 2;
 		/* Deliberately no z-index: that would open a stacking context and trap
 		   the pinned-list modal (--z-modal) inside it, below page-level toasts.
 		   The bars carry their own z-index where they need one. */

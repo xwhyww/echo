@@ -212,7 +212,6 @@
 		cursor: pointer;
 		transition: background var(--duration-fast) var(--ease-default);
 	}
-	.acc-row:hover { background: var(--c-bg-2); }
 	.acc-row.checked {
 		background: var(--c-accent-subtle);
 		color: var(--c-accent-text);

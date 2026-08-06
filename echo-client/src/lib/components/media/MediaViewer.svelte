@@ -206,10 +206,6 @@
 		padding: var(--sp-3);
 	}
 
-	.close-btn:hover {
-		background: rgba(0, 0, 0, 0.8);
-	}
-
 	.nav-btn {
 		opacity: 0;
 		position: absolute;
@@ -227,10 +223,6 @@
 		cursor: pointer;
 		transition: background var(--duration-fast) var(--ease-default);
 		z-index: 2;
-	}
-
-	.nav-btn:hover {
-		background: rgba(0, 0, 0, 0.8);
 	}
 
 	.nav-prev {

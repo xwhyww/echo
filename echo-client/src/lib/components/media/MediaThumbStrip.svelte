@@ -105,10 +105,6 @@
 			border-color var(--duration-fast) var(--ease-default);
 	}
 
-	.thumb:hover {
-		opacity: 0.85;
-	}
-
 	.thumb.is-selected {
 		opacity: 1;
 		border-color: var(--c-accent-solid);

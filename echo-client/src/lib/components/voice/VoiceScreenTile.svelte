@@ -122,9 +122,6 @@
 		cursor: pointer;
 		transition: border-color var(--duration-fast) var(--ease-default);
 	}
-	.screen-tile.clickable:hover {
-		border-color: var(--c-accent-solid);
-	}
 
 	.screen-tile-back {
 		@include video-overlay-button;

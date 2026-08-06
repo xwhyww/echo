@@ -108,7 +108,6 @@
 		border-color: var(--c-accent-subtle-2);
 	}
 
-	.vc-tile.sharing:hover,
 	.vc-tile.sharing:focus-visible {
 		border-color: var(--c-accent-solid);
 		outline: none;

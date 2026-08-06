@@ -91,7 +91,6 @@
 	@use '$lib/styles/glass.mixin' as *;
 
 	.sidebar {
-		width: var(--sidebar-w);
 		height: 100vh;
 		display: flex;
 		flex-direction: column;
@@ -104,12 +103,11 @@
 	/* Mobile: the vertical icon rail becomes a horizontal bottom tab bar. */
 	@media (max-width: 767px) {
 		.sidebar {
-			width: calc(100% - 16px);
+			width: 100%;
 			height: calc(var(--bottom-nav-h) + var(--safe-bottom) + 12px);
 			flex-direction: row;
 			position: absolute;
 			bottom: 0;
-			left: 8px;
 			/* Float above .main-content — it's position:relative and later in
 			   the DOM, so without this the page overlays the bar and eats
 			   every tap (broken nav on /friends and /profile). */

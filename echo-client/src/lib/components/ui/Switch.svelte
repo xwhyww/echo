@@ -39,8 +39,6 @@
 	}
 
 	.switch.on { background: var(--c-accent); }
-	.switch:hover:not(:disabled) { background: var(--c-bg-4); }
-	.switch.on:hover:not(:disabled) { background: var(--c-accent-hover); }
 
 	.switch:disabled {
 		opacity: 0.5;

@@ -113,10 +113,6 @@
 		cursor: pointer;
 	}
 
-	.vsb-info:hover .vsb-channel {
-		color: var(--c-accent-text);
-	}
-
 	.vsb-icon {
 		width: 28px;
 		height: 28px;
@@ -164,18 +160,8 @@
 			color var(--duration-fast) var(--ease-default);
 	}
 
-	.vsb-btn:hover {
-		background: var(--c-bg-1);
-		color: var(--c-text);
-	}
-
 	.vsb-btn.active {
 		background: var(--c-accent-subtle-2);
 		color: var(--c-accent-text);
-	}
-
-	.vsb-leave:hover {
-		background: var(--c-error, #ef4444);
-		color: var(--c-text-inverse);
 	}
 </style>

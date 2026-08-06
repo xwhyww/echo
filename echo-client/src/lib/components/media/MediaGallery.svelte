@@ -124,10 +124,6 @@
 			border-color var(--duration-fast) var(--ease-default);
 	}
 
-	.tab:hover {
-		color: var(--c-text);
-	}
-
 	/* `--c-accent` is a gradient in the dark theme, so as a `color` or a
 	   `border-*-color` it is invalid and silently drops out — the active tab used
 	   to lose its tint there. `--c-accent-text` is the flat one. */

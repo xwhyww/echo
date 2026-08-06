@@ -233,8 +233,4 @@
 		color: var(--c-error);
 	}
 
-	.context-item.danger:hover {
-		background: color-mix(in srgb, var(--c-error) 10%, transparent);
-	}
-
 </style>

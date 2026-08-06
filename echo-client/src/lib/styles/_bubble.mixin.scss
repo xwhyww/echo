@@ -30,7 +30,7 @@
 /* The row that carries the avatar and the bubble body. */
 @mixin bubble-row {
 	display: flex;
-	gap: var(--sp-2);
+
 	max-width: 70%;
 	align-items: flex-end;
 }

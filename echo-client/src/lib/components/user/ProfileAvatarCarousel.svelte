@@ -93,15 +93,6 @@
 		@include flex-center;
 	}
 
-	.carousel.has-many:hover .carousel-arrow {
-		opacity: 1;
-	}
-
-	.carousel-arrow:hover {
-		background: var(--c-bg-3);
-		color: var(--c-text);
-	}
-
 	.carousel-arrow.left {
 		left: -44px;
 	}
@@ -123,10 +114,6 @@
 		background: var(--c-border);
 		cursor: pointer;
 		transition: background var(--duration-fast) var(--ease-default);
-	}
-
-	.dot:hover {
-		background: var(--c-text-muted);
 	}
 
 	.dot.active {

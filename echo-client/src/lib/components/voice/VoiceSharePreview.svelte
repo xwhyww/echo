@@ -107,8 +107,4 @@
 		cursor: pointer;
 		transition: background var(--duration-fast) var(--ease-default);
 	}
-
-	.sp-watch:hover {
-		background: var(--c-accent-hover);
-	}
 </style>

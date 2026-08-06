@@ -83,7 +83,7 @@
 	// already on. Showing a back arrow there, and answering a back swipe, both
 	// promise a "somewhere behind this" that does not exist. The rail's filter
 	// tabs are query strings on this same route, so the pathname is the test.
-	const atChatsRoot = $derived(page.url.pathname === routes.chats.root);
+	const atChatsRoot = $derived(page.url.pathname === routes.chats.root || page.url.pathname === routes.settings);
 </script>
 
 <svelte:head>
@@ -99,6 +99,8 @@
 		{#if !hideChrome || hasChatHeader}
 			<Header backHref={atChatsRoot ? null : HOME} title={headerTitle} />
 		{/if}
+		
+		<AppBars />
 
 		{#if !hideChrome}
 			<Sidebar />
@@ -112,14 +114,12 @@
 		<!-- App-wide floating bars (player / voice status / pinned messages).
 		     They live here so they outlive the page that opened them and so the
 		     stack can keep them from overlapping each other. -->
-		<AppBars />
 	</div>
 	<IncomingCallModal />
 {:else}
 	{@render children()}
 {/if}
 
-<!-- Outside the guard: a failed login has to be able to say so too. -->
 <ToastHost />
 <ConfirmHost />
 
@@ -131,13 +131,14 @@
 		overflow: hidden;
 		align-items: center;
 		flex-direction: column;
+		padding: var(--safe-top) var(--sp-2) var(--safe-bottom) var(--sp-2);
 		
+
 		background-image: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8)),
 		url('/chat-bg/chat-bg-1.jpg');
 		background-size: cover, 200%;
 		background-position: center, center;
 		background-repeat: no-repeat, repeat;
-		
 		
 		.children {
 			width: 100%;

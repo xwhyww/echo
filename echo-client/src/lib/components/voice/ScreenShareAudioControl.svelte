@@ -93,10 +93,6 @@
 		background: rgba(239, 68, 68, 0.75);
 	}
 
-	.sta-toggle.muted:hover {
-		background: rgba(239, 68, 68, 0.9);
-	}
-
 	.sta-bar {
 		display: flex;
 		align-items: center;
@@ -113,7 +109,6 @@
 			padding var(--duration-base) var(--ease-default);
 	}
 
-	.sta:hover .sta-bar,
 	.sta:focus-within .sta-bar {
 		max-width: 200px;
 		opacity: 1;

@@ -70,9 +70,4 @@
 			background var(--duration-fast) var(--ease-default),
 			color var(--duration-fast) var(--ease-default);
 	}
-
-	.chip-remove:hover {
-		background: var(--c-error, #ef4444);
-		color: var(--c-text-inverse, #fff);
-	}
 </style>

@@ -64,16 +64,8 @@
 		word-break: break-all;
 	}
 
-	.bubble-link:hover {
-		text-decoration-color: #7cacf8;
-	}
-
 	.bubble-text.own .bubble-link {
 		color: #a8d4ff;
-	}
-
-	.bubble-text.own .bubble-link:hover {
-		text-decoration-color: #a8d4ff;
 	}
 
 	.bubble-mention {
@@ -88,15 +80,7 @@
 		transition: text-decoration-color var(--duration-fast) var(--ease-default);
 	}
 
-	.bubble-mention:hover {
-		text-decoration-color: #7cacf8;
-	}
-
 	.bubble-text.own .bubble-mention {
 		color: #a8d4ff;
-	}
-
-	.bubble-text.own .bubble-mention:hover {
-		text-decoration-color: #a8d4ff;
 	}
 </style>

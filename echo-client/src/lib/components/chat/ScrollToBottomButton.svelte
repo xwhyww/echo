@@ -37,7 +37,7 @@
 	.scroll-to-bottom {
 		position: absolute;
 		bottom: var(--scroll-btn-bottom);
-		right: 12px;
+		right: 0;
 		width: 48px;
 		height: 48px;
 		border-radius: 50%;
@@ -49,10 +49,6 @@
 		box-shadow: var(--shadow-lg, 0 2px 8px rgba(0, 0, 0, 0.3));
 		z-index: 10;
 		@include glass;
-	}
-
-	.scroll-to-bottom:hover {
-		background: var(--c-bg-4, var(--c-bg-3));
 	}
 
 	.badge {

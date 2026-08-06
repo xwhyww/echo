@@ -44,8 +44,6 @@
 		@include glass;
 	}
 
-	.group-row:hover { background: var(--c-bg-3); }
-
 	.group-row-meta {
 		flex: 1;
 		min-width: 0;

@@ -215,12 +215,6 @@
 	}
 
 	/* ─── Interaction states ─────────────────────────────────────── */
-	.slider:hover:not(:disabled)::-webkit-slider-thumb {
-		transform: scale(1.12);
-	}
-	.slider:hover:not(:disabled)::-moz-range-thumb {
-		transform: scale(1.12);
-	}
 
 	.slider:focus-visible {
 		outline: none;

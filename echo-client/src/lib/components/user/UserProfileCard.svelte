@@ -79,11 +79,6 @@
 		transition: max-width var(--duration-fast) var(--ease-default);
 	}
 
-	.status:hover {
-		max-width: max-content;
-		overflow: visible;
-	}
-
 	.user-info {
 		text-align: center;
 		display: flex;

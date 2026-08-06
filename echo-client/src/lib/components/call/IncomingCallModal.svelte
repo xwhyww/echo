@@ -94,8 +94,6 @@
 		transition: transform var(--duration-fast) var(--ease-default), opacity var(--duration-fast) var(--ease-default);
 	}
 
-	.ic-btn:hover { opacity: 0.88; transform: scale(1.05); }
-
 	.ic-accept { background: var(--c-success, #22c55e); }
 	.ic-decline { background: var(--c-error, #ef4444); }
 </style>

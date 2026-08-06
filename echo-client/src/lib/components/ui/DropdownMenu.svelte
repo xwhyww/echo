@@ -46,11 +46,6 @@
 		cursor: pointer;
 	}
 
-	.menu-btn:hover {
-		background: var(--c-bg-2);
-		color: var(--c-text);
-	}
-
 	.menu-backdrop {
 		position: fixed;
 		inset: 0;
@@ -87,15 +82,7 @@
 		cursor: pointer;
 	}
 
-	.menu :global(button:hover) {
-		background: var(--c-bg-3);
-	}
-
 	.menu :global(button.danger) {
 		color: var(--c-error);
-	}
-
-	.menu :global(button.danger:hover) {
-		background: color-mix(in srgb, var(--c-error) 15%, transparent);
 	}
 </style>

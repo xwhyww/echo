@@ -28,10 +28,6 @@
 	background: var(--c-accent);
 	color: var(--c-text-inverse);
 
-	&:hover:not(:disabled) {
-		background: var(--c-accent-hover);
-	}
-
 	&:active:not(:disabled) {
 		background: var(--c-accent-active);
 	}
@@ -41,10 +37,6 @@
 	@include button-base;
 	background: var(--c-bg-3);
 	color: var(--c-text);
-
-	&:hover:not(:disabled) {
-		background: var(--c-bg-4);
-	}
 
 	&:active:not(:disabled) {
 		background: var(--c-border-strong);
@@ -58,10 +50,6 @@
 	@include button-base;
 	background: var(--c-error);
 	color: var(--c-text-inverse);
-
-	&:hover:not(:disabled) {
-		background: color-mix(in srgb, var(--c-error) 88%, black);
-	}
 
 	&:active:not(:disabled) {
 		background: color-mix(in srgb, var(--c-error) 78%, black);
@@ -83,15 +71,11 @@
 	justify-content: center;
 	cursor: pointer;
 	transition: background var(--duration-fast) var(--ease-default);
-
-	&:hover {
-		background: var(--c-accent-hover);
-	}
 }
 
 /* A control sitting on top of video — back, fullscreen, mute. Same dark plate
-   as `video-overlay-chip`, plus a hover. Size and padding stay with the caller:
-   these range from a 28px square to a labelled pill. */
+   as `video-overlay-chip`. Size and padding stay with the caller: these range
+   from a 28px square to a labelled pill. */
 @mixin video-overlay-button {
 	display: inline-flex;
 	align-items: center;
@@ -102,10 +86,6 @@
 	border-radius: var(--radius-sm);
 	cursor: pointer;
 	transition: background var(--duration-fast) var(--ease-default);
-
-	&:hover {
-		background: var(--c-video-overlay-hover);
-	}
 }
 
 /* Applied on top of `play-button` inside an own (accent) bubble. */
@@ -129,22 +109,12 @@
 	transition:
 		border-color var(--duration-fast) var(--ease-default),
 		color var(--duration-fast) var(--ease-default);
-
-	&:hover:not(:disabled) {
-		border-color: var(--c-accent-solid);
-		color: var(--c-accent-text);
-	}
 }
 
 @mixin button-ghost {
 	@include button-base;
 	background: transparent;
 	color: var(--c-text-muted);
-
-	&:hover:not(:disabled) {
-		color: var(--c-text);
-		background: var(--c-bg-3);
-	}
 
 	&:active:not(:disabled) {
 		background: var(--c-bg-4);
@@ -165,10 +135,6 @@
 	cursor: pointer;
 	border-radius: var(--radius-sm);
 	transition: background var(--duration-fast) var(--ease-default);
-
-	&:hover {
-		background: var(--c-bg-3);
-	}
 }
 
 /* Text-only action that sits inline with copy — "refresh", "grant access",
@@ -181,8 +147,4 @@
 	background: none;
 	color: var(--c-accent-text);
 	font-size: var(--fs-xs);
-
-	&:hover:not(:disabled) {
-		background: var(--c-bg-3);
-	}
 }

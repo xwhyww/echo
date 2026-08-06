@@ -137,10 +137,6 @@
 		@include glass;
 	}
 
-	.pinned-bar:hover {
-		background: var(--c-bg-3);
-	}
-
 	.pin-icon {
 		display: flex;
 		align-items: center;
@@ -198,10 +194,6 @@
 		transition: background var(--duration-fast) var(--ease-default);
 	}
 
-	.pinned-item:hover {
-		background: var(--c-bg-3);
-	}
-
 	.pinned-item-content {
 		flex: 1;
 		min-width: 0;
@@ -237,10 +229,5 @@
 		padding: var(--sp-1);
 		border-radius: var(--radius-sm, 4px);
 		flex-shrink: 0;
-	}
-
-	.pinned-item-unpin:hover {
-		background: var(--c-bg-4, var(--c-bg-3));
-		color: var(--c-text);
 	}
 </style>

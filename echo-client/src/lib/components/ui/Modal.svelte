@@ -152,11 +152,6 @@
 			color var(--duration-fast) var(--ease-default);
 	}
 
-	.modal-close:hover:not(:disabled) {
-		background: var(--c-bg-3);
-		color: var(--c-text);
-	}
-
 	.modal-close:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;

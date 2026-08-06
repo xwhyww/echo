@@ -47,10 +47,6 @@
 		transition: color var(--duration-fast) var(--ease-default);
 	}
 
-	.accordion-header:hover {
-		color: var(--c-text);
-	}
-
 	.chevron {
 		display: flex;
 		align-items: center;
@@ -72,10 +68,6 @@
 		gap: var(--sp-1);
 		opacity: 0;
 		transition: opacity var(--duration-fast) var(--ease-default);
-	}
-
-	.accordion-header:hover .accordion-actions {
-		opacity: 1;
 	}
 
 	.accordion-content {

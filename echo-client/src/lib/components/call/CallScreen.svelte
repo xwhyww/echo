@@ -138,7 +138,6 @@
 		cursor: pointer;
 		transition: background var(--duration-fast) var(--ease-default), color var(--duration-fast) var(--ease-default);
 	}
-	.cs-min:hover { background: var(--c-bg-3); color: var(--c-text); }
 
 	.cs-stage {
 		position: relative;
@@ -198,9 +197,7 @@
 		cursor: pointer;
 		transition: background var(--duration-fast) var(--ease-default), color var(--duration-fast) var(--ease-default);
 	}
-	.cs-ctrl:hover { background: var(--c-bg-2); color: var(--c-text); }
 	.cs-ctrl.active { background: var(--c-accent-subtle-2); color: var(--c-accent-text); }
 
 	.cs-hangup { background: var(--c-error, #ef4444); color: #fff; }
-	.cs-hangup:hover { background: var(--c-error, #ef4444); opacity: 0.85; color: #fff; }
 </style>

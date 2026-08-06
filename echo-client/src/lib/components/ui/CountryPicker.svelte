@@ -104,10 +104,6 @@
 		white-space: nowrap;
 	}
 
-	.country-toggle:hover {
-		border-color: var(--c-border-strong);
-	}
-
 	.country-toggle:focus-visible {
 		border-color: var(--c-accent-hover);
 		outline: none;
@@ -183,10 +179,6 @@
 		cursor: pointer;
 		text-align: left;
 		transition: background var(--duration-fast) var(--ease-default);
-	}
-
-	.dropdown-item:hover {
-		background: var(--c-surface-hover);
 	}
 
 	.dropdown-item.active {

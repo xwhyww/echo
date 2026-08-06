@@ -34,21 +34,6 @@
 		opacity: 0.5;
 	}
 
-	/* Variants */
-	@media (hover: hover) {
-		.btn-icon:hover {
-			background: var(--c-bg-3);
-		}
-		
-		.btn-icon-default:hover {
-			color: var(--c-text);
-		}
-		
-		.btn-icon-danger:hover {
-			color: var(--c-error);
-		}
-	}
-
 	/* Sizes */
 	/* xs is for dense inline rows (list-row actions, chip affordances) where a
 	   32px target would break the row's rhythm. */

@@ -179,10 +179,6 @@
 		transition: background var(--duration-fast) var(--ease-default);
 	}
 
-	.cancel:hover {
-		background: rgba(224, 72, 72, 0.12);
-	}
-
 	.indicator {
 		display: flex;
 		align-items: center;

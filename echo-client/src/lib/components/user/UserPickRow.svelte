@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Avatar from '$lib/components/user/Avatar.svelte';
+	import { Check } from 'lucide-svelte'
 
 	// One selectable person in a multi-select picker. The whole row toggles, so
 	// the checkbox is a readout rather than a separate target.
@@ -20,7 +21,9 @@
 		<span class="pick-row-name body-sm fw-medium">{name}</span>
 		<span class="pick-row-sub body-xs text-faint">@{username}</span>
 	</span>
-	<input type="checkbox" {checked} tabindex="-1" readonly />
+	{#if checked}
+		<Check size={18} />
+	{/if}
 </button>
 
 <style>
@@ -31,15 +34,16 @@
 		gap: var(--sp-3);
 		padding: var(--sp-2);
 		border: none;
-		border-radius: var(--radius-sm);
 		background: transparent;
 		text-align: left;
 		cursor: pointer;
 		transition: background var(--duration-fast) var(--ease-default);
+		border-radius: var(--radius-md);
 	}
-
-	.pick-row:hover { background: var(--c-bg-3); }
-	.pick-row.checked { background: var(--c-accent-subtle); }
+	
+	.pick-row.checked {
+		background: var(--c-accent-subtle);
+	}
 
 	.pick-row-meta {
 		flex: 1;
@@ -53,12 +57,5 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
-	}
-
-	.pick-row input[type='checkbox'] {
-		width: 16px;
-		height: 16px;
-		accent-color: var(--c-accent-solid);
-		pointer-events: none;
 	}
 </style>

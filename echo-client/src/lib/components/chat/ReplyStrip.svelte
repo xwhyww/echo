@@ -46,10 +46,6 @@
 		cursor: pointer;
 	}
 
-	.reply-strip.clickable:hover {
-		background: var(--c-bubble-inset-hover);
-	}
-
 	.reply-snippet {
 		white-space: nowrap;
 		overflow: hidden;

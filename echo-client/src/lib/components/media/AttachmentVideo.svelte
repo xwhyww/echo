@@ -130,8 +130,4 @@
 		pointer-events: none;
 		transition: background var(--duration-fast) var(--ease-default);
 	}
-
-	.video-preview:hover .play-btn {
-		background: rgba(0, 0, 0, 0.7);
-	}
 </style>

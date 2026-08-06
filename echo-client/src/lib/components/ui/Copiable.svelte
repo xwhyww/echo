@@ -37,17 +37,9 @@
 		transition: color var(--duration-fast) var(--ease-default);
 	}
 
-	.copiable:hover {
-		color: var(--c-accent-text);
-	}
-
 	.icon {
 		display: inline-flex;
 		transition: color var(--duration-fast) var(--ease-default);
-	}
-
-	.copiable:hover .icon {
-		color: var(--c-accent-text);
 	}
 
 	.icon.copied {

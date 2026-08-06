@@ -131,12 +131,6 @@
 			color var(--duration-fast) var(--ease-default);
 	}
 
-	.vp-settings-btn:hover {
-		background: var(--c-bg-3);
-		color: var(--c-text);
-		text-decoration: none;
-	}
-
 	.vp-empty {
 		display: flex;
 		flex-direction: column;

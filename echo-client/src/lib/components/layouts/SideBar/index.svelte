@@ -29,7 +29,6 @@
 	.channel-sidebar {
 		width: 100%;
 		height: 100%;
-		border-right: 1px solid var(--c-border);
 		display: flex;
 		flex-direction: column;
 		flex-shrink: 0;

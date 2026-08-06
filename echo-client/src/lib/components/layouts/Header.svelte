@@ -1,8 +1,14 @@
 <script lang="ts">
+	import { Users } from 'lucide-svelte';
+	import Avatar from '$lib/components/user/Avatar.svelte';
 	import BackButton from '$lib/components/ui/BackButton.svelte';
-	import PersonalChatHeader from '$lib/components/chat/PersonalChatHeader.svelte';
+	import Status from '$lib/components/user/Status.svelte';
+	import TypingIndicator from '$lib/components/chat/TypingIndicator.svelte';
+	import UserInfo from '$lib/components/user/UserInfo.svelte';
 	import { useSwipeBack } from '$lib/hooks/ui/useSwipeBack.svelte.js';
 	import { chatHeader } from '$lib/stores/chatHeader.svelte.js';
+	import { auth } from '$lib/stores/auth.svelte.js';
+	import { i18n } from '$lib/i18n/i18n.svelte.js';
 
 	interface Props {
 		// Fallback destination: landing on the page directly (deep link,
@@ -18,27 +24,96 @@
 
 	let { backHref = null, title = '' }: Props = $props();
 
+	const t = $derived(i18n.t);
+
 	// The touch equivalent of the back button beside it. Mounts nothing when
 	// there is no button.
 	useSwipeBack(() => backHref);
+
+	// An open chat fills the bar with its own contents — who you are talking to
+	// and their presence, or the group and its size — in place of the page
+	// title. It is published by the chat page rather than rendered by it, so the
+	// bar keeps one back button and one swipe for every screen.
+	const chat = $derived(chatHeader.current);
+
+	// Saved messages has no companion, so the avatar is our own — without this
+	// the fallback initial ('?') is all UserInfo has to draw.
+	const avatarOf = $derived(
+		chat?.kind === 'personal' ? (chat.isSelf ? auth.user : chat.companion) : null,
+	);
+
+	// Tapping the bar opens the chat info — except on the back button, which has
+	// somewhere else to be.
+	function onclick(e: MouseEvent) {
+		if (!chat) return;
+		if ((e.target as HTMLElement | null)?.closest('.header-back')) return;
+		chat.onopeninfo();
+	}
 </script>
 
-<header class="app-header">
-	{#if chatHeader.current}
-		<!-- An open personal chat fills the bar with its own contents — who you
-		     are talking to, and their presence — in place of the back arrow and
-		     page title. It brings its own back button; the swipe above still
-		     covers it, which is why there must not be a second one inside. -->
-		<PersonalChatHeader {...chatHeader.current} />
-	{:else}
-		{#if backHref}
-			<div class="header-back">
-				<BackButton {backHref} size={48} />
-			</div>
-		{/if}
-		{#if title}
-			<h2 class="title body-base">{title}</h2>
-		{/if}
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<header class="app-header" class:has-chat={!!chat} {onclick}>
+	{#if backHref}
+		<div class="header-back">
+			<BackButton {backHref} size={48} />
+		</div>
+	{/if}
+
+	{#if chat?.kind === 'personal'}
+		<div class="header-center">
+			<h4 class="body-xs fw-medium">
+				{chat.isSelf ? t.chat.notes : (chat.title ?? chat.companion?.username ?? '')}
+			</h4>
+			{#if chat.isSelf}
+				<span class="body-xs text-faint">{t.chat.chatWithYourself}</span>
+			{:else if (chat.typingUsers ?? []).length > 0}
+				<!-- Typing is the more current fact about someone than online is, and
+				     they'd say the same thing twice standing side by side. -->
+				<TypingIndicator users={chat.typingUsers ?? []} />
+			{:else if chat.companion}
+				<span class="presence body-xs text-faint" class:online={chat.companion.isOnline}>
+					<Status status={chat.companion.isOnline ? 'online' : 'offline'} size={6} />
+					<span>{chat.companion.isOnline ? t.common.online : t.common.offline}</span>
+				</span>
+			{/if}
+		</div>
+
+		<div class="header-user">
+			<UserInfo
+				displayName={avatarOf?.displayName}
+				username={avatarOf?.username}
+				avatarUrl={avatarOf?.avatarUrl}
+				showName={false}
+				size="mm"
+			/>
+		</div>
+	{:else if chat?.kind === 'group'}
+		<div class="header-center">
+			<h4 class="body-xs fw-medium">{chat.group?.name ?? '...'}</h4>
+			<span class="members body-xs text-faint">
+				<Users size={12} />
+				<span>{t.groupInfo.memberCount(chat.memberCount)}</span>
+			</span>
+		</div>
+
+		<div class="header-user">
+			<!-- A target of its own inside a bar that opens the group info: the
+			     avatar goes one level deeper, to the settings. -->
+			<button
+				class="avatar-btn"
+				onclick={(e) => {
+					e.stopPropagation();
+					chat.onopensettings();
+				}}
+				title={t.groupInfo.groupSettings}
+				aria-label={t.groupInfo.groupSettings}
+			>
+				<Avatar name={chat.group?.name ?? '?'} avatarUrl={chat.group?.avatarUrl ?? null} size={36} />
+			</button>
+		</div>
+	{:else if title}
+		<h2 class="title body-base">{title}</h2>
 	{/if}
 </header>
 
@@ -52,7 +127,6 @@
 		display: flex;
 		align-items: center;
 		gap: var(--sp-2);
-		padding: var(--safe-top) var(--sp-2) 0;
 		/* Scrim so content scrolling under the header stays legible. */
 		background: linear-gradient(
 			to bottom,
@@ -60,27 +134,65 @@
 			rgba(0, 0, 0, 0.6) 60%,
 			rgba(0, 0, 0, 0)
 		);
-		position: absolute;
+		position: fixed;
 		width: 100%;
 		top: 0;
 		right: 0;
 		z-index: 2;
 	}
 
-	/* Stretched between the inset and the bottom edge rather than centred on
-	   50%, which would measure against the padding box and sit half an inset
-	   too high. */
-	.header-back {
-		position: absolute;
-		left: var(--sp-2);
-		top: var(--safe-top);
-		bottom: 0;
-		display: flex;
-		align-items: center;
+	/* The back button is out of flow, so the chat's own contents have to leave
+	   room for it themselves. */
+	.app-header.has-chat {
+		cursor: pointer;
 	}
 
 	.title {
 		text-align: center;
 		width: 100%;
+	}
+
+	.header-center {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 2px;
+	}
+
+	.header-center h4 {
+		margin: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		max-width: 100%;
+	}
+
+	.header-user {
+		flex-shrink: 0;
+		display: flex;
+		align-items: center;
+	}
+
+	.presence,
+	.members {
+		display: flex;
+		align-items: center;
+		gap: var(--sp-1);
+	}
+
+	.avatar-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: var(--radius-full);
+		background: transparent;
+		cursor: pointer;
+		transition: background var(--duration-fast) var(--ease-default);
+	}
+
+	.presence.online {
+		color: var(--c-online, var(--c-text-muted));
 	}
 </style>

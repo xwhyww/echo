@@ -40,5 +40,4 @@
 	}
 
 	.jump-to-reaction.stacked { bottom: 56px; }
-	.jump-to-reaction:hover { background: var(--c-bg-4, var(--c-bg-3)); }
 </style>

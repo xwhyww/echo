@@ -21,6 +21,7 @@
 	// next screen would inherit this conversation's title.
 	$effect(() => {
 		chatHeader.set({
+			kind: 'personal',
 			companion: perschat.companion,
 			isSelf: chat.isSelf,
 			title: chat.chatWith,
@@ -118,13 +119,11 @@
 	.chat-layout {
 		display: flex;
 		height: 100%;
-		width: 100%;
 	}
 
 	.chat-page {
 		display: flex;
 		flex-direction: column;
-		height: 100%;
 		flex: 1;
 		min-width: 0;
 		/* The header is in the app bar above this page now, not floating over the
@@ -132,7 +131,6 @@
 		--chat-list-top-clearance: var(--sp-4);
 		/* Containing block for the overlaid header and composer. Without it they
 		   anchor to the viewport and overhang the emoji sidebar. */
-		position: relative;
 		background-image: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8)),
 			url('/chat-bg/chat-bg-1.jpg');
 		background-size: cover, 200%;

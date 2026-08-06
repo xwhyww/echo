@@ -42,10 +42,6 @@
 			color var(--duration-fast) var(--ease-default);
 	}
 
-	.checkbox:hover:not(.disabled) {
-		background: var(--c-bg-2);
-	}
-
 	.checkbox.checked {
 		color: var(--c-text);
 	}

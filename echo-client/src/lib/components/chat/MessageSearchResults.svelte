@@ -79,8 +79,4 @@
 		padding: var(--sp-2);
 		transition: background var(--duration-fast) var(--ease-default);
 	}
-
-	.search-bubble:hover {
-		background: var(--c-bg-3);
-	}
 </style>

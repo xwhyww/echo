@@ -8,12 +8,11 @@
 	--c-bg-0: #1a1a18;          /* deepest background — app shell */
 	--c-bg-1: #212120;          /* sidebar, panels */
 	--c-bg-2: #262624;          /* channel list, cards */
-	--c-bg-3: #302f2d;          /* input fields, hover states */
+	--c-bg-3: #302f2d;          /* input fields */
 	--c-bg-4: #3b3a37;          /* active/selected states */
 
 	/* --- Color: Surface overlays --- */
 	--c-surface: #2d2c2a;       /* modals, dropdowns, tooltips */
-	--c-surface-hover: #353432;
 	--c-surface-active: #3e3d3a;
 
 	/* --- Glass (frosted elements floating over content) ---
@@ -23,7 +22,6 @@
 	--glass-bg-more: rgba(21, 21, 21, 0.5);
 	--glass-bg-less: rgba(68, 68, 68, 0.3);
 	--glass-bg-modal: rgba(2, 2, 2, 0.5);
-	--glass-bg-hover: rgba(255, 255, 255, 0.13);
 	--glass-border: rgba(255, 255, 255, 0.14);
 	--glass-border-more: rgba(33, 32, 32, 0.3);
 	--glass-highlight: rgba(255, 255, 255, 0.18); /* inner top edge light */
@@ -54,7 +52,7 @@
 	--c-accent: linear-gradient(150deg, rgba(8, 59, 119, 1), rgba(9, 115, 77, 1)); /* brand gradient */
 	--c-accent-solid: #25939d; /* primary teal — the gradient's midpoint */
 	--c-accent-sidebar: linear-gradient(150deg, rgba(8, 59, 119, 0.7), rgba(9, 115, 77, 0.7)); /* brand gradient */
-	--c-accent-hover: #1f7c84;  /* darker on hover */
+	--c-accent-hover: #1f7c84;  /* darker accent — focus borders, carets */
 	--c-accent-hover-opacity: rgba(31, 92, 134, 0.6);  /* translucent blue — focus borders */
 	--c-accent-active: #1a686f;  /* even darker on press */
 	--c-accent-subtle: rgba(37, 147, 157, 0.12); /* tinted backgrounds */
@@ -83,13 +81,11 @@
 	--grad-bubble-own: linear-gradient(150deg, var(--c-own-bubble-top), var(--c-own-bubble-bottom));
 	/* Flat stand-in for places that need a single colour (borders, frames). */
 	--c-own-bubble: #0c3c40;
-	--c-own-bubble-hover: rgba(37, 147, 157, 0.22);
 
 	/* Inset top edge that catches the "light", and the recessed wash used
 	 * by strips nested inside a bubble (reply quotes, own reaction chips). */
 	--c-bubble-highlight: rgba(255, 255, 255, 0.06);
 	--c-bubble-inset: rgba(0, 0, 0, 0.2);
-	--c-bubble-inset-hover: rgba(0, 0, 0, 0.29);
 
 	/* Ink and fills laid over an own (accent) bubble, where the muted and faint
 	 * text colours would disappear. White at two alphas — one for a readout,
@@ -107,7 +103,6 @@
 	 * they have, so these stay dark in both themes — there is no light-theme
 	 * override below. */
 	--c-video-overlay: rgba(0, 0, 0, 0.55);
-	--c-video-overlay-hover: rgba(0, 0, 0, 0.75);
 
 	/* --- Color: Semantic --- */
 	--c-success: #3fba6f;
@@ -231,11 +226,9 @@
 	--c-bg-4: #ccccd4;
 
 	--c-surface: #ffffff;
-	--c-surface-hover: #f0f0f3;
 	--c-surface-active: #e6e6ea;
 
 	--glass-bg: rgba(255, 255, 255, 0.45);
-	--glass-bg-hover: rgba(255, 255, 255, 0.65);
 	--glass-border: rgba(26, 26, 31, 0.1);
 	--glass-highlight: rgba(255, 255, 255, 0.8);
 
@@ -274,11 +267,9 @@
 	--c-own-bubble-top: #1a5ae1;
 	--c-own-bubble-bottom: #030931;
 	--c-own-bubble: #0e3189;
-	--c-own-bubble-hover: rgba(24, 129, 139, 0.18);
 
 	--c-bubble-highlight: rgba(255, 255, 255, 0.75);
 	--c-bubble-inset: rgba(26, 26, 31, 0.07);
-	--c-bubble-inset-hover: rgba(26, 26, 31, 0.12);
 
 	--c-modal-scrim: rgba(26, 26, 31, 0.4);
 

@@ -69,10 +69,6 @@
 		transition: opacity var(--duration-fast) var(--ease-default);
 	}
 
-	.cancel:hover {
-		opacity: 0.8;
-	}
-
 	@keyframes slide-up {
 		from {
 			translate: -50% 16px;

@@ -64,7 +64,6 @@
 		min-width: 0;
 		cursor: pointer;
 	}
-	.cd-info:hover .cd-name { color: var(--c-accent-text); }
 
 	.cd-text {
 		display: flex;
@@ -100,7 +99,5 @@
 		cursor: pointer;
 		transition: background var(--duration-fast) var(--ease-default), color var(--duration-fast) var(--ease-default);
 	}
-	.cd-btn:hover { background: var(--c-bg-1); color: var(--c-text); }
 	.cd-btn.active { background: var(--c-accent-subtle-2); color: var(--c-accent-text); }
-	.cd-leave:hover { background: var(--c-error, #ef4444); color: #fff; }
 </style>

@@ -57,12 +57,6 @@
 		cursor: pointer;
 	}
 
-	/* The row owns the hover treatment; the item inside shouldn't paint its own
-	   on top of it. */
-	.friend-row :global(.sidebar-item:hover) {
-		background: transparent;
-	}
-
 	.friend-row-actions {
 		display: flex;
 		gap: var(--sp-2);

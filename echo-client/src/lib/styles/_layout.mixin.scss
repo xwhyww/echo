@@ -37,10 +37,6 @@
 	text-decoration: none;
 	transition: background var(--duration-fast) var(--ease-default);
 
-	&:hover {
-		background: var(--c-bg-3);
-	}
-
 	/* The icons that bracket the text; the middle column is what may shrink. */
 	:global(svg) {
 		color: var(--c-text-muted);

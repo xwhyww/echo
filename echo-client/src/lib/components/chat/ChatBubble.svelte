@@ -161,7 +161,7 @@
 		display: flex;
 		align-items: center;
 		width: 100%;
-		padding: var(--sp-1) var(--sp-2);
+		padding: var(--sp-1) 0;
 		border-radius: var(--radius-md);
 		transition: background var(--duration-fast) var(--ease-default);
 	}

@@ -120,11 +120,6 @@
 		@include flex-center;
 	}
 
-	.vc-ctrl:hover {
-		background: var(--c-bg-1);
-		color: var(--c-text);
-	}
-
 	.vc-ctrl.active {
 		background: var(--c-accent-subtle-2);
 		color: var(--c-accent-text);
@@ -132,10 +127,5 @@
 
 	.vc-leave {
 		background: var(--c-error);
-	}
-
-	.vc-leave:hover {
-		background: var(--c-error);
-		opacity: 0.85;
 	}
 </style>

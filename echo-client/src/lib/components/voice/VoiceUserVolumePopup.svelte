@@ -177,11 +177,6 @@
 			color var(--duration-fast) var(--ease-default);
 	}
 
-	.vu-reset:hover:not(:disabled) {
-		background: var(--c-bg-3);
-		color: var(--c-text);
-	}
-
 	.vu-reset:disabled {
 		opacity: 0.5;
 		cursor: default;

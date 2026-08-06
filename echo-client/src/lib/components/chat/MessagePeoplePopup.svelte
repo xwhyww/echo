@@ -88,10 +88,6 @@
 		transition: background var(--duration-fast) var(--ease-default);
 	}
 
-	.people-row:hover {
-		background: var(--c-bg-3);
-	}
-
 	.people-info {
 		display: flex;
 		flex-direction: column;

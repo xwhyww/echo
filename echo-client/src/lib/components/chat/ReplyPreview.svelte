@@ -72,10 +72,6 @@
 		transition: color var(--duration-fast) var(--ease-default);
 	}
 
-	.reply-preview-close:hover {
-		color: var(--c-text);
-	}
-
 	:global(.reply-icon) {
 		flex-shrink: 0;
 		color: var(--c-accent-text);

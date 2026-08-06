@@ -135,10 +135,6 @@
 		padding: 0;
 	}
 
-	.cancel-btn:hover {
-		color: var(--c-error);
-	}
-
 	.progress-text {
 		color: white;
 	}
@@ -171,13 +167,5 @@
 		color: white;
 		cursor: pointer;
 		transition: background var(--duration-fast) var(--ease-default);
-	}
-
-	.round-btn.retry:hover {
-		background: rgba(255, 255, 255, 0.3);
-	}
-
-	.round-btn.remove:hover {
-		background: var(--c-error);
 	}
 </style>

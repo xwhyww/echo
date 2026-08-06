@@ -74,10 +74,6 @@
 		transition: background var(--duration-fast) var(--ease-default);
 	}
 
-	.stat-row-button:hover {
-		background: var(--c-bg-3);
-	}
-
 	.stat-left {
 		display: flex;
 		align-items: center;

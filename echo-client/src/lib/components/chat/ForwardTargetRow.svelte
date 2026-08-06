@@ -41,10 +41,6 @@
 		transition: background var(--duration-fast) var(--ease-default);
 	}
 
-	.forward-item:hover {
-		background: var(--c-bg-3);
-	}
-
 	.forward-item-name {
 		flex: 1;
 		overflow: hidden;
@@ -70,10 +66,5 @@
 		flex-shrink: 0;
 		opacity: 0;
 		transition: opacity var(--duration-fast) var(--ease-default);
-	}
-
-	.forward-item:hover :global(svg:last-child) {
-		opacity: 1;
-		color: var(--c-accent-text);
 	}
 </style>

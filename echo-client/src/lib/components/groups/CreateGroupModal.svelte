@@ -38,14 +38,12 @@
 	closeDisabled={form.creating}
 	maxWidth="520px"
 >
-	{#snippet icon()}<Users size={22} />{/snippet}
-
-	<Field label={t.groupsPage.name}>
-		<Input bind:value={form.name} placeholder={t.groupsPage.namePlaceholder} autofocus />
+	<Field>
+		<Input radius="var(--radius-md)" bind:value={form.name} placeholder={t.groupsPage.namePlaceholder} autofocus />
 	</Field>
 
-	<Field label={t.groupsPage.description} note={t.common.optional}>
-		<Input bind:value={form.description} placeholder={t.groupsPage.descriptionPlaceholder} />
+	<Field note={t.common.optional}>
+		<Input radius="var(--radius-md)" bind:value={form.description} placeholder={t.groupsPage.descriptionPlaceholder} />
 	</Field>
 
 	<!-- Not a `Field`: the results list under the control can't live inside a
@@ -53,6 +51,7 @@
 	<div class="field">
 		<span class="body-xs text-muted">{t.groupsPage.addPeople}</span>
 		<Input
+			radius="var(--radius-md)"
 			bind:value={form.query}
 			oninput={form.onQueryInput}
 			placeholder={t.groupsPage.searchPlaceholder}
@@ -60,18 +59,18 @@
 			{#snippet icon()}<Search size={16} />{/snippet}
 		</Input>
 
-		{#if form.selected.length > 0}
-			<div class="chips">
-				{#each form.selected as u (u.id)}
-					<Chip title={label(u)} onremove={() => form.deselect(u.id)}>
-						{#snippet leading()}
-							<Avatar name={label(u)} avatarUrl={u.avatarUrl} size={20} />
-						{/snippet}
-						{label(u)}
-					</Chip>
-				{/each}
-			</div>
-		{/if}
+		<!--{#if form.selected.length > 0}-->
+		<!--	<div class="chips">-->
+		<!--		{#each form.selected as u (u.id)}-->
+		<!--			<Chip title={label(u)} onremove={() => form.deselect(u.id)}>-->
+		<!--				{#snippet leading()}-->
+		<!--					<Avatar name={label(u)} avatarUrl={u.avatarUrl} size={20} />-->
+		<!--				{/snippet}-->
+		<!--				{label(u)}-->
+		<!--			</Chip>-->
+		<!--		{/each}-->
+		<!--	</div>-->
+		<!--{/if}-->
 
 		<div class="picker">
 			{#if form.friendsLoading}
@@ -85,7 +84,6 @@
 
 				{#if form.visibleFriends.length > 0}
 					<div class="picker-section">
-						<div class="body-xs overline text-muted picker-title">{t.groupsPage.friendsSection}</div>
 						{#each form.visibleFriends as u (u.id)}
 							<UserPickRow
 								name={label(u)}
@@ -100,10 +98,6 @@
 
 				{#if form.searchActive}
 					<div class="picker-section">
-						<div class="body-xs overline text-muted picker-title">
-							{t.groupsPage.otherUsers}
-							{#if form.searching}<span class="text-faint"> · {t.groupsPage.searching}</span>{/if}
-						</div>
 						{#if !form.searching && form.otherUsers.length === 0}
 							<p class="hint body-sm text-faint">{t.groupsPage.noUsersFound}</p>
 						{/if}
@@ -139,30 +133,17 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--sp-2);
-	}
-
-	.chips {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 6px;
+		margin-top: var(--sp-4);
 	}
 
 	.picker {
-		min-height: 200px;
 		max-height: 320px;
 		overflow-y: auto;
-		background: var(--c-bg-1, var(--c-bg-2));
-		border: 1px solid var(--c-border);
 		border-radius: var(--radius-md);
-		padding: var(--sp-2);
 	}
 
 	.picker-section + .picker-section {
 		margin-top: var(--sp-3);
-	}
-
-	.picker-title {
-		padding: 4px var(--sp-2);
 	}
 
 	.hint {

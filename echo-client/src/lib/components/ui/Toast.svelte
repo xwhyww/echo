@@ -71,10 +71,6 @@
 		transition: color var(--duration-fast) var(--ease-default);
 	}
 
-	.close:hover {
-		color: var(--c-text);
-	}
-
 	@keyframes slide-up {
 		from {
 			translate: 0 16px;

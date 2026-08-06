@@ -147,10 +147,6 @@
 
 		@include glass-more;
 	}
-	.ss-tile:hover:not(:disabled) {
-		background: var(--c-bg-3);
-		border-color: var(--c-accent-solid);
-	}
 	.ss-tile:active:not(:disabled) { transform: scale(0.99); }
 	.ss-tile:disabled { opacity: 0.55; cursor: not-allowed; }
 
@@ -208,6 +204,5 @@
 		cursor: pointer;
 		transition: background var(--duration-fast) var(--ease-default);
 	}
-	.ss-stop:hover:not(:disabled) { background: rgba(239, 68, 68, 0.25); }
 	.ss-stop:disabled { opacity: 0.6; cursor: not-allowed; }
 </style>

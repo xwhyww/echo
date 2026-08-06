@@ -77,23 +77,13 @@
 	.selection-forward-btn {
 		background: var(--c-accent-subtle);
 	}
-	.selection-forward-btn:hover {
-		background: var(--c-accent-subtle-2);
-	}
 
 	.selection-delete-btn {
 		background: rgba(239, 68, 68, 0.15);
 		color: #ef4444;
 	}
-	.selection-delete-btn:hover {
-		background: rgba(239, 68, 68, 0.25);
-	}
 
 	.selection-cancel-btn {
 		background: none;
-	}
-	.selection-cancel-btn:hover {
-		background: var(--c-bg-3);
-		color: var(--c-text);
 	}
 </style>

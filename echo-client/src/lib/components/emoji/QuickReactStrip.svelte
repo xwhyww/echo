@@ -67,11 +67,6 @@
 			transform var(--duration-fast) var(--ease-default);
 	}
 
-	.quick-react:hover {
-		background: var(--c-bg-3);
-		transform: scale(1.15);
-	}
-
 	.quick-react.active {
 		background: var(--c-accent-subtle);
 	}

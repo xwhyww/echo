@@ -105,16 +105,6 @@
 			transform var(--duration-fast) var(--ease-default);
 	}
 
-	.attachment-file.linked:hover {
-		background-color: var(--c-bubble-inset-hover);
-		transform: translateY(-1px);
-	}
-
-	.attachment-file.linked:hover .file-size {
-		opacity: 0.9;
-		color: var(--c-accent-text);
-	}
-
 	.attachment-file.linked:active {
 		transform: translateY(0);
 	}

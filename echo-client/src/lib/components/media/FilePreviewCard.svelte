@@ -90,10 +90,6 @@
 		transition: background var(--duration-fast) var(--ease-default);
 	}
 
-	.remove-btn:hover {
-		background: rgba(0, 0, 0, 0.8);
-	}
-
 	.preview-image {
 		width: 100%;
 		aspect-ratio: 1;

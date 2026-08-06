@@ -45,9 +45,6 @@
 		cursor: pointer;
 		transition: transform var(--duration-fast) var(--ease-default);
 	}
-	.swatch:hover:not(:disabled) {
-		transform: scale(1.12);
-	}
 	.swatch.selected {
 		border-color: var(--c-text);
 		box-shadow: 0 0 0 2px var(--c-surface);
