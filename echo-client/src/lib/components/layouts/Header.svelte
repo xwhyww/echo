@@ -135,10 +135,8 @@
 			rgba(0, 0, 0, 0)
 		);
 		position: fixed;
-		width: 100%;
-		top: 0;
+		top: var(--safe-top);
 		z-index: 2;
-		padding-top: var(----safe-top);
 		left: var(--sp-2);
 		width: calc(100% - var(--sp-2) * 2);
 	}

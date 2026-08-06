@@ -57,7 +57,7 @@
 	   above it in normal flow — the personal chat, since its header moved into
 	   the app bar — overrides this with something much smaller. */
 	padding-top: var(--chat-list-top-clearance, calc(var(--header-h-padding-xl) + 100px));
-	padding-bottom: calc(var(--safe-bottom) + 68px);
+	padding-bottom: calc(0.5rem);
 }
 
 /* The floating chrome. Both anchor to the nearest positioned ancestor, so
@@ -97,6 +97,6 @@
 	flex-shrink: 0;
 	z-index: 10;
 	position: absolute;
-	bottom: var(--safe-bottom);
+	bottom: 0.5rem;
 	left: var(--sp-2);
 }
