@@ -15,6 +15,8 @@
 	import CallScreen from '$lib/components/call/CallScreen.svelte';
 	import { useAuthGuard } from '$lib/hooks/auth/useAuthGuard.svelte.js';
 	import { useKeyboardDismiss } from '$lib/hooks/ui/useKeyboardDismiss.svelte.js';
+	import { chatHeader } from '$lib/stores/chatHeader.svelte.js';
+	import { usePushRegistration } from '$lib/hooks/auth/usePushRegistration.svelte.js';
 	import { i18n } from '$lib/i18n/i18n.svelte.js';
 	import { page } from '$app/state';
 
@@ -23,6 +25,8 @@
 	const guard = useAuthGuard();
 	// Outside the guard on purpose: the login code field needs it too.
 	useKeyboardDismiss();
+	// Waits for sign-in itself, then registers this install for notifications.
+	usePushRegistration();
 	const activeSidebar = $derived(getActiveSidebar());
 	const settingsMode = $derived(activeSidebar === 'settings');
 	const t = $derived(i18n.t);
@@ -69,6 +73,17 @@
 
 	// An open chat ([id]) is a fullscreen surface: no header, no sidebar.
 	const hideChrome = $derived(isChatRoute(page.route.id));
+
+	// …except that a personal chat now puts its header in the app bar rather
+	// than floating one over its own scroller, so the bar comes back for it. The
+	// sidebar stays hidden: the conversation is still the whole screen below.
+	const hasChatHeader = $derived(!!chatHeader.current);
+
+	// The chat list is the root of its section — HOME points at the page you are
+	// already on. Showing a back arrow there, and answering a back swipe, both
+	// promise a "somewhere behind this" that does not exist. The rail's filter
+	// tabs are query strings on this same route, so the pathname is the test.
+	const atChatsRoot = $derived(page.url.pathname === routes.chats.root);
 </script>
 
 <svelte:head>
@@ -81,14 +96,17 @@
 
 {#if guard.showSidebar}
 	<div class="app-shell" class:settings-mode={settingsMode} class:m-detail={mobileDetail} class:m-content={mobileContent}>
-		{#if !hideChrome}
-			<Header backHref={HOME} title={headerTitle} />
+		{#if !hideChrome || hasChatHeader}
+			<Header backHref={atChatsRoot ? null : HOME} title={headerTitle} />
 		{/if}
 
 		{#if !hideChrome}
 			<Sidebar />
 		{/if}
-		<div class="children">
+		<!-- data-swipe-surface: what the back gesture slides, so an accidental
+		     swipe is visible while there is still time to drag back out of it.
+		     See useSwipeBack.svelte.ts. -->
+		<div class="children" data-swipe-surface>
 			{@render children()}
 		</div>
 		<!-- App-wide floating bars (player / voice status / pinned messages).

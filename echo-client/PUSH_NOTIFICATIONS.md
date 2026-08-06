@@ -1,5 +1,12 @@
 # Push notifications — the Mac half
 
+> **Parts 2, 3 and 4 below are now implemented.** What remains is Part 1, which
+> is account and server work, and it is blocked: the signing team is a *personal*
+> one, and Apple refuses both Push Notifications and App Groups to a free
+> membership. See **`PUSH_NOTIFICATIONS_NEXT.md`** for the current state, who
+> does what, and how to verify it. Read the parts below for the reasoning; read
+> that file for what to do next.
+
 Everything on the server is finished and tested. What is missing is the part
 that can only be built on macOS: the iOS app has no way to ask Apple for a
 device token yet, so `device_tokens` is never populated and nothing has an

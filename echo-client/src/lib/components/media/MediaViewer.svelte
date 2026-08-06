@@ -80,7 +80,16 @@
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <!-- svelte-ignore a11y_click_events_have_key_events -->
-<div class="overlay" onclick={handleBackdrop} role="dialog" aria-modal="true" tabindex="-1">
+<!-- data-no-swipe-back: the carousel below owns horizontal drags — swiping right
+     here means "previous photo", not "leave the page". -->
+<div
+	class="overlay"
+	onclick={handleBackdrop}
+	role="dialog"
+	aria-modal="true"
+	tabindex="-1"
+	data-no-swipe-back
+>
 	<button class="close-btn" onclick={onclose} aria-label={t.common.close}>
 		<X size={22} />
 	</button>

@@ -7,6 +7,7 @@
   ],
   "permissions": [
     "core:default",
-    "screenshare:default"
+    "screenshare:default",
+    "push:default"
   ]
 }

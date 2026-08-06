@@ -1,14 +1,53 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
-	The main app's half of the App Group shared with the broadcast extension.
-	See BroadcastExtension/Broadcast.entitlements — the two must agree.
+	The app's entitlements, currently empty — and deliberately so.
+
+	Both entries this file wants are commented out because the signing team
+	(VWRA297FY6) is a *personal* team. Apple refuses both capabilities to a free
+	membership, and refuses them at signing time:
+
+	    Cannot create a iOS App Development provisioning profile for
+	    "com.evgenij.echo". Personal development teams … do not support the
+	    Push Notifications capability.
+	    Provisioning profile … doesn't support the group.com.evgenij.echo
+	    App Group.
+
+	Uncomment both blocks once a paid Apple Developer Program membership is
+	active and the App ID has App Groups and Push Notifications enabled. Nothing
+	else has to change: the native and TypeScript halves of both features are
+	written and wired, and this file is the only thing standing them down.
+
+	Until then the app builds and installs, screen sharing cannot reach the
+	broadcast extension's App Group container, and `request_permission` fails at
+	runtime — which the registration hook treats as "no push here" and drops.
 -->
 <plist version="1.0">
 <dict>
+	<!--
+		The main app's half of the App Group shared with the broadcast
+		extension. See BroadcastExtension/Broadcast.entitlements — the two must
+		agree.
+
 	<key>com.apple.security.application-groups</key>
 	<array>
 		<string>group.com.evgenij.echo</string>
 	</array>
+	-->
+
+	<!--
+		Required before the app may register for remote notifications; without
+		it registration fails at runtime rather than at build time.
+
+		`development` is the value for anything signed with a development
+		profile, which is every build this repo produces. Xcode substitutes
+		`production` when archiving against a distribution profile, so this
+		literal is only ever the debug one. It also decides which APNs host the
+		resulting token belongs to — PushPlugin.swift reads it back out of the
+		embedded profile rather than guessing.
+
+	<key>aps-environment</key>
+	<string>development</string>
+	-->
 </dict>
 </plist>

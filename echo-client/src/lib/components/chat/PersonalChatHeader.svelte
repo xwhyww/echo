@@ -10,6 +10,10 @@
 
 	const t = $derived(i18n.t);
 
+	// No `useSwipeBack` here: this renders inside the app `Header`, which mounts
+	// the gesture itself. Two mounts would answer one swipe twice and step back
+	// two entries.
+
 	// The bar above a personal conversation. Tapping it opens the chat info —
 	// except on the back button, which has somewhere else to be.
 	interface Props {
@@ -37,7 +41,9 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<header class="chat-header" {onclick}>
+<!-- A div, not a header: the app `Header` this sits inside is already the
+     <header> for the page. -->
+<div class="chat-header" {onclick}>
 	<div class="chat-header-back">
 		<BackButton backHref={routes.chats.root} size={48} />
 	</div>
@@ -69,15 +75,21 @@
 			size="mm"
 		/>
 	</div>
-</header>
+</div>
 
 <style lang="scss">
-	@use '$lib/styles/chat-layout.mixin' as *;
+	/* The contents of the app header bar, not a bar of its own: `Header` owns the
+	   height, the safe-area inset and the scrim, and this fills it.
 
-	/* Floats over the scroller — see the mixin for why the parent must be
-	   positioned. */
+	   It used to include `chat-header-overlay` and float over the scroller as
+	   fixed chrome, which is why it behaved differently from every other page's
+	   header — a fixed element is placed against the layout viewport, and iOS
+	   moves that around as the keyboard opens. */
 	.chat-header {
-		@include chat-header-overlay;
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		align-items: center;
 		gap: var(--sp-3);
 		cursor: pointer;
 	}

@@ -8,6 +8,7 @@
 	import { i18n } from '$lib/i18n/i18n.svelte.js';
 	import type { useVoiceChannelPage } from '$lib/hooks/voice/useVoiceChannelPage.svelte.js';
 	import BackButton from '$lib/components/ui/BackButton.svelte'
+	import { useSwipeBack } from '$lib/hooks/ui/useSwipeBack.svelte.js';
 	import { routes } from '$lib/routes.js'
 	import { page } from '$app/state'
 
@@ -22,6 +23,11 @@
 	const voiceId = $derived(page.params.id!);
 
 	let { voice }: Props = $props();
+
+	// A voice channel is a fullscreen surface, so the app `Header` that mounts
+	// this gesture elsewhere is not rendered here. Same destination as the back
+	// button above: the channel list, not the chat list.
+	useSwipeBack(() => routes.chats.groupVoice(voiceId));
 </script>
 
 <div class="vc-page">

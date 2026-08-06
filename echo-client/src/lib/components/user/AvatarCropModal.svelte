@@ -73,7 +73,9 @@
 </script>
 
 <Modal title={t.account.cropAvatar} onclose={onClose} closeDisabled={saving} maxWidth="480px">
-	<div class="cropper-wrap">
+	<!-- data-no-swipe-back: the crop box and the image under it are both dragged
+	     sideways. -->
+	<div class="cropper-wrap" data-no-swipe-back>
 		<img bind:this={imgEl} src={imageUrl} alt="" crossorigin="anonymous" />
 	</div>
 

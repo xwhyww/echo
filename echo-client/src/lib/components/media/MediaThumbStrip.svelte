@@ -36,8 +36,10 @@
 	});
 </script>
 
+<!-- data-no-swipe-back: dragged sideways to scrub through thumbnails. -->
 <div
 	class="thumbs embla"
+	data-no-swipe-back
 	use:emblaCarouselSvelte={{ options, plugins: [] }}
 	onemblaInit={(e: CustomEvent<EmblaCarouselType>) => (api = e.detail)}
 >
