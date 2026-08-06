@@ -53,7 +53,10 @@
 	flex-direction: column;
 	width: 100%;
 	margin-top: auto;
-	padding-top: calc(var(--header-h-padding-xl) + 100px);
+	/* Room for chrome that floats over the scroller. A surface whose header sits
+	   above it in normal flow — the personal chat, since its header moved into
+	   the app bar — overrides this with something much smaller. */
+	padding-top: var(--chat-list-top-clearance, calc(var(--header-h-padding-xl) + 100px));
 	padding-bottom: var(--chat-list-clearance, var(--footer-h-padding-m));
 }
 

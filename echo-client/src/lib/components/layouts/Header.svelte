@@ -1,26 +1,44 @@
 <script lang="ts">
 	import BackButton from '$lib/components/ui/BackButton.svelte';
+	import PersonalChatHeader from '$lib/components/chat/PersonalChatHeader.svelte';
 	import { useSwipeBack } from '$lib/hooks/ui/useSwipeBack.svelte.js';
+	import { chatHeader } from '$lib/stores/chatHeader.svelte.js';
 
 	interface Props {
 		// Fallback destination: landing on the page directly (deep link,
 		// reload) leaves no history to go back to.
-		backHref: string;
+		//
+		// Null for a screen that is not somewhere you arrived *from* — the chat
+		// list is the root of its section, so it shows no arrow and answers no
+		// swipe. Both affordances hang off this one prop so they cannot drift
+		// apart.
+		backHref?: string | null;
 		title?: string;
 	}
 
-	let { backHref, title = '' }: Props = $props();
+	let { backHref = null, title = '' }: Props = $props();
 
-	// The touch equivalent of the back button beside it.
+	// The touch equivalent of the back button beside it. Mounts nothing when
+	// there is no button.
 	useSwipeBack(() => backHref);
 </script>
 
 <header class="app-header">
-	<div class="header-back">
-		<BackButton {backHref} size={48} />
-	</div>
-	{#if title}
-		<h2 class="title body-base">{title}</h2>
+	{#if chatHeader.current}
+		<!-- An open personal chat fills the bar with its own contents — who you
+		     are talking to, and their presence — in place of the back arrow and
+		     page title. It brings its own back button; the swipe above still
+		     covers it, which is why there must not be a second one inside. -->
+		<PersonalChatHeader {...chatHeader.current} />
+	{:else}
+		{#if backHref}
+			<div class="header-back">
+				<BackButton {backHref} size={48} />
+			</div>
+		{/if}
+		{#if title}
+			<h2 class="title body-base">{title}</h2>
+		{/if}
 	{/if}
 </header>
 

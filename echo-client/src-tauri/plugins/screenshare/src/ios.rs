@@ -10,7 +10,9 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
 	_app: &AppHandle<R>,
 	api: PluginApi<R, C>,
 ) -> crate::Result<ScreenShare<R>> {
-	let handle = api.register_ios_plugin(init_plugin_screenshare)?;
+	let handle = api
+		.register_ios_plugin(init_plugin_screenshare)
+		.map_err(|e| crate::Error::Plugin(e.to_string()))?;
 	Ok(ScreenShare(handle))
 }
 

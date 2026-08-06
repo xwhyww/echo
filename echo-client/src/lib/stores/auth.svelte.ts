@@ -1,5 +1,6 @@
 import { getMe, updateMe, logout as logoutApi, type User } from '$lib/api/auth.js';
 import { setTokenResolver, setAuthReadyWaiter } from '$lib/api/client.js';
+import { unregisterDevice } from '$lib/api/pushService.js';
 import { personalChatsStore } from '$lib/stores/personalChats.svelte.js';
 import { friendsStore } from '$lib/stores/friends.svelte.js';
 
@@ -9,6 +10,12 @@ class AuthStore {
 	user: User | null = $state(null);
 	token: string | null = $state(null);
 	loading: boolean = $state(true);
+	/**
+	 * The APNs token this install registered, set by `usePushRegistration`.
+	 * Kept here only so `logout()` has something to unregister — nothing reads
+	 * it, and it stays null on every platform without the native plugin.
+	 */
+	pushToken: string | null = null;
 
 	private _resolveReady!: () => void;
 	ready: Promise<void> = new Promise((r) => { this._resolveReady = r; });
@@ -30,6 +37,13 @@ class AuthStore {
 	}
 
 	logout() {
+		// Before the token is cleared: unregistering is an authenticated call,
+		// and without it this phone keeps receiving notifications for an account
+		// that is no longer signed in on it.
+		if (this.pushToken) {
+			unregisterDevice(this.pushToken).catch(() => {});
+			this.pushToken = null;
+		}
 		logoutApi().catch(() => {});
 		this.user = null;
 		this.token = null;

@@ -4,6 +4,9 @@ pub fn run() {
     // iOS screen sharing. A no-op reporting `is_supported() == false`
     // everywhere else, where the webview's getDisplayMedia handles it.
     .plugin(tauri_plugin_screenshare::init())
+    // APNs registration. The webview cannot ask Apple for a device token, and
+    // the token is delivered to the app delegate rather than to any of this.
+    .plugin(tauri_plugin_push::init())
     .setup(|app| {
       if cfg!(debug_assertions) {
         app.handle().plugin(

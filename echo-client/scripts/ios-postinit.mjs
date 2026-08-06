@@ -15,7 +15,7 @@
 // without checking.
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
@@ -58,13 +58,57 @@ if (!appTargetName) {
 const extTargetName = `${appTargetName.replace(/_iOS$/, '')}_broadcast`;
 
 // ─── The LiveKit package ───────────────────────────────────────
-// The app reaches LiveKit through the screenshare plugin's Swift package, but
-// the extension is a separate binary and needs its own dependency — it is where
-// LKSampleHandler comes from.
+// Both binaries need it: the extension is where LKSampleHandler comes from, and
+// the app publishes the frames the extension sends it.
+//
+// The app's copy has to come through Xcode rather than through the plugin's
+// Rust build. LiveKit depends on LiveKitWebRTC as an XCFramework, and SwiftPM
+// only picks the ios-arm64 slice over the macOS one when it knows it is
+// building for iOS — which is true under Xcode and false under the swift-rs
+// path `tauri-plugin`'s `ios_path` would use. See the plugin's build.rs.
 doc.setIn(['packages', 'LiveKit'], {
 	url: 'https://github.com/livekit/client-sdk-swift.git',
 	from: LIVEKIT_VERSION,
 });
+
+// ─── The Tauri Swift API ───────────────────────────────────────
+// ScreenSharePlugin.swift subclasses Tauri's `Plugin` and takes `Invoke`, so the
+// app target needs this package. `tauri-plugin` would normally vendor it into
+// each plugin that declares an `ios_path`; with that switch gone, it is copied
+// straight out of the `tauri` crate instead. `cargo metadata` locates the crate
+// so the path follows the dependency's version rather than being pinned here.
+const tauriManifest = JSON.parse(
+	execFileSync('cargo', ['metadata', '--format-version', '1'], {
+		cwd: path.join(root, 'src-tauri'),
+		encoding: 'utf8',
+		maxBuffer: 64 * 1024 * 1024,
+	}),
+).packages.find((p) => p.name === 'tauri')?.manifest_path;
+
+if (!tauriManifest) {
+	console.error('[ios-postinit] could not locate the `tauri` crate — is src-tauri/ a cargo workspace?');
+	process.exit(1);
+}
+
+const tauriApiSrc = path.join(path.dirname(tauriManifest), 'mobile/ios-api');
+const tauriApiDst = path.join(root, 'src-tauri/gen/apple/TauriAPI');
+if (!existsSync(tauriApiSrc)) {
+	console.error(`[ios-postinit] ${tauriApiSrc} not found — cannot supply the Tauri Swift API`);
+	process.exit(1);
+}
+// Copied rather than referenced in place: the registry checkout is shared
+// between projects and SwiftPM should not be writing anything into it.
+//
+// Tests/ comes along even though nothing here runs it. Xcode validates a local
+// package the way it validates a root one, so the `TauriTests` target the
+// manifest declares has to have its sources, or dependency resolution fails
+// before a line is compiled.
+rmSync(tauriApiDst, { recursive: true, force: true });
+cpSync(tauriApiSrc, tauriApiDst, {
+	recursive: true,
+	filter: (src) => !/(^|\/)(\.build|Package\.resolved)$/.test(src),
+});
+doc.setIn(['packages', 'Tauri'], { path: 'TauriAPI' });
 
 // ─── The extension target ──────────────────────────────────────
 // `SKIP_INSTALL` and the XPC package type are what distinguish an embedded
@@ -100,13 +144,30 @@ doc.setIn(
 	`${IOS_DIR}/app.entitlements`,
 );
 
+// …and drop the template's own entitlements node, or the setting above is dead
+// letter. xcodegen's `entitlements` key *generates* a file at the given path and
+// points CODE_SIGN_ENTITLEMENTS at it, which beats anything in `settings.base`.
+// Tauri's template declares it with no contents, so what it generates is an
+// empty <dict/> — and an app signed with that has neither the App Group the
+// broadcast extension shares nor `aps-environment`. Both failures are silent at
+// build time and only show up as things not working on the device.
+doc.deleteIn(['targets', appTargetName, 'entitlements']);
+
+// The app target is Objective-C++ until ScreenSharePlugin.swift lands in it,
+// and Xcode refuses to compile Swift in a target with no language version.
+doc.setIn(['targets', appTargetName, 'settings', 'base', 'SWIFT_VERSION'], '5.0');
+
 // `embed` is what actually puts the extension inside the .app bundle. Filtered
 // first so re-running doesn't stack duplicates, which xcodegen accepts and
-// Xcode then trips over.
+// Xcode then trips over — and the same filter keeps the two package
+// dependencies single.
 const deps = (spec.targets[appTargetName].dependencies ?? []).filter(
-	(d) => d.target !== extTargetName,
+	(d) => d.target !== extTargetName && d.package !== 'LiveKit' && d.package !== 'Tauri',
 );
 deps.push({ target: extTargetName, embed: true, codeSign: true });
+// Where ScreenSharePlugin.swift gets `import LiveKit` and `import Tauri` from.
+deps.push({ package: 'LiveKit', product: 'LiveKit' });
+deps.push({ package: 'Tauri', product: 'Tauri' });
 doc.setIn(['targets', appTargetName, 'dependencies'], deps);
 
 writeFileSync(specPath, doc.toString(), 'utf8');

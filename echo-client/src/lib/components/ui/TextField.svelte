@@ -42,6 +42,10 @@
 
 	let editorEl = $state<HTMLDivElement>();
 	let recordingActive = $state(false);
+	// Whether the editor held focus when the current interaction began. Not
+	// reactive: it is a fact about the gesture in flight, read and written within
+	// the same handful of events.
+	let editorHadFocus = false;
 
 	const editor = useEmojiEditor(() => editorEl);
 
@@ -71,6 +75,9 @@
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Enter' && !e.shiftKey) {
 			e.preventDefault();
+			// Typing is proof of focus, and this path never goes through
+			// pointerdown — a hardware keyboard, or the on-screen return key.
+			editorHadFocus = true;
 			send();
 		}
 	}
@@ -119,6 +126,11 @@
 	// slid down out from under the finger, and the click never reached the
 	// button. pointerdown fires on finger-down for touch and mouse alike.
 	function onFieldPointerDown(e: PointerEvent) {
+		// Recorded here, not where it is used. By the time the click arrives
+		// WebKit may already have blurred the editor, and `document.activeElement`
+		// no longer remembers that the keyboard was up a moment ago — which is
+		// exactly the case the restore in `submit` exists for.
+		editorHadFocus = document.activeElement === editorEl;
 		if ((e.target as HTMLElement | null)?.closest('button')) e.preventDefault();
 	}
 
@@ -128,9 +140,19 @@
 	}
 
 	function submit(text: string, files: File[]) {
+		// Clearing the editor tears out every node inside it, including the one
+		// the caret was sitting in, and WebKit drops focus along with it. On a
+		// phone that reads as the keyboard sliding away after every message sent
+		// — so focus is taken back immediately.
+		//
+		// Restoring it has to happen inside the same user gesture that sent the
+		// message: iOS only raises the keyboard for a focus() it can attribute to
+		// a tap, and one deferred to a later tick is silently ignored.
+		const refocus = editorHadFocus || document.activeElement === editorEl;
 		onsubmit?.(text, files);
 		value = '';
 		editor.render('');
+		if (refocus) editor.focus();
 	}
 
 	function handleVoiceSend(rec: VoiceRecording) {

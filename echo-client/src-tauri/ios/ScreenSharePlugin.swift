@@ -16,7 +16,10 @@ import WebKit
 /// the token; see `createScreenToken` in the voice service). It publishes only
 /// the share and subscribes to nothing: the user's real connection is already
 /// in the room and would otherwise receive every track twice.
-class ScreenSharePlugin: Plugin, BroadcastManagerDelegate {
+// RoomDelegate is only here so `Room(delegate: self)` type-checks — every one of
+// its methods is `@objc optional`, and this plugin implements none of them. The
+// broadcast state, not the room's, is what `start` waits on.
+class ScreenSharePlugin: Plugin, BroadcastManagerDelegate, RoomDelegate {
 	private var room: Room?
 
 	/// The `start` invocation, held while we wait for the user to confirm the

@@ -6,29 +6,35 @@
 	import PendingMessage from '$lib/components/chat/PendingMessage.svelte';
 	import PersonalChatBubble from '$lib/components/chat/PersonalChatBubble.svelte';
 	import PersonalChatComposer from '$lib/components/chat/PersonalChatComposer.svelte';
-	import PersonalChatHeader from '$lib/components/chat/PersonalChatHeader.svelte';
 	import PersonalChatModals from '$lib/components/chat/PersonalChatModals.svelte';
 	import { usePerschatPage } from '$lib/hooks/chat/usePerschatPage.svelte.js';
+	import { chatHeader } from '$lib/stores/chatHeader.svelte.js';
 	import { i18n } from '$lib/i18n/i18n.svelte.js';
 
 	const t = $derived(i18n.t);
 
 	const perschat = usePerschatPage();
 	const chat = $derived(perschat.chat);
+
+	// The header is drawn by the root layout, so what belongs in it is published
+	// rather than rendered — see `chatHeader`. Cleared on the way out, or the
+	// next screen would inherit this conversation's title.
+	$effect(() => {
+		chatHeader.set({
+			companion: perschat.companion,
+			isSelf: chat.isSelf,
+			title: chat.chatWith,
+			typingUsers: chat.typingUsers,
+			onopeninfo: perschat.openInfo,
+		});
+		return () => chatHeader.clear();
+	});
 </script>
 
 <!-- Not a PageColumn: a conversation fills the viewport and scrolls its own
      message list rather than stacking sections down a column. -->
 <div class="chat-layout">
 	<div class="chat-page">
-		<PersonalChatHeader
-			companion={perschat.companion}
-			isSelf={chat.isSelf}
-			title={chat.chatWith}
-			typingUsers={chat.typingUsers}
-			onopeninfo={perschat.openInfo}
-		/>
-
 		{#if perschat.search.showingPanel}
 			<MessageSearchResults
 				results={perschat.search.results}
@@ -121,6 +127,9 @@
 		height: 100%;
 		flex: 1;
 		min-width: 0;
+		/* The header is in the app bar above this page now, not floating over the
+		   scroller, so the list no longer has to leave a hole for it. */
+		--chat-list-top-clearance: var(--sp-4);
 		/* Containing block for the overlaid header and composer. Without it they
 		   anchor to the viewport and overhang the emoji sidebar. */
 		position: relative;

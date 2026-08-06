@@ -2,11 +2,17 @@
 	import { Users } from 'lucide-svelte';
 	import Avatar from '$lib/components/user/Avatar.svelte';
 	import BackButton from '$lib/components/ui/BackButton.svelte';
+	import { useSwipeBack } from '$lib/hooks/ui/useSwipeBack.svelte.js';
 	import { routes } from '$lib/routes.js';
 	import { i18n } from '$lib/i18n/i18n.svelte.js';
 	import type { Group } from '$lib/api/groups.js';
 
 	const t = $derived(i18n.t);
+
+	// An open chat is a fullscreen surface, so the app `Header` — which is what
+	// mounts this gesture everywhere else — is not rendered here. Without this
+	// the back button below would be the only way out.
+	useSwipeBack(() => routes.chats.root);
 
 	// The bar floating over a group conversation. The whole bar opens the group's
 	// info page; the avatar on the right is a separate target for its settings.

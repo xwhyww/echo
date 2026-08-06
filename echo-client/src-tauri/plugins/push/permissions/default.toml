@@ -1,0 +1,14 @@
+"$schema" = "schemas/schema.json"
+
+[default]
+description = """
+Register this install for push notifications: prompt for permission, read the
+APNs device token, and report which APNs environment the token belongs to. All
+three run once per launch from the registration hook, and the prompt itself is
+shown by iOS, which only ever asks the user once per install.
+"""
+permissions = [
+	"allow-request-permission",
+	"allow-get-token",
+	"allow-environment",
+]

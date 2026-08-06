@@ -11,12 +11,16 @@
 # runs *before* the project is generated, which is why every ios:* script goes
 # through here first. Creating the directory when it does not exist yet lets
 # this run ahead of the very first `tauri ios init` too.
+#
+# Only the top level of src-tauri/ios/ is copied: BroadcastExtension/ belongs to
+# the extension target, which project.yml points at directly, and compiling its
+# SampleHandler into the app as well would be an error.
 set -e
 
 cd "$(dirname "$0")/.."
 
 dest=src-tauri/gen/apple/Sources/app
 mkdir -p "$dest"
-cp src-tauri/ios/*.m "$dest/"
+cp src-tauri/ios/*.m src-tauri/ios/*.swift "$dest/"
 
-echo "[ios-native] copied src-tauri/ios/*.m -> $dest/"
+echo "[ios-native] copied src-tauri/ios/*.{m,swift} -> $dest/"
