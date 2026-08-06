@@ -131,7 +131,7 @@
 		overflow: hidden;
 		align-items: center;
 		flex-direction: column;
-		padding: var(--safe-top) var(--sp-2) var(--safe-bottom) var(--sp-2);
+		padding: 0 var(--sp-2) 0 var(--sp-2);
 		
 
 		background-image: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8)),
