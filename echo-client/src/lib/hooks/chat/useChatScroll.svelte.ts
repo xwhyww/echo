@@ -39,6 +39,17 @@ export function useChatScroll(
 		if (element && pinnedToBottom) element.scrollTop = element.scrollHeight;
 	}
 
+	// The scroller shrinking is not the user scrolling away: when the keyboard
+	// opens, the shell gives up its bottom (see `useKeyboardInset`) and a list
+	// that was following the conversation has to keep following it.
+	$effect(() => {
+		const el = element;
+		if (!el || typeof ResizeObserver === 'undefined') return;
+		const observer = new ResizeObserver(stick);
+		observer.observe(el);
+		return () => observer.disconnect();
+	});
+
 	$effect(() => () => {
 		stickObserver?.disconnect();
 		stickObserver = null;

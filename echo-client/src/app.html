@@ -4,10 +4,15 @@
 		<meta charset="utf-8" />
 		<!-- `viewport-fit=cover` is what makes env(safe-area-inset-*) report real
 		     numbers on a notched iPhone; without it every inset is 0 and the
-		     headers and sidebar slide under the notch and home indicator. -->
+		     headers and sidebar slide under the notch and home indicator.
+
+		     `interactive-widget=resizes-content` asks Chromium to shrink the
+		     layout viewport when the keyboard opens, so `100svh` already ends
+		     above it and nothing has to be scrolled into view. iOS ignores the
+		     hint — there `useKeyboardInset` measures the same thing by hand. -->
 		<meta
 			name="viewport"
-			content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"
+			content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no, interactive-widget=resizes-content"
 		/>
 		%sveltekit.head%
 	</head>

@@ -15,6 +15,7 @@
 	import CallScreen from '$lib/components/call/CallScreen.svelte';
 	import { useAuthGuard } from '$lib/hooks/auth/useAuthGuard.svelte.js';
 	import { useKeyboardDismiss } from '$lib/hooks/ui/useKeyboardDismiss.svelte.js';
+	import { useKeyboardInset } from '$lib/hooks/ui/useKeyboardInset.svelte.js';
 	import { chatHeader } from '$lib/stores/chatHeader.svelte.js';
 	import { usePushRegistration } from '$lib/hooks/auth/usePushRegistration.svelte.js';
 	import { i18n } from '$lib/i18n/i18n.svelte.js';
@@ -25,6 +26,9 @@
 	const guard = useAuthGuard();
 	// Outside the guard on purpose: the login code field needs it too.
 	useKeyboardDismiss();
+	// Keeps the shell above the keyboard instead of letting the browser shove
+	// the whole page up to reveal a composer parked under it.
+	useKeyboardInset();
 	// Waits for sign-in itself, then registers this install for notifications.
 	usePushRegistration();
 	const activeSidebar = $derived(getActiveSidebar());
@@ -126,7 +130,10 @@
 <style>
 	.app-shell {
 		display: flex;
-		height: 100svh;
+		/* `svh` is the viewport left by the browser's own chrome — it knows
+		   nothing about the keyboard, so the inset published by
+		   `useKeyboardInset` is what keeps the composer off it. */
+		height: calc(100svh - var(--keyboard-inset));
 		width: 100%;
 		overflow: hidden;
 		align-items: center;

@@ -178,6 +178,11 @@
 	--safe-top: env(safe-area-inset-top, 0px);
 	--safe-bottom: env(safe-area-inset-bottom, 0px);
 
+	/* How much of the layout viewport the on-screen keyboard covers. Measured
+	 * and written onto :root by `useKeyboardInset`; 0 whenever no keyboard is
+	 * open, and on Chromium, where the layout viewport shrinks by itself. */
+	--keyboard-inset: 0px;
+
 	/* --- Layout --- */
 	--sidebar-w: 72px;       /* space icon rail */
 	--channel-list-w: 240px; /* channel sidebar */
