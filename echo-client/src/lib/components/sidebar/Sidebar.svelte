@@ -89,44 +89,31 @@
 
 <style lang="scss">
 	@use '$lib/styles/glass.mixin' as *;
-
+	
 	.sidebar {
-		height: 100vh;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-
-		flex-shrink: 0;
+		width: 100%;
+		height: var(--bottom-nav-h);
+		flex-direction: row;
+		position: absolute;
+		bottom: var(--safe-bottom);
+		/* Float above .main-content — it's position:relative and later in
+       the DOM, so without this the page overlays the bar and eats
+       every tap (broken nav on /friends and /profile). */
+		z-index: var(--z-sticky);
 	}
-
-	/* Mobile: the vertical icon rail becomes a horizontal bottom tab bar. */
-	@media (max-width: 767px) {
-		.sidebar {
-			width: 100%;
-			height: calc(var(--bottom-nav-h) + var(--safe-bottom) + 12px);
-			flex-direction: row;
-			position: absolute;
-			bottom: calc(var(--safe-bottom) + var(--sp-2));
-			/* Float above .main-content — it's position:relative and later in
-			   the DOM, so without this the page overlays the bar and eats
-			   every tap (broken nav on /friends and /profile). */
-			z-index: var(--z-sticky);
-		}
-
-		.sidebar-top {
-			flex-direction: row;
-			gap: var(--sp-2);
-		}
-
-		.tab-buttons {
-			flex-direction: row;
-			gap: var(--sp-2);
-		}
-
-		.sidebar-bottom {
-			flex-direction: row;
-		}
+	
+	.sidebar-top {
+		flex-direction: row;
+		gap: var(--sp-2);
+	}
+	
+	.tab-buttons {
+		flex-direction: row;
+		gap: var(--sp-2);
+	}
+	
+	.sidebar-bottom {
+		flex-direction: row;
 	}
 
 	.sidebar-top {

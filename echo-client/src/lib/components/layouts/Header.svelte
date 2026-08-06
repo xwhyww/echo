@@ -122,7 +122,8 @@
 	   overlaps it. It keeps its own height and wears the inset as padding — the
 	   bar grows taller, the content inside it stays put. */
 	.app-header {
-		height: calc(var(--header-h) + var(--safe-top));
+		height: var(--header-h);
+		width: 100%;
 		flex-shrink: 0;
 		display: flex;
 		align-items: center;
@@ -137,8 +138,6 @@
 		position: fixed;
 		top: var(--safe-top);
 		z-index: 2;
-		left: var(--sp-2);
-		width: calc(100% - var(--sp-2) * 2);
 	}
 
 	/* The back button is out of flow, so the chat's own contents have to leave
