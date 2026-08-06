@@ -57,7 +57,7 @@
 	   above it in normal flow — the personal chat, since its header moved into
 	   the app bar — overrides this with something much smaller. */
 	padding-top: var(--chat-list-top-clearance, calc(var(--header-h-padding-xl) + 100px));
-	padding-bottom: 10px;
+	padding-bottom: calc(var(--safe-bottom) + 68px);
 }
 
 /* The floating chrome. Both anchor to the nearest positioned ancestor, so
@@ -88,7 +88,7 @@
 }
 
 @mixin chat-composer-overlay {
-	width: 100%;
+	width: calc(100% - var(--sp-2) * 2);
 	/* Matches the mobile tab bar's gap, which is not the full inset: the bar
 	   sits at bottom:0 in a box --safe-bottom + 12px taller than the tab row it
 	   centres (Sidebar.svelte), so what shows beneath it is half the inset plus
@@ -96,4 +96,7 @@
 	   heights. */
 	flex-shrink: 0;
 	z-index: 10;
+	position: absolute;
+	bottom: var(--safe-bottom);
+	left: var(--sp-2);
 }

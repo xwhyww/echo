@@ -41,7 +41,6 @@
 <style>
 	.bar-stack {
 		position: fixed;
-		width: 100%;
 		z-index: 2;
 		/* Deliberately no z-index: that would open a stacking context and trap
 		   the pinned-list modal (--z-modal) inside it, below page-level toasts.
@@ -52,6 +51,8 @@
 		/* The stack spans the viewport so its children can be full width, but it
 		   must not swallow clicks in the empty space around them. */
 		pointer-events: none;
+		left: var(--sp-2);
+		width: calc(100% - var(--sp-2) * 2);
 	}
 
 	.bar-stack > :global(*) {

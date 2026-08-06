@@ -137,8 +137,10 @@
 		position: fixed;
 		width: 100%;
 		top: 0;
-		right: 0;
 		z-index: 2;
+		padding-top: var(----safe-top);
+		left: var(--sp-2);
+		width: calc(100% - var(--sp-2) * 2);
 	}
 
 	/* The back button is out of flow, so the chat's own contents have to leave
