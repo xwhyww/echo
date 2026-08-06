@@ -85,7 +85,7 @@
 			<Header backHref={HOME} title={headerTitle} />
 		{/if}
 
-		{#if !hideChrome && !settingsMode}
+		{#if !hideChrome}
 			<Sidebar />
 		{/if}
 		<div class="children">
