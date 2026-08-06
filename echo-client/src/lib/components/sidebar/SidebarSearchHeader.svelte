@@ -27,7 +27,5 @@
 		display: flex;
 		align-items: center;
 		gap: var(--sp-2);
-		padding: 0 var(--sp-2);
-		margin-bottom: var(--sp-1);
 	}
 </style>

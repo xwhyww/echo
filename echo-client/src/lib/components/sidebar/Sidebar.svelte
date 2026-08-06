@@ -91,8 +91,11 @@
 	@use '$lib/styles/glass.mixin' as *;
 	
 	.sidebar {
-		width: 100%;
-		height: var(--bottom-nav-h);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		width: calc(100% - var(--sp-2) * 2);
 		flex-direction: row;
 		position: absolute;
 		bottom: var(--safe-bottom);
@@ -103,50 +106,37 @@
 	}
 	
 	.sidebar-top {
-		flex-direction: row;
-		gap: var(--sp-2);
-	}
-	
-	.tab-buttons {
-		flex-direction: row;
-		gap: var(--sp-2);
-	}
-	
-	.sidebar-bottom {
-		flex-direction: row;
-	}
-
-	.sidebar-top {
 		display: flex;
 		flex-direction: row;
 		align-items: center;
-		gap: var(--sp-3);
-
+		gap: var(--sp-2);
+		
 		/* Same glass treatment as the header back button. */
 		@include glass;
 		padding: var(--sp-2) var(--sp-2);
 		border-radius: 32px;
 		width: 100%;
 	}
-
+	
 	.sidebar-bottom {
 		display: flex;
+		flex-direction: row;
 		flex-direction: column;
 		align-items: center;
-
+		
 		margin-left: 8px;
 		border-radius: 32px;
 	}
-
+	
 	.tab-buttons {
 		display: flex;
-		flex-direction: row;
-		gap: var(--sp-1);
 		width: 100%;
 		/* Anchor for the sliding pill. */
 		position: relative;
+		flex-direction: row;
+		gap: var(--sp-2);
 	}
-
+	
 	/* The single highlight that glides between tabs. Painted behind the
 	   buttons; position/size come from inline styles measured off the target. */
 	.tab-pill {
@@ -159,11 +149,11 @@
 		will-change: transform;
 		pointer-events: none;
 	}
-
+	
 	.tab-pill.visible {
 		opacity: 1;
 	}
-
+	
 	.tab-pill.animated {
 		transition:
 			transform var(--duration-slow) cubic-bezier(0.3, 0.9, 0.3, 1.15),
@@ -171,7 +161,7 @@
 			height var(--duration-slow) cubic-bezier(0.3, 0.9, 0.3, 1.15),
 			opacity var(--duration-fast) var(--ease-default);
 	}
-
+	
 	.tab-btn {
 		width: 100%;
 		height: 50px;
@@ -184,21 +174,21 @@
 		z-index: 1;
 		transition: color var(--duration-base) var(--ease-default);
 	}
-
+	
 	.user-trigger {
 		transition: background var(--duration-fast) var(--ease-default);
-
+		
 		@include glass;
 		border-radius: 50%;
 	}
-
+	
 	.tab-icon {
 		position: relative;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 	}
-
+	
 	.tab-badge {
 		position: absolute;
 		top: -6px;
@@ -212,5 +202,4 @@
 		align-items: center;
 		justify-content: center;
 	}
-
 </style>

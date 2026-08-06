@@ -138,8 +138,7 @@
 		display: flex;
 		align-items: center;
 		gap: var(--sp-3);
-		padding: var(--sp-2) 0;
-		margin: 0 var(--sp-2);
+		padding: var(--sp-1) 0;
 		border-radius: var(--radius-md);
 		cursor: pointer;
 		user-select: none;

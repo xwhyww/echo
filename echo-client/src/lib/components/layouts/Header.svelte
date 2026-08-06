@@ -122,7 +122,7 @@
 	   overlaps it. It keeps its own height and wears the inset as padding — the
 	   bar grows taller, the content inside it stays put. */
 	.app-header {
-		height: var(--header-h);
+		height: calc(var(--header-h) + var(--safe-top));
 		width: 100%;
 		flex-shrink: 0;
 		display: flex;
