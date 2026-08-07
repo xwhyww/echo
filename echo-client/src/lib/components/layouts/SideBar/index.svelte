@@ -40,6 +40,7 @@
 			display: flex;
 			flex-direction: column;
 			gap: var(--sp-2);
+			padding-bottom: calc(var(--safe-bottom) + 80px);
 		}
 	}
 </style>

@@ -113,6 +113,7 @@
 	.chat-messages {
 		@include chat-messages-scroller;
 		@include chat-messages-drag-select;
+		padding-bottom: calc(var(--safe-bottom) + 44px);
 	}
 
 	.messages-list {

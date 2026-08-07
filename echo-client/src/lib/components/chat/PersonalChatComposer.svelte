@@ -90,7 +90,6 @@
 
 	.chat-input {
 		@include chat-composer-overlay;
-		
 	}
 
 	.chat-restricted {

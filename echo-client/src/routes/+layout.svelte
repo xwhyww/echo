@@ -5,9 +5,13 @@
 	import '$lib/styles/fonts.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import Sidebar from '$lib/components/sidebar/Sidebar.svelte';
+	import ChatsSidebar from '$lib/components/sidebar/ChatsSidebar.svelte';
+	import SettingsSidebar from '$lib/components/sidebar/SettingsSidebar.svelte';
+	import PageColumn from '$lib/components/layouts/PageColumn.svelte';
+	import VoiceChannelsPanel from '$lib/components/voice/VoiceChannelsPanel.svelte';
 	import Header from '$lib/components/layouts/Header.svelte';
 	import { getActiveSidebar } from '$lib/stores/sidebar.svelte.js';
-	import { HOME, routes, isChatRoute } from '$lib/routes.js';
+	import { HOME, routes, isChatRoute, isVoiceChannelRoute } from '$lib/routes.js';
 	import IncomingCallModal from '$lib/components/call/IncomingCallModal.svelte';
 	import ToastHost from '$lib/components/ui/ToastHost.svelte';
 	import ConfirmHost from '$lib/components/ui/ConfirmHost.svelte';
@@ -73,6 +77,19 @@
 
 	// An open chat ([id]) is a fullscreen surface: no header, no sidebar.
 	const hideChrome = $derived(isChatRoute(page.route.id));
+	// Decides which screen the back gesture reveals underneath — a voice channel
+	// goes back to its channel list, every other chat surface to the chat list.
+	const inVoiceChannel = $derived(isVoiceChannelRoute(page.route.id));
+
+	// A profile page belongs to the settings section: back leads to the settings
+	// menu, not to the chat list. `/settings` itself is that menu, so it is not
+	// included — there is nothing behind it to show.
+	const inProfile = $derived(
+		page.url.pathname === routes.profile.root || page.url.pathname.startsWith(`${routes.profile.root}/`),
+	);
+
+	// Anything with a screen worth revealing while it is dragged aside.
+	const hasRevealLayer = $derived(hideChrome || inProfile);
 
 	// …except that a personal chat now puts its header in the app bar rather
 	// than floating one over its own scroller, so the bar comes back for it. The
@@ -97,7 +114,9 @@
 {#if guard.showSidebar}
 	<div class="app-shell" class:settings-mode={settingsMode} class:m-detail={mobileDetail} class:m-content={mobileContent}>
 		{#if !hideChrome || hasChatHeader}
-			<Header backHref={atChatsRoot ? null : HOME} title={headerTitle} />
+			<!-- The fallback destination has to name the same screen the reveal
+			     layer shows, or a swipe uncovers one page and lands on another. -->
+			<Header backHref={atChatsRoot ? null : inProfile ? routes.settings : HOME} title={headerTitle} />
 		{/if}
 		
 		<AppBars />
@@ -105,11 +124,40 @@
 		{#if !hideChrome}
 			<Sidebar />
 		{/if}
-		<!-- data-swipe-surface: what the back gesture slides, so an accidental
-		     swipe is visible while there is still time to drag back out of it.
-		     See useSwipeBack.svelte.ts. -->
-		<div class="children" data-swipe-surface>
-			{@render children()}
+		<div class="page-area">
+			{#if hasRevealLayer}
+				<!-- The screen the back gesture leads to, mounted underneath the one
+				     you are dragging. The chat surface above is opaque, so this is
+				     invisible until the swipe moves it — and then the list is
+				     already in place instead of appearing once navigation lands.
+
+				     Which screen depends on where back actually leads: a voice
+				     channel returns to its channel list, everything else to the
+				     chat list. Revealing the wrong one would be worse than
+				     revealing nothing. -->
+				<div class="reveal-layer" aria-hidden="true">
+					{#if inVoiceChannel}
+						<PageColumn maxWidth="720px" gap="var(--sp-6)">
+							<VoiceChannelsPanel />
+						</PageColumn>
+					{:else if inProfile}
+						<!-- Matches how /settings renders it, so what appears from
+						     under the page is the screen you actually land on. -->
+						<div class="reveal-settings">
+							<SettingsSidebar />
+						</div>
+					{:else}
+						<ChatsSidebar />
+					{/if}
+				</div>
+			{/if}
+
+			<!-- data-swipe-surface: what the back gesture slides, so an accidental
+			     swipe is visible while there is still time to drag back out of it.
+			     See useSwipeBack.svelte.ts. -->
+			<div class="children" data-swipe-surface>
+				{@render children()}
+			</div>
 		</div>
 		<!-- App-wide floating bars (player / voice status / pinned messages).
 		     They live here so they outlive the page that opened them and so the
@@ -140,7 +188,43 @@
 		background-position: center, center;
 		background-repeat: no-repeat, repeat;
 		
+		/* Owns the stacking for the back gesture: the destination sits at the
+		   bottom, the page you are dragging on top of it. Positioned here rather
+		   than on .app-shell so the header stays out of the contest entirely. */
+		.page-area {
+			position: relative;
+			flex: 1;
+			min-height: 0;
+			width: 100%;
+		}
+
+		/* Mirrors the .empty-state wrapper on /settings. */
+		.reveal-settings {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			height: 100%;
+			width: 100%;
+		}
+
+		.reveal-layer {
+			position: absolute;
+			inset: 0;
+			z-index: 0;
+			/* Covered until a swipe moves the page off it, so it must never take
+			   a tap meant for what is on top. */
+			pointer-events: none;
+			overflow: hidden;
+		}
+
 		.children {
+			/* Positioned, but deliberately *without* a z-index. Both this and
+			   .reveal-layer are positioned, so tree order already paints this on
+			   top — while a z-index here would open a stacking context and trap
+			   everything inside it. Modals are fixed at --z-modal (2000) expecting
+			   to clear the header and the app bars, which sit at 2; trapped, they
+			   would render underneath both. AppBars carries the same warning. */
+			position: relative;
 			width: 100%;
 			height: 100%;
 		}

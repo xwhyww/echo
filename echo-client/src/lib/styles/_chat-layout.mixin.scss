@@ -97,6 +97,6 @@
 	flex-shrink: 0;
 	z-index: 10;
 	position: absolute;
-	bottom: var(--safe-bottom);
+	bottom: calc(var(--safe-bottom) - var(--sp-4));
 	left: var(--sp-2);
 }

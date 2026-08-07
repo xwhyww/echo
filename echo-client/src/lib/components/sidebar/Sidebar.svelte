@@ -98,7 +98,7 @@
 		width: calc(100% - var(--sp-2) * 2);
 		flex-direction: row;
 		position: absolute;
-		bottom: var(--safe-bottom);
+		bottom: calc(var(--safe-bottom) - var(--sp-4));
 		/* Float above .main-content — it's position:relative and later in
        the DOM, so without this the page overlays the bar and eats
        every tap (broken nav on /friends and /profile). */

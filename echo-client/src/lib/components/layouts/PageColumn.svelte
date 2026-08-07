@@ -37,7 +37,7 @@
 		flex-direction: column;
 		width: 100%;
 		margin: 0 auto;
-		padding: var(--sp-3);
+		padding: var(--sp-2);
 		padding-top: var(--header-h-padding-l);
 		gap: var(--page-gap);
 		padding-bottom: calc(var(--safe-bottom) + 88px);

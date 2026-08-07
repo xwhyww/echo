@@ -92,8 +92,17 @@
 		padding: var(--sp-2);
 		padding-top: var(--safe-top);
 		padding-bottom: var(--safe-bottom);
-		
+
 		gap: var(--sp-6);
+		/* Opaque, and deliberately the same treatment the shell already paints
+		   behind it — so this looks unchanged, but the back gesture now has
+		   something solid to slide off the channel list underneath. A
+		   transparent surface would show that list through it at rest. */
+		background-image: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8)),
+			url('/chat-bg/chat-bg-1.jpg');
+		background-size: cover, 200%;
+		background-position: center, center;
+		background-repeat: no-repeat, repeat;
 	}
 
 	.vc-header {

@@ -114,6 +114,7 @@
 		</div>
 	{:else if title}
 		<h2 class="title body-base">{title}</h2>
+		<div class="empty"></div>
 	{/if}
 </header>
 
@@ -124,19 +125,21 @@
 	.app-header {
 		height: calc(var(--header-h) + var(--safe-top));
 		width: 100%;
+		padding-right: var(--sp-2);
+		padding-left: var(--sp-2);
 		flex-shrink: 0;
 		display: flex;
-		align-items: center;
+		align-items: flex-end;
 		gap: var(--sp-2);
 		/* Scrim so content scrolling under the header stays legible. */
 		background: linear-gradient(
 			to bottom,
-			rgba(0, 0, 0, 0.9),
-			rgba(0, 0, 0, 0.6) 60%,
+			rgba(0, 0, 0, 1),
+			rgba(0, 0, 0, 0.8) 80%,
 			rgba(0, 0, 0, 0)
 		);
 		position: fixed;
-		top: var(--safe-top);
+		top: 0;
 		z-index: 2;
 	}
 
@@ -146,9 +149,11 @@
 		cursor: pointer;
 	}
 
+
 	.title {
 		text-align: center;
 		width: 100%;
+		margin-bottom: 10px;
 	}
 
 	.header-center {
