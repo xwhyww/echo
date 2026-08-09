@@ -151,7 +151,7 @@
 	.day-divider::after {
 		content: '';
 		flex: 1;
-		height: 1px;
+		height: 0;
 		background: var(--c-border-strong);
 	}
 

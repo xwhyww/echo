@@ -205,7 +205,9 @@
 			title={t.chat.cancelRecording}
 			onclick={voice.cancel}
 		>
-			<Trash2 size={20} />
+			<!-- Red on the icon rather than the button: `variant="glass"` is what
+			     gives it its background, and `danger` would trade that away. -->
+			<Trash2 size={20} class="text-error" />
 		</ButtonIcon>
 	{:else}
 		<ComposerAttachments bind:text={value} onsend={(f, text) => submit(text.trim(), f)} />
