@@ -295,7 +295,7 @@
 		align-items: center;
 		gap: var(--sp-2);
 		min-height: var(--input-h);
-		padding: 0 var(--sp-2) 0 var(--sp-6);
+		padding: 0 var(--sp-4) 0 var(--sp-4);
 		cursor: text;
 		@include glass-more;
 		border-radius: 32px;
