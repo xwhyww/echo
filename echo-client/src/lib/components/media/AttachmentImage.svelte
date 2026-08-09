@@ -47,9 +47,9 @@
 		height: 100%;
 		padding: 0;
 		border: none;
-		background: none;
 		cursor: pointer;
 		color: inherit;
+		background: var(--grad-media-backdrop);
 	}
 
 	.attachment-img {

@@ -46,15 +46,24 @@ export function useGroupChatPage() {
 		}
 	}
 
+	/**
+	 * Paints from the cache when there is one, and refreshes either way.
+	 *
+	 * The cache only ever buys the first frame. `group_updated` keeps it honest
+	 * while this page is mounted, but anything changed from *another* screen —
+	 * the settings page renaming the group or setting its picture — happens with
+	 * this page unmounted, so the event is never seen and the cached copy comes
+	 * back stale. Re-entering the group would show the old header until a reload.
+	 */
 	async function load(id: string) {
 		const cached = groupHeaderCaches.get(id);
 		if (cached) {
 			groupHeaderCaches.delete(id);
 			group = cached.group;
 			members = cached.members;
-			groupsStore.clearUnread(id);
-			return;
 		}
+		groupsStore.clearUnread(id);
+
 		try {
 			const info = await groupsService.get(id);
 			// A response for a group we've since navigated away from is stale.
@@ -62,8 +71,9 @@ export function useGroupChatPage() {
 			group = info.group;
 			members = info.members;
 			groupsStore.upsert(info.group);
-			groupsStore.clearUnread(id);
 		} catch (err) {
+			// A cache hit already put something on screen; a failed refresh leaves
+			// it there rather than blanking the header.
 			console.error('[useGroupChatPage] load failed', err);
 		}
 	}

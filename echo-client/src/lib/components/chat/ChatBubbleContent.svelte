@@ -186,6 +186,29 @@
 		flex-direction: column;
 		border-radius: var(--radius-md);
 		min-width: 0;
+		/* Its own timing rather than --duration-fast (100ms), which is meant for
+		   things that should feel instant — here it reads as a snap. 260ms with a
+		   soft-landing curve is long enough to see the message settle into the
+		   press. */
+		transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+	}
+
+	/* Held under a finger: the message itself shrinks to acknowledge the press
+	   before the menu appears. Only this — the avatar, the select mark and the
+	   rest of the row stay put, so what reacts is what the menu will act on.
+	   `data-pressing` is set on the row by the longpress action for as long as it
+	   is watching, so this follows the gesture exactly, including letting go or
+	   moving far enough that it stops being a press.
+
+	   `:global` on the row because the attribute is applied at runtime: the
+	   compiler cannot see it in any markup and would prune this rule as unused,
+	   silently dropping the effect. `.bubble-body` stays scoped. */
+	:global(.bubble-row[data-pressing]) .bubble-body {
+		transform: scale(0.9);
+		/* Held back 0.3s so an ordinary tap — opening media, hitting a reaction —
+		   never flickers the message. Only on the way down: the delay is not
+		   repeated in the base rule, so letting go springs back at once. */
+		transition-delay: 0.3s;
 	}
 
 	.bubble-body.has-media {

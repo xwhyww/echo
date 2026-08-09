@@ -150,7 +150,10 @@
 		flex-direction: column;
 		align-items: center;
 		gap: var(--sp-3);
-		max-width: 100%;
+		/* Capped rather than filling the screen: edge to edge there is nothing to
+		   frame the photo, the close button sits on top of it, and on a wide
+		   display a small image would be scaled up past its own resolution. */
+		max-width: min(100%, 900px);
 		max-height: 100%;
 	}
 
@@ -178,11 +181,15 @@
 		justify-content: center;
 		padding: 0 var(--sp-2);
 		box-sizing: border-box;
+		height: calc(100vh - 300px);
 	}
 
 	.media {
 		max-width: 100%;
-		max-height: 100%;
+		/* Leaves room top and bottom for the chrome — and, more to the point,
+		   stops the photo reaching both screen edges. `contain` means this only
+		   ever shrinks it; nothing is cropped or stretched. */
+		max-height: calc(100vh - 300px);
 		object-fit: contain;
 		display: block;
 		border-radius: var(--radius-sm);

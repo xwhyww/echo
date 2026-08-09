@@ -17,13 +17,13 @@
 	// The bar along the bottom of a voice channel. Mic, deafen and screen share
 	// read their state straight off the client; chat and leave belong to the page.
 	interface Props {
-		chatOpen: boolean;
-		ontogglechat: () => void;
+		/** Navigates to the channel's chat — a screen, not a pane beside this one. */
+		onopenchat: () => void;
 		onshare: () => void;
 		onleave: () => void;
 	}
 
-	let { chatOpen, ontogglechat, onshare, onleave }: Props = $props();
+	let { onopenchat, onshare, onleave }: Props = $props();
 </script>
 
 <div class="vc-controls">
@@ -78,14 +78,14 @@
 		<PhoneOff size={20} />
 	</button>
 
+	<!-- Not a toggle any more: the chat is somewhere you go, and the way back is
+	     the header's arrow like on every other chat screen. -->
 	<button
 		type="button"
 		class="vc-ctrl text-muted"
-		class:active={chatOpen}
-		onclick={ontogglechat}
-		title={chatOpen ? t.voice.closeChat : t.voice.openChat}
-		aria-label={chatOpen ? t.voice.closeChannelChat : t.voice.openChannelChat}
-		aria-pressed={chatOpen}
+		onclick={onopenchat}
+		title={t.voice.openChat}
+		aria-label={t.voice.openChannelChat}
 	>
 		<MessageSquare size={20} />
 	</button>

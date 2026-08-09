@@ -123,8 +123,8 @@
 		display: flex;
 		flex-direction: column;
 		gap: 1px;
-		padding: var(--sp-2);
-		margin: var(--sp-1) var(--sp-2) 0;
+		padding: var(--sp-2) 0;
+		margin: var(--sp-1) 0 0;
 		border-radius: var(--radius-md);
 
 		@include glass;

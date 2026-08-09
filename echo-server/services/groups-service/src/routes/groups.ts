@@ -339,6 +339,133 @@ groupsRoutes.patch('/:id', async (c) => {
 	return c.json({ group: updated });
 });
 
+// ─── Group avatar ───────────────────────────────────────────────
+
+const AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'];
+const AVATAR_MAX_SIZE = 5 * 1024 * 1024;
+
+/**
+ * A stored blob is served from `/blobs/files/<sha256>.<ext>`, so the hash a
+ * grant is keyed by can be read straight back off the URL. That is why a group
+ * needs no `avatar_hash` column: it keeps exactly one picture, and the URL of
+ * that picture already says which blob to revoke when it is replaced.
+ */
+function hashFromBlobUrl(url: string | null): string | null {
+	if (!url) return null;
+	const m = /\/blobs\/files\/([a-f0-9]{64})\./i.exec(url);
+	return m ? m[1].toLowerCase() : null;
+}
+
+/**
+ * Drop this group's claim on a blob. Fire-and-forget on purpose: the picture
+ * has already been replaced by the time we get here, and a grant that outlives
+ * it costs disk, not correctness — the blob service garbage-collects orphans.
+ */
+async function revokeAvatarGrant(groupId: string, hash: string, authorization: string) {
+	await fetch(`${config.blobServiceUrl}/blobs/grants`, {
+		method: 'DELETE',
+		headers: { 'Content-Type': 'application/json', Authorization: authorization },
+		body: JSON.stringify({ scopeType: 'avatar', scopeId: groupId, hashes: [hash] }),
+	}).catch((err) => log.warn({ err, groupId, hash }, 'failed to revoke old group avatar grant'));
+}
+
+/** Applies a new avatar URL, tells everyone, and answers with the fresh group. */
+async function commitAvatar(groupId: string, avatarUrl: string | null) {
+	const [updated] = await db
+		.update(groups)
+		.set({ avatarUrl, updatedAt: new Date() })
+		.where(eq(groups.id, groupId))
+		.returning();
+
+	if (updated) {
+		const memberIds = await listMemberIds(groupId);
+		void publishGroupUpdated({ targetUserIds: memberIds, groupId, patch: { avatarUrl } });
+	}
+
+	return updated;
+}
+
+// Upload (or replace) the group picture — proxies the file to blob-service the
+// same way a user avatar does. A group keeps one picture: the previous blob's
+// grant is revoked as soon as the new URL is stored.
+groupsRoutes.post('/:id/avatar', async (c) => {
+	const me = c.get('user');
+	const id = c.req.param('id');
+	const authorization = c.req.header('Authorization')!;
+
+	const role = await membership(id, me.userId);
+	if (!role) return c.json({ error: 'forbidden' }, 403);
+
+	const [current] = await db.select().from(groups).where(eq(groups.id, id)).limit(1);
+	if (!current) return c.json({ error: 'group not found' }, 404);
+	if (!canEditInfo(role, current.editInfoPolicy as EditInfoPolicy)) {
+		return c.json({ error: 'forbidden' }, 403);
+	}
+
+	const formData = await c.req.formData();
+	const file = formData.get('avatar');
+	if (!file || !(file instanceof File)) return c.json({ error: 'No file provided' }, 400);
+	if (!AVATAR_TYPES.includes(file.type)) {
+		return c.json({ error: 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF, AVIF' }, 400);
+	}
+	if (file.size > AVATAR_MAX_SIZE) return c.json({ error: 'File too large. Max 5MB' }, 400);
+
+	const blobForm = new FormData();
+	blobForm.append('files', file);
+	blobForm.append('scopeType', 'avatar');
+	blobForm.append('scopeId', id);
+
+	const blobResp = await fetch(`${config.blobServiceUrl}/blobs/upload`, {
+		method: 'POST',
+		headers: { Authorization: authorization },
+		body: blobForm,
+	});
+
+	if (!blobResp.ok) {
+		const err = await blobResp.json().catch(() => ({})) as { error?: string };
+		return c.json({ error: err.error ?? 'Upload failed' }, blobResp.status as never);
+	}
+
+	const blobData = await blobResp.json() as { blobs: { url: string; hash: string }[] };
+	const blob = blobData.blobs[0];
+	if (!blob) return c.json({ error: 'Upload failed' }, 500);
+
+	const updated = await commitAvatar(id, blob.url);
+	if (!updated) return c.json({ error: 'group not found' }, 404);
+
+	// Only after the swap has been recorded, and never when the new picture is
+	// byte-identical to the old one — deduplication hands back the same hash,
+	// and revoking it would delete the picture that was just set.
+	const previous = hashFromBlobUrl(current.avatarUrl);
+	if (previous && previous !== blob.hash) await revokeAvatarGrant(id, previous, authorization);
+
+	return c.json({ group: updated });
+});
+
+// Remove the group picture and let go of the blob behind it.
+groupsRoutes.delete('/:id/avatar', async (c) => {
+	const me = c.get('user');
+	const id = c.req.param('id');
+	const authorization = c.req.header('Authorization')!;
+
+	const role = await membership(id, me.userId);
+	if (!role) return c.json({ error: 'forbidden' }, 403);
+
+	const [current] = await db.select().from(groups).where(eq(groups.id, id)).limit(1);
+	if (!current) return c.json({ error: 'group not found' }, 404);
+	if (!canEditInfo(role, current.editInfoPolicy as EditInfoPolicy)) {
+		return c.json({ error: 'forbidden' }, 403);
+	}
+
+	const updated = await commitAvatar(id, null);
+	if (!updated) return c.json({ error: 'group not found' }, 404);
+
+	const previous = hashFromBlobUrl(current.avatarUrl);
+	if (previous) await revokeAvatarGrant(id, previous, authorization);
+
+	return c.json({ group: updated });
+});
+
 // ─── Delete group (owner only) ──────────────────────────────────
 
 groupsRoutes.delete('/:id', async (c) => {
@@ -603,6 +730,7 @@ groupsRoutes.get('/:id/media', async (c) => {
 			t instanceof Date ? t.toISOString() : t;
 
 		const items = linkRows.map((r) => ({
+			id: r.id,
 			messageId: r.message_id,
 			createdAt: tsToStr(r.created_at),
 			url: r.url,

@@ -172,7 +172,9 @@ async function getReactionsForMessages(messageIds: string[]): Promise<Record<str
 
 async function syncMessageLinks(messageId: string, groupId: string, content: string, createdAt: Date) {
 	await db.delete(groupMessageLinks).where(eq(groupMessageLinks.messageId, messageId));
-	const urls = content.match(URL_REGEX) ?? [];
+	// Deduplicated: the same URL pasted twice in one message is one link in the
+	// gallery, not two rows.
+	const urls = [...new Set(content.match(URL_REGEX) ?? [])];
 	if (urls.length > 0) {
 		await db.insert(groupMessageLinks).values(
 			urls.map((url) => ({ messageId, groupId, url, createdAt })),

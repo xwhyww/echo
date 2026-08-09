@@ -7,9 +7,15 @@ import { goto } from '$app/navigation';
  * nothing behind it.
  *
  * Shared so the back button and the back gesture can never drift apart.
+ *
+ * `exact` turns the fallback into the rule: always this destination, whatever
+ * history says. For screens reachable from several places whose arrow means "up
+ * one level" rather than "undo the last navigation" — a voice channel belongs to
+ * its group whether you arrived from the channel list, a sidebar or a link, and
+ * the arrow should say so every time.
  */
-export function goBack(backHref: string) {
-	if (history.length > 1) {
+export function goBack(backHref: string, opts?: { exact?: boolean }) {
+	if (!opts?.exact && history.length > 1) {
 		history.back();
 	} else {
 		goto(backHref);

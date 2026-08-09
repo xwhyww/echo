@@ -35,7 +35,22 @@ export interface GroupChatHeaderState {
 	onopensettings: () => void;
 }
 
-export type ChatHeaderState = PersonalChatHeaderState | GroupChatHeaderState;
+/**
+ * A voice channel's text chat. It has no roster of its own and no info screen —
+ * the channel it belongs to is the whole context — so the bar carries the
+ * channel name over the group's, and nothing is tappable.
+ */
+export interface VoiceChannelChatHeaderState {
+	kind: 'voice';
+	/** Null until the channel list has resolved the id. */
+	channelName: string | null;
+	groupName: string | null;
+}
+
+export type ChatHeaderState =
+	| PersonalChatHeaderState
+	| GroupChatHeaderState
+	| VoiceChannelChatHeaderState;
 
 class ChatHeaderStore {
 	/** Null on every screen that is not an open chat. */

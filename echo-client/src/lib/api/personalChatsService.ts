@@ -180,7 +180,7 @@ class PersonalChatsService {
 		params.set('kind', 'links');
 		if (cursor) params.set('cursor', cursor);
 		return api<{
-			items: { messageId: string; createdAt: string; url: string }[];
+			items: { id: number; messageId: string; createdAt: string; url: string }[];
 			hasMore: boolean;
 			nextCursor: string | null;
 		}>(`/personal-chats/${chatId}/media?${params.toString()}`, { signal });

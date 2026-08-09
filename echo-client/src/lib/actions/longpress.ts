@@ -15,6 +15,14 @@ export interface LongPressOptions {
 }
 
 /**
+ * Set on the node for as long as a press is being watched, and removed the
+ * moment it is abandoned or fires. It exists so a component can show that the
+ * hold has been noticed — the bubble shrinking under the finger — in CSS, with
+ * no state to plumb through the component that happens to own the gesture.
+ */
+const PRESSING_ATTR = 'data-pressing';
+
+/**
  * Hold thresholds. Touch uses the platform-conventional 500ms. A mouse button
  * held still is much more likely to be an abandoned drag or a pause mid-click,
  * so it waits a full second before committing.
@@ -47,6 +55,7 @@ export const longpress: Action<HTMLElement, LongPressOptions> = (node, params) =
 	let startY = 0;
 
 	function stopTracking() {
+		node.removeAttribute(PRESSING_ATTR);
 		if (holdTimer !== null) {
 			clearTimeout(holdTimer);
 			holdTimer = null;
@@ -104,8 +113,17 @@ export const longpress: Action<HTMLElement, LongPressOptions> = (node, params) =
 		window.addEventListener('pointercancel', stopTracking, true);
 		window.addEventListener('scroll', stopTracking, true);
 
+		// Touch only. A mouse cursor resting on something is not a gesture the
+		// user is committing to, and shrinking the element under it would read as
+		// a bug rather than as feedback.
+		if (pointerType === 'touch' || pointerType === 'pen') {
+			node.setAttribute(PRESSING_ATTR, '');
+		}
+
 		holdTimer = setTimeout(() => {
 			holdTimer = null;
+			// Clears the pressing state, so the element is back to full size by the
+			// time the menu is over it.
 			stopTracking();
 			armSwallow();
 			opts.onlongpress({ x: startX, y: startY, pointerType, target });

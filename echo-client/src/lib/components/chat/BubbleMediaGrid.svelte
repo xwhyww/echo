@@ -5,7 +5,7 @@
 	import type { Attachment } from '$lib/api/personalChats.js';
 
 	// The photo/video collage at the top of a bubble. One to five items get a
-	// bespoke arrangement; beyond five the layout repeats the five-up pattern.
+	// bespoke arrangement; six or more fall back to an even three-column grid.
 	interface Props {
 		attachments: Attachment[];
 		/** Square off the bottom corners when text or files sit underneath. */
@@ -25,7 +25,7 @@
 	}: Props = $props();
 </script>
 
-<div class="attachment-images grid-{Math.min(attachments.length, 5)}" class:has-content-below={hasContentBelow}>
+<div class="attachment-images grid-{Math.min(attachments.length, 6)}" class:has-content-below={hasContentBelow}>
 	{#each attachments as m, idx (m.id)}
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div
@@ -49,7 +49,8 @@
 		gap: 2px;
 		border-radius: var(--radius-md);
 		overflow: hidden;
-		width: 320px;
+		width: 300px;
+		max-width: 100%;
 	}
 
 	.attachment-images.has-content-below {
@@ -64,13 +65,18 @@
 		min-height: 0;
 	}
 
-	/* 1 item — single full-width */
+	/* 1 item — single full-width, and wider than the collages: with nothing to
+	   share the bubble with, a lone photo has no reason to be letterbox-thin. */
 	.attachment-images.grid-1 {
 		grid-template-columns: 1fr;
 	}
 
+	/* Square rather than 4:3. The tiles crop with `object-fit: cover`, so this is
+	   the one shape that treats portrait and landscape photos alike, and it is a
+	   third taller than 4:3 on a phone, where the width is the bubble's and
+	   cannot grow. */
 	.grid-1 .attachment-image-wrapper {
-		aspect-ratio: 4 / 3;
+		aspect-ratio: 1;
 	}
 
 	/* 2 items — side by side */
@@ -132,10 +138,17 @@
 		grid-column: 5 / 7;
 	}
 
-	/* Mobile: fill the bubble rather than sitting at a fixed width. */
-	@media (max-width: 767px) {
-		.attachment-images {
-			width: 100%;
-		}
+	/* 6+ items — an even three-column grid.
+	   Previously anything past five reused the five-up rules, which place items
+	   1–5 explicitly in a six-column track and leave the sixth to auto-place: it
+	   landed in a single column, a sixth of the width, with the row collapsing
+	   around it. Past five there is no arrangement worth bespoking, so they all
+	   get the same square tile. */
+	.attachment-images.grid-6 {
+		grid-template-columns: repeat(3, 1fr);
+	}
+
+	.grid-6 .attachment-image-wrapper {
+		aspect-ratio: 1;
 	}
 </style>

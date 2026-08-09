@@ -36,6 +36,7 @@
 		"@ricky0123/vad-web": "^0.0.30",
 		"@sapphi-red/web-noise-suppressor": "^0.3.5",
 		"@tauri-apps/api": "^2.10.1",
+		"@tauri-apps/plugin-haptics": "^2.3.2",
 		"cropperjs": "^2.1.0",
 		"deepfilternet3-noise-filter": "^1.2.1",
 		"embla-carousel-svelte": "^8.6.0",

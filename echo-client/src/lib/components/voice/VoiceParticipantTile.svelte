@@ -12,6 +12,11 @@
 	// person is presenting, the tile becomes a live preview you can click into.
 	interface Props {
 		participant: VoiceParticipant;
+		/**
+		 * Passed in rather than read off the participant: LiveKit carries no face,
+		 * so the caller resolves it from the group's roster.
+		 */
+		avatarUrl?: string | null;
 		share?: VoiceScreenShare | null;
 		/** Preferred edge length in px — the grid shrinks it as people join. */
 		size: number;
@@ -19,7 +24,7 @@
 		onmenu: (x: number, y: number, participant: VoiceParticipant) => void;
 	}
 
-	let { participant: p, share = null, size, onwatch, onmenu }: Props = $props();
+	let { participant: p, avatarUrl = null, share = null, size, onwatch, onmenu }: Props = $props();
 
 	// The avatar and mute badge scale with the tile so a crowded grid stays legible.
 	const avatarSize = $derived(Math.round(size * 0.42));
@@ -61,7 +66,7 @@
 		/>
 	{:else}
 		<div class="vc-avatar-wrap">
-			<Avatar name={p.name} avatarUrl={p?.avatarUrl ?? null} size={avatarSize} />
+			<Avatar name={p.name} {avatarUrl} size={avatarSize} />
 			{#if p.isMuted}
 				<div class="vc-mute-indicator text-inverse" style="width: {muteSize}px; height: {muteSize}px">
 					<MicOff size={muteIcon} />

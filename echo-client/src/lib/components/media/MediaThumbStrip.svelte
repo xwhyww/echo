@@ -79,7 +79,7 @@
 		display: flex;
 		flex-direction: row;
 		align-items: center;
-		justify-content: center;
+		justify-content: flex-start;
 		padding: 0 var(--sp-2);
 		width: 100%;
 		flex-shrink: 0;

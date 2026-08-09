@@ -45,7 +45,7 @@
 	{#if !list.isSearching && list.filter !== 'groups'}
 		<SidebarItem
 			name={auth?.user?.displayName || t.chat.notes}
-			chatName="Notes"
+			chatName={t.chat.notes}
 			subtitle={t.chat.chatWithYourself}
 			avatarUrl={auth.user?.avatarUrl}
 			active={page.params.id === auth.user?.id}

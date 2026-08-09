@@ -2,6 +2,7 @@
 	import { Pin, X, ChevronDown, Paperclip } from 'lucide-svelte';
 	import type { PersonalMessage } from '$lib/api/personalChats.js';
 	import Modal from '$lib/components/ui/Modal.svelte';
+	import { formatSeenAt } from '$lib/utils/messageMenu.js';
 	import { i18n } from '$lib/i18n/i18n.svelte.js';
 
 	const t = $derived(i18n.t);
@@ -18,16 +19,12 @@
 
 	const latest = $derived(pinned[0] ?? null);
 
-	function formatDate(iso: string): string {
-		const d = new Date(iso);
-		const now = new Date();
-		const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-		if (d.toDateString() === now.toDateString()) return time;
-		const yesterday = new Date(now);
-		yesterday.setDate(yesterday.getDate() - 1);
-		if (d.toDateString() === yesterday.toDateString()) return `Yesterday, ${time}`;
-		return `${d.toLocaleDateString([], { day: 'numeric', month: 'short' })}, ${time}`;
-	}
+	// Same rule as the "seen at" timestamps, so the two never disagree about how
+	// old a message is — and `yesterdayAt` comes from the dictionary, where this
+	// used to hardcode an English "Yesterday, ".
+	const formatDate = $derived((iso: string) =>
+		formatSeenAt(iso, i18n.locale, t.chat.yesterdayAt),
+	);
 
 	// `clip` marks a generic-document preview, which the markup prefixes with a
 	// Paperclip glyph.

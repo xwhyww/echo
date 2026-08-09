@@ -1,6 +1,7 @@
-<script lang="ts" generics="T extends { id: string }">
+<script lang="ts" generics="T extends { id: string; createdAt: string }">
 	import type { Snippet } from 'svelte';
 	import ScrollToBottomButton from '$lib/components/chat/ScrollToBottomButton.svelte';
+	import { dayDividers } from '$lib/utils/messageDates.js';
 	import { i18n } from '$lib/i18n/i18n.svelte.js';
 
 	const t = $derived(i18n.t);
@@ -50,7 +51,7 @@
 		hidden = false,
 		pinnedToBottom,
 		unread = 0,
-		jumpButtonBottom = 'calc(var(--safe-bottom) + 68px)',
+		jumpButtonBottom = 'calc(var(--safe-bottom) + 52px)',
 		selection,
 		onscroll,
 		onjumptobottom,
@@ -58,6 +59,13 @@
 		footer,
 		overlay,
 	}: Props = $props();
+
+	// One slot per row: the day label to draw above it, or null mid-day. Derived
+	// rather than compared inline so a row never has to know about its neighbour,
+	// and so the whole thing recomputes when the locale changes.
+	const dividers = $derived(
+		dayDividers(items, i18n.locale, { today: t.chat.today, yesterday: t.chat.yesterday }),
+	);
 </script>
 
 <div class="chat-messages-wrapper" class:hidden>
@@ -82,6 +90,11 @@
 					<p class="body-xs text-faint loading-indicator">{t.common.loading}</p>
 				{/if}
 				{#each items as item, i (item.id)}
+					{#if dividers[i]}
+						<div class="day-divider">
+							<span class="body-xs text-faint">{dividers[i]}</span>
+						</div>
+					{/if}
 					{@render row(item, i)}
 				{/each}
 				{#if loadingNewer}
@@ -123,5 +136,26 @@
 	.loading-indicator {
 		align-self: center;
 		padding: var(--sp-2);
+	}
+
+	/* Same rule-label-rule shape as the unread separator, in border grey rather
+	   than accent: both can land in one list, and only one of them is news. */
+	.day-divider {
+		display: flex;
+		align-items: center;
+		gap: var(--sp-3);
+		padding: var(--sp-2) 0;
+	}
+
+	.day-divider::before,
+	.day-divider::after {
+		content: '';
+		flex: 1;
+		height: 1px;
+		background: var(--c-border-strong);
+	}
+
+	.day-divider span {
+		white-space: nowrap;
 	}
 </style>

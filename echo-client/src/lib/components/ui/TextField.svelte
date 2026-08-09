@@ -1,10 +1,12 @@
 <script lang="ts">
-	import { Send, Smile } from 'lucide-svelte';
-	import { onMount, untrack } from 'svelte';
+	import { Mic, Send, Smile, Trash2 } from 'lucide-svelte';
+	import { onDestroy, onMount, untrack } from 'svelte';
 	import ButtonIcon from '$lib/components/ui/ButtonIcon.svelte';
 	import ComposerAttachments from '$lib/components/chat/ComposerAttachments.svelte';
-	import VoiceRecorder from '$lib/components/audio/VoiceRecorder.svelte';
+	import VoiceRecorderStrip from '$lib/components/audio/VoiceRecorderStrip.svelte';
+	import { useVoiceRecording } from '$lib/hooks/audio/useVoiceRecording.svelte.js';
 	import { useEmojiEditor } from '$lib/hooks/ui/useEmojiEditor.svelte.js';
+	import { device } from '$lib/stores/device.svelte.js';
 	import { recordingToFile, type VoiceRecording } from '$lib/utils/voiceRecording';
 	import type { VoiceMeta } from '$lib/api/personalChats';
 	import { i18n } from '$lib/i18n/i18n.svelte.js';
@@ -51,6 +53,12 @@
 
 	const overLimit = $derived(value.length > maxlength);
 	const canSend = $derived(value.trim().length > 0 && !overLimit);
+
+	// On a phone the soft keyboard already has an emoji key, so our own picker is
+	// a second way to do the same thing — one that costs a button in a cramped
+	// bar and half the screen when opened, over a keyboard the user then has to
+	// dismiss. It stays on desktop, where there is no other way in.
+	const showEmojiButton = $derived(!!onemojitoggle && !device.isTouch);
 
 	$effect(() => {
 		const incoming = initialValue ?? '';
@@ -158,22 +166,54 @@
 	function handleVoiceSend(rec: VoiceRecording) {
 		onvoice?.(recordingToFile(rec), { duration: rec.durationSec, peaks: rec.peaks });
 	}
+
+	// One recording, drawn in two places that are no longer siblings: the strip
+	// inside the pill, the button that starts and finishes it outside — so the
+	// recording is held here, above both.
+	const voice = useVoiceRecording({
+		onsend: handleVoiceSend,
+		onerror: (m) => onvoiceerror?.(m),
+		onactive: (a) => (recordingActive = a),
+	});
+
+	onDestroy(voice.dispose);
+
+	// Exactly one action to the right of the field, so its position never moves:
+	// finish the recording, send what is typed, or start recording when there is
+	// nothing to send and this surface takes voice at all.
+	const action = $derived(
+		recordingActive ? 'voice' : !canSend && onvoice ? 'record' : 'send',
+	);
 </script>
 
-<div class="textfield-wrapper">
-	<!-- svelte-ignore a11y_click_events_have_key_events -->
-	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<!-- `data-keeps-keyboard`: the field's own controls are part of the field, not
-	     "outside" it, so pressing send/emoji/attach must not trip the global
-	     keyboard dismisser in `useKeyboardDismiss`. -->
-	<div
-		class="textfield"
-		class:recording={recordingActive}
-		onclick={onFieldClick}
-		onpointerdown={onFieldPointerDown}
-		data-keeps-keyboard
-	>
-		{#if !recordingActive}
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<!-- `data-keeps-keyboard` and the pointerdown guard sit on the whole row, not on
+     the pill: attach, send and the mic are outside the pill now, and both of
+     those protections have to follow them — otherwise pressing send would trip
+     the global dismisser in `useKeyboardDismiss` and drop the keyboard, and the
+     button would steal the caret on the way down. -->
+<div class="textfield-wrapper" onpointerdown={onFieldPointerDown} data-keeps-keyboard>
+	<!-- Left of the pill: attach normally, discard while recording. There is
+	     nothing to attach to a recording, and the two destructive-ish edges of a
+	     recording then sit at opposite ends of the bar — throw away on the left,
+	     send on the right — so neither is reachable by accident. -->
+	{#if recordingActive}
+		<ButtonIcon
+			size="m"
+			variant="danger"
+			title={t.chat.cancelRecording}
+			onclick={voice.cancel}
+		>
+			<Trash2 size={20} />
+		</ButtonIcon>
+	{:else}
+		<ComposerAttachments bind:text={value} onsend={(f, text) => submit(text.trim(), f)} />
+	{/if}
+	<div class="textfield" class:recording={recordingActive} onclick={onFieldClick}>
+		{#if recordingActive}
+			<VoiceRecorderStrip recorder={voice} />
+		{:else}
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div
 				bind:this={editorEl}
@@ -189,10 +229,9 @@
 				onkeydown={handleKeydown}
 				onpaste={handlePaste}
 			></div>
-			<ComposerAttachments bind:text={value} onsend={(f, text) => submit(text.trim(), f)} />
-			{#if onemojitoggle}
+			{#if showEmojiButton}
 				<ButtonIcon
-					size="md"
+					size="m"
 					title={t.common.emoji}
 					onclick={() => onemojitoggle?.()}
 				>
@@ -201,30 +240,34 @@
 			{/if}
 		{/if}
 
-		<!-- The recorder replaces the send button while there's nothing to send,
-		     and takes over the whole field once recording starts. -->
-		{#if onvoice && (recordingActive || !canSend)}
-			<VoiceRecorder
-				onsend={handleVoiceSend}
-				onerror={(m) => onvoiceerror?.(m)}
-				onactive={(a) => (recordingActive = a)}
-			/>
-		{:else if !recordingActive}
-			<ButtonIcon size="md" title={t.common.send} onclick={send} disabled={!canSend}>
+		{#if value.length >= showCounterAt}
+			<span
+				class="char-count body-xs {overLimit
+					? 'text-error'
+					: value.length > maxlength * 0.9
+						? 'text-warning'
+						: 'text-faint'}"
+			>
+				{value.length}/{maxlength}
+			</span>
+		{/if}
+	</div>
+
+	<!-- Outside the pill, and always exactly one button wide, so the target does
+	     not move under a thumb as the composer changes shape. -->
+	<div class="composer-action">
+		{#if action === 'voice'}
+			<ButtonIcon variant="glass" size="m" title={t.chat.sendVoice} onclick={voice.send}>
 				<Send size={20} />
 			</ButtonIcon>
-		{/if}
-		
-		{#if value.length >= showCounterAt}
-		<span
-			class="char-count body-xs {overLimit
-				? 'text-error'
-				: value.length > maxlength * 0.9
-					? 'text-warning'
-					: 'text-faint'}"
-		>
-			{value.length}/{maxlength}
-		</span>
+		{:else if action === 'record'}
+			<ButtonIcon variant="glass" size="m" title={t.chat.recordVoice} onclick={voice.start}>
+				<Mic size={20} />
+			</ButtonIcon>
+		{:else}
+			<ButtonIcon variant="glass" size="m" title={t.common.send} onclick={send} disabled={!canSend}>
+				<Send size={20} />
+			</ButtonIcon>
 		{/if}
 	</div>
 </div>
@@ -234,23 +277,37 @@
 
 	.textfield-wrapper {
 		display: flex;
-		flex-direction: column;
-		gap: var(--sp-1);
+		flex-direction: row;
+		gap: var(--sp-2);
 		position: relative;
+		align-items: center;
 	}
 
 	.textfield {
+		/* Takes the row's spare width; the attach and action buttons either side
+		   keep their own. */
+		flex: 1;
+		min-width: 0;
 		display: flex;
 		flex-direction: row;
 		align-items: center;
 		gap: var(--sp-2);
 		min-height: var(--input-h);
-		padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-6);
+		padding: 0 var(--sp-2) 0 var(--sp-6);
 		cursor: text;
 		@include glass-more;
 		border-radius: 32px;
 		transition: border-color var(--duration-fast) var(--ease-default);
 		border: none;
+		/* The counter is positioned against the pill, not the row, or it would
+		   sit over the send button. */
+		position: relative;
+	}
+
+	.composer-action {
+		flex-shrink: 0;
+		display: flex;
+		align-items: center;
 	}
 
 	.textfield-input {

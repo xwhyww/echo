@@ -58,8 +58,23 @@ function isValidScopeType(s: unknown): s is ScopeType {
 
 // Verify the authenticated user can attach blobs to this scope.
 async function canWriteScope(userId: string, scopeType: ScopeType, scopeId: string): Promise<boolean> {
-	if (scopeType === 'avatar' || scopeType === 'pending') {
-		return scopeId === userId;
+	if (scopeType === 'pending') return scopeId === userId;
+	if (scopeType === 'avatar') {
+		// Your own face, or a group's — a group avatar is scoped to the *group*
+		// rather than to whoever uploaded it, so replacing it revokes one
+		// unambiguous grant no matter which admin set the previous picture.
+		// `avatar` reads are public (see `canReadScope`), which a group avatar
+		// needs: it shows on invite cards and in public group listings, to
+		// people who are not members yet.
+		//
+		// Membership is the bar here, not the group's edit-info policy —
+		// groups-service is the one that decides whose upload actually becomes
+		// the group's picture. A blob nothing points at is garbage-collected.
+		if (scopeId === userId) return true;
+		const row = await db.query.groupMembersMirror.findFirst({
+			where: and(eq(groupMembersMirror.groupId, scopeId), eq(groupMembersMirror.userId, userId)),
+		});
+		return !!row;
 	}
 	if (scopeType === 'chat') {
 		const row = await db.query.dmChatMembers.findFirst({

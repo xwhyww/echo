@@ -9,14 +9,19 @@
 		// Fallback destination: landing on the page directly (deep link,
 		// reload) leaves no history to go back to.
 		backHref: string;
+		/**
+		 * Always go to `backHref` instead of stepping back through history — for
+		 * an arrow that means "up one level" rather than "undo".
+		 */
+		exact?: boolean;
 		size?: number;
 	}
 
-	let { backHref, size = 32 }: Props = $props();
+	let { backHref, exact = false, size = 32 }: Props = $props();
 
 </script>
 
-<button class="back-btn text-muted" style="--back-size: {size}px" onclick={() => goBack(backHref)} aria-label={t.common.back}>
+<button class="back-btn text-muted" style="--back-size: {size}px" onclick={() => goBack(backHref, { exact })} aria-label={t.common.back}>
 	<ArrowLeft size={22} />
 </button>
 

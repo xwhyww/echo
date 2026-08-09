@@ -47,7 +47,7 @@
 			<Avatar name={row.name} avatarUrl={row.avatarUrl} size={24} />
 			<span class="people-info">
 				<span class="people-name body-sm">{row.name}</span>
-				<span class="people-time body-xs text-muted">{formatSeenAt(row.at, t.chat.yesterdayAt)}</span>
+				<span class="people-time body-xs text-muted">{formatSeenAt(row.at, i18n.locale, t.chat.yesterdayAt)}</span>
 			</span>
 			{#if row.emoji}
 				<span class="people-emoji"><AppleEmoji emoji={row.emoji} size={20} /></span>

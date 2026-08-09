@@ -102,7 +102,7 @@
 	}
 	
 	.chevron {
-		margin-right: var(--sp-2);
+		margin-right: calc(var(--sp-1) * -1);
 		margin-bottom: var(--sp-2);
 	}
 

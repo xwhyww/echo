@@ -7,11 +7,15 @@
 	import Sidebar from '$lib/components/sidebar/Sidebar.svelte';
 	import ChatsSidebar from '$lib/components/sidebar/ChatsSidebar.svelte';
 	import SettingsSidebar from '$lib/components/sidebar/SettingsSidebar.svelte';
-	import PageColumn from '$lib/components/layouts/PageColumn.svelte';
-	import VoiceChannelsPanel from '$lib/components/voice/VoiceChannelsPanel.svelte';
 	import Header from '$lib/components/layouts/Header.svelte';
 	import { getActiveSidebar } from '$lib/stores/sidebar.svelte.js';
-	import { HOME, routes, isChatRoute, isVoiceChannelRoute } from '$lib/routes.js';
+	import {
+		HOME,
+		routes,
+		isChatRoute,
+		isVoiceChannelChatRoute,
+		isVoiceChannelRoute,
+	} from '$lib/routes.js';
 	import IncomingCallModal from '$lib/components/call/IncomingCallModal.svelte';
 	import ToastHost from '$lib/components/ui/ToastHost.svelte';
 	import ConfirmHost from '$lib/components/ui/ConfirmHost.svelte';
@@ -77,9 +81,6 @@
 
 	// An open chat ([id]) is a fullscreen surface: no header, no sidebar.
 	const hideChrome = $derived(isChatRoute(page.route.id));
-	// Decides which screen the back gesture reveals underneath — a voice channel
-	// goes back to its channel list, every other chat surface to the chat list.
-	const inVoiceChannel = $derived(isVoiceChannelRoute(page.route.id));
 
 	// A profile page belongs to the settings section: back leads to the settings
 	// menu, not to the chat list. `/settings` itself is that menu, so it is not
@@ -88,8 +89,23 @@
 		page.url.pathname === routes.profile.root || page.url.pathname.startsWith(`${routes.profile.root}/`),
 	);
 
+	/**
+	 * The two voice surfaces reveal nothing behind them, and both for the same
+	 * reason: what they go back to is a page, not a list.
+	 *
+	 * A channel's chat returns to the channel stage — a live LiveKit connection,
+	 * which cannot be mounted a second time as a backdrop. The stage itself now
+	 * returns to the group's chat, a whole conversation with its own state and
+	 * scroll. Revealing the chat list under either would uncover one screen and
+	 * land on another, which is worse than revealing nothing.
+	 */
+	const inVoice = $derived(
+		isVoiceChannelRoute(page.route.id) || isVoiceChannelChatRoute(page.route.id),
+	);
+	const inVoiceChannelChat = $derived(isVoiceChannelChatRoute(page.route.id));
+
 	// Anything with a screen worth revealing while it is dragged aside.
-	const hasRevealLayer = $derived(hideChrome || inProfile);
+	const hasRevealLayer = $derived((hideChrome && !inVoice) || inProfile);
 
 	// …except that a personal chat now puts its header in the app bar rather
 	// than floating one over its own scroller, so the bar comes back for it. The
@@ -101,6 +117,18 @@
 	// promise a "somewhere behind this" that does not exist. The rail's filter
 	// tabs are query strings on this same route, so the pathname is the test.
 	const atChatsRoot = $derived(page.url.pathname === routes.chats.root || page.url.pathname === routes.settings);
+
+	// Where the arrow leads. A channel's chat is the one chat surface whose way
+	// back is not the chat list: it belongs to the channel it was opened from.
+	const backHref = $derived(
+		atChatsRoot
+			? null
+			: inVoiceChannelChat
+				? routes.chats.groupVoiceChannel(page.params.id!, page.params.channelId!)
+				: inProfile
+					? routes.settings
+					: HOME,
+	);
 </script>
 
 <svelte:head>
@@ -116,7 +144,7 @@
 		{#if !hideChrome || hasChatHeader}
 			<!-- The fallback destination has to name the same screen the reveal
 			     layer shows, or a swipe uncovers one page and lands on another. -->
-			<Header backHref={atChatsRoot ? null : inProfile ? routes.settings : HOME} title={headerTitle} />
+			<Header {backHref} title={headerTitle} />
 		{/if}
 		
 		<AppBars />
@@ -131,16 +159,11 @@
 				     invisible until the swipe moves it — and then the list is
 				     already in place instead of appearing once navigation lands.
 
-				     Which screen depends on where back actually leads: a voice
-				     channel returns to its channel list, everything else to the
-				     chat list. Revealing the wrong one would be worse than
-				     revealing nothing. -->
+				     Only the surfaces whose destination is a *list* get one; see
+				     `inVoice` above for the two that get nothing. Revealing the
+				     wrong screen would be worse than revealing none. -->
 				<div class="reveal-layer" aria-hidden="true">
-					{#if inVoiceChannel}
-						<PageColumn maxWidth="720px" gap="var(--sp-6)">
-							<VoiceChannelsPanel />
-						</PageColumn>
-					{:else if inProfile}
+					{#if inProfile}
 						<!-- Matches how /settings renders it, so what appears from
 						     under the page is the screen you actually land on. -->
 						<div class="reveal-settings">
@@ -180,7 +203,6 @@
 		align-items: center;
 		flex-direction: column;
 		padding: 0 var(--sp-2) 0 var(--sp-2);
-		
 
 		background-image: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8)),
 		url('/chat-bg/chat-bg-1.jpg');
@@ -196,6 +218,14 @@
 			flex: 1;
 			min-height: 0;
 			width: 100%;
+			/* A flex column, so the page inside is sized by flex rather than by a
+			   percentage of it. WebKit will not resolve `height: 100%` against an
+			   ancestor whose own height came from `flex: 1` — it falls back to
+			   auto, the page grows to fit its content instead of scrolling, and
+			   .app-shell's `overflow: hidden` clips whatever does not fit. Chrome
+			   resolves it, which is why this only ever broke on the phone. */
+			display: flex;
+			flex-direction: column;
 		}
 
 		/* Mirrors the .empty-state wrapper on /settings. */
@@ -226,7 +256,13 @@
 			   would render underneath both. AppBars carries the same warning. */
 			position: relative;
 			width: 100%;
-			height: 100%;
+			/* Sized by flex, not by `height: 100%`, for the reason on .page-area.
+			   `min-height: 0` is what lets it shrink below its content so the
+			   scroller inside can take over. */
+			display: flex;
+			flex-direction: column;
+			flex: 1;
+			min-height: 0;
 		}
 	}
 	

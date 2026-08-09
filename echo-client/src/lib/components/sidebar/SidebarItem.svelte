@@ -4,6 +4,13 @@
 	import Avatar from '$lib/components/user/Avatar.svelte';
 	import AppleEmoji from '$lib/components/emoji/AppleEmoji.svelte';
 	import AppleEmojiText from '$lib/components/emoji/AppleEmojiText.svelte';
+	import {
+		formatDateTime,
+		formatDayMonthNumeric,
+		formatTime,
+		formatWeekday,
+		isSameDay,
+	} from '$lib/utils/datetime.js';
 	import { i18n } from '$lib/i18n/i18n.svelte.js';
 
 	const t = $derived(i18n.t);
@@ -65,25 +72,21 @@
 
 	const avatarSize = $derived(size === 's' ? 48 : 48);
 
-	function formatTimestamp(iso: string): string {
+	// Narrows as the message ages: clock today, weekday within the week, date
+	// beyond it. Formatted against the app's language, not the browser's — the
+	// hour cycle has to match the rest of the UI.
+	function formatTimestamp(iso: string, locale: string): string {
 		const d = new Date(iso);
 		if (Number.isNaN(d.getTime())) return '';
 		const now = new Date();
-		const sameDay = d.getFullYear() === now.getFullYear()
-			&& d.getMonth() === now.getMonth()
-			&& d.getDate() === now.getDate();
-		if (sameDay) {
-			return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-		}
+		if (isSameDay(d, now)) return formatTime(iso, locale);
 		const diffDays = Math.floor((now.getTime() - d.getTime()) / 86_400_000);
-		if (diffDays < 7) {
-			return d.toLocaleDateString(undefined, { weekday: 'short' });
-		}
-		return d.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit' });
+		if (diffDays < 7) return formatWeekday(iso, locale);
+		return formatDayMonthNumeric(iso, locale);
 	}
 
-	const timestampLabel = $derived(timestamp ? formatTimestamp(timestamp) : '');
-	const timestampTitle = $derived(timestamp ? new Date(timestamp).toLocaleString() : '');
+	const timestampLabel = $derived(timestamp ? formatTimestamp(timestamp, i18n.locale) : '');
+	const timestampTitle = $derived(timestamp ? formatDateTime(timestamp, i18n.locale) : '');
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->

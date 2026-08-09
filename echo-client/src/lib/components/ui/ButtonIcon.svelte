@@ -3,8 +3,8 @@
 	import type { HTMLButtonAttributes } from 'svelte/elements';
 
 	interface Props extends HTMLButtonAttributes {
-		variant?: 'default' | 'danger';
-		size?: 'xs' | 'sm' | 'md' | 'lg';
+		variant?: 'default' | 'danger' | 'glass';
+		size?: 'xs' | 'sm' | 'md' | 'lg' | 'm';
 		children: Snippet;
 	}
 
@@ -15,7 +15,9 @@
 	{@render children()}
 </button>
 
-<style>
+<style lang="scss">
+	@use '$lib/styles/glass.mixin' as *;
+	
 	.btn-icon {
 		display: inline-flex;
 		align-items: center;
@@ -32,6 +34,11 @@
 	.btn-icon:disabled {
 		cursor: not-allowed;
 		opacity: 0.5;
+	}
+	
+	.btn-icon-glass {
+		@include glass;
+		border-radius: var(--radius-full);
 	}
 
 	/* Sizes */
@@ -50,6 +57,11 @@
 	.btn-icon-md {
 		min-width: 44px;
 		min-height: 44px;
+	}
+	
+	.btn-icon-m {
+		min-width: 48px;
+		min-height: 48px;
 	}
 
 	.btn-icon-lg {

@@ -5,6 +5,7 @@
 	import { groupChatPanelCaches } from '$lib/hooks/chat/useGroupChatCache.svelte.js';
 	import { useGroupChatPage } from '$lib/hooks/chat/useGroupChatPage.svelte.js';
 	import { chatHeader } from '$lib/stores/chatHeader.svelte.js';
+	import { device } from '$lib/stores/device.svelte.js';
 	import { i18n } from '$lib/i18n/i18n.svelte.js';
 
 	const t = $derived(i18n.t);
@@ -50,7 +51,9 @@
 		{/key}
 	</div>
 
-	{#if emojiOpen}
+	<!-- See `TextField`: no picker on a phone, where the soft keyboard has an
+	     emoji key of its own. -->
+	{#if emojiOpen && !device.isTouch}
 		<div class="emoji-sidebar">
 			<EmojiPicker onselect={(emoji) => insertAtCursor?.(emoji)} />
 		</div>

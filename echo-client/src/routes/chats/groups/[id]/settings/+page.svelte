@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { LogOut, Trash2, Lock, Search, UserPlus } from 'lucide-svelte';
-	import Avatar from '$lib/components/user/Avatar.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Field from '$lib/components/ui/Field.svelte';
+	import GroupAvatarEditor from '$lib/components/groups/GroupAvatarEditor.svelte';
 	import GroupInviteModal from '$lib/components/groups/GroupInviteModal.svelte';
 	import GroupMemberRow from '$lib/components/groups/GroupMemberRow.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
@@ -41,7 +41,12 @@
 		{#if settings.group}
 			{@const group = settings.group}
 			<header class="hdr">
-				<Avatar name={group.name} avatarUrl={group.avatarUrl} size={72} />
+				<GroupAvatarEditor
+					{group}
+					canEdit={settings.canEditInfo}
+					size={72}
+					onchange={settings.applyGroup}
+				/>
 				<div>
 					<h1 class="heading-lg">{group.name}</h1>
 					<p class="body-sm text-faint">

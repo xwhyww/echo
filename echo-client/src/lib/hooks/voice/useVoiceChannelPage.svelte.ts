@@ -2,7 +2,10 @@ import { untrack } from 'svelte';
 import { page } from '$app/state';
 import { goto } from '$app/navigation';
 import { voiceClient, ConnectionState } from '$lib/stores/voiceClient.svelte.js';
+import { auth } from '$lib/stores/auth.svelte.js';
 import { ws } from '$lib/stores/ws.svelte.js';
+import { useGroupMemberIndex } from '$lib/hooks/groups/useGroupMemberIndex.svelte.js';
+import { baseIdentity } from '$lib/utils/voiceIdentity.js';
 import { i18n } from '$lib/i18n/i18n.svelte.js';
 import { routes } from '$lib/routes.js';
 import type { VoiceParticipant } from '$lib/stores/voiceClient.svelte.js';
@@ -20,8 +23,13 @@ export function useVoiceChannelPage() {
 	const channelsHref = $derived(routes.chats.groupVoice(groupId));
 
 	let error = $state<string | null>(null);
-	let chatOpen = $state(false);
 	let sharePopupOpen = $state(false);
+
+	// LiveKit knows a participant's identity and display name and nothing else —
+	// no face. The group's roster is where that lives, and it is already kept
+	// current from the socket, so an avatar changed mid-call follows along
+	// instead of being frozen at whatever the join token said.
+	const roster = useGroupMemberIndex(() => groupId);
 
 	// The share the user has zoomed into from the grid. We never auto-open one;
 	// watching is always opt-in.
@@ -106,6 +114,14 @@ export function useVoiceChannelPage() {
 		get showQuality() { return !!voiceClient.currentChannel && voiceClient.isConnected; },
 		get participants() { return voiceClient.participants; },
 		get tileSize() { return tileSize; },
+		/**
+		 * The face for a tile. `baseIdentity` because a `#screen` sidecar shares
+		 * its user's row, and `auth.user` because our own avatar has to render
+		 * before the roster request comes back — we are always in it.
+		 */
+		avatarFor(identity: string) {
+			return roster.find(baseIdentity(identity), auth.user)?.avatarUrl ?? null;
+		},
 
 		get focusedShare() { return focusedShare; },
 		shareFor(identity: string) {
@@ -115,9 +131,13 @@ export function useVoiceChannelPage() {
 		watchShare(identity: string) { focusedShareId = identity; },
 		unfocusShare() { focusedShareId = null; },
 
-		get chatOpen() { return chatOpen; },
-		toggleChat() { chatOpen = !chatOpen; },
-		closeChat() { chatOpen = false; },
+		/**
+		 * The channel's chat is a screen of its own now, not a pane beside the
+		 * stage — so this navigates instead of toggling. Leaving the stage does
+		 * not leave the channel: the LiveKit connection lives in `voiceClient`,
+		 * above any one page, so audio carries on while the chat is open.
+		 */
+		openChat() { goto(routes.chats.groupVoiceChat(groupId, channelId)); },
 
 		get sharePopupOpen() { return sharePopupOpen; },
 		openSharePopup() { sharePopupOpen = true; },

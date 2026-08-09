@@ -46,7 +46,7 @@
 			{#if rows[0].emoji}<AppleEmoji emoji={rows[0].emoji} size={16} />{/if}
 		</span>
 		<span class="people-time-inline body-xs text-muted">
-			{formatSeenAt(rows[0].at, t.chat.yesterdayAt)}
+			{formatSeenAt(rows[0].at, i18n.locale, t.chat.yesterdayAt)}
 		</span>
 	{:else}
 		<span class="people-label">{countLabel}</span>

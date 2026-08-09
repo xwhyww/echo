@@ -48,7 +48,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding-right: var(--sp-2);
+		padding: var(--sp-1) var(--sp-2);
 		border-radius: var(--radius-md);
 		@include glass;
 	}

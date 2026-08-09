@@ -19,6 +19,11 @@ export const routes = {
 		groupInfo: (id: string) => `/chats/groups/${id}/info`,
 		groupSettings: (id: string) => `/chats/groups/${id}/settings`,
 		groupVoice: (id: string) => `/chats/groups/${id}/voice`,
+		groupVoiceChannel: (id: string, channelId: string) =>
+			`/chats/groups/${id}/voice/${channelId}`,
+		/** The channel's text chat — a screen of its own, not a panel beside it. */
+		groupVoiceChat: (id: string, channelId: string) =>
+			`/chats/groups/${id}/voice/${channelId}/chat`,
 		groupVoiceSettings: (id: string) => `/chats/groups/${id}/voice/settings`,
 		groupVoiceRoles: (id: string) => `/chats/groups/${id}/voice/settings/roles`,
 		groupMedia: (id: string, kind: 'photos' | 'videos' | 'gifs' | 'audio' | 'files' | 'links') =>
@@ -48,8 +53,11 @@ export const routes = {
 	user: (id: string) => `/user/${id}`,
 } as const;
 
-/** Where `/` sends you, and where signing in lands: the personal chat list. */
-export const HOME = routes.chats.list('personal');
+/**
+ * Where `/` sends you, and where signing in lands: the unfiltered chat list —
+ * personal chats and groups together, the rail's "all chats" tab.
+ */
+export const HOME = routes.chats.list();
 export const PUBLIC_PAGES: string[] = [routes.login, routes.register, '/ui'];
 
 /**
@@ -60,10 +68,13 @@ export const PUBLIC_PAGES: string[] = [routes.login, routes.register, '/ui'];
 export const CHAT_ROUTE_IDS: string[] = [
 	'/chats/perschat/[id]',
 	'/chats/groups/[id]',
-	'/chats/groups/[id]/voice/[channelId]'
+	'/chats/groups/[id]/voice/[channelId]',
+	'/chats/groups/[id]/voice/[channelId]/chat',
 ];
 
 export const VOICE_CHAT_ROUTE_IDS: string[] = ['/chats/groups/[id]/voice/[channelId]'];
+
+const VOICE_CHANNEL_CHAT_ROUTE_ID = '/chats/groups/[id]/voice/[channelId]/chat';
 
 export function isChatRoute(routeId: string | null): boolean {
 	return !!routeId && CHAT_ROUTE_IDS.includes(routeId);
@@ -71,4 +82,14 @@ export function isChatRoute(routeId: string | null): boolean {
 
 export function isVoiceChannelRoute (routeId: string | null): boolean {
 	return !!routeId && VOICE_CHAT_ROUTE_IDS.includes(routeId);
+}
+
+/**
+ * The channel's chat screen. Called out on its own because it is the one chat
+ * surface with nothing to reveal behind it: back leads to the channel stage,
+ * and a stage is a live LiveKit connection that cannot be mounted a second time
+ * as a backdrop.
+ */
+export function isVoiceChannelChatRoute(routeId: string | null): boolean {
+	return routeId === VOICE_CHANNEL_CHAT_ROUTE_ID;
 }

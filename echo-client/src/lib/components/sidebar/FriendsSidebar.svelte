@@ -16,14 +16,14 @@
 <SideBar title={t.nav.friends}>
 	<SidebarItem
 		size="s"
-		name="My friends"
+		name={t.nav.myFriends}
 		icon={Users}
 		active={false}
 		onclick={() => gotoKeepSearch(routes.friends.contacts)}
 	/>
 	<SidebarItem
 		size="s"
-		name="Incoming requests"
+		name={t.nav.incomingRequests}
 		icon={ArrowDownToLine}
 		badge={friendsStore.incomingCount > 0 ? friendsStore.incomingCount : null}
 		active={false}
@@ -31,7 +31,7 @@
 	/>
 	<SidebarItem
 		size="s"
-		name="Outgoing requests"
+		name={t.nav.outgoingRequests}
 		icon={ArrowUpFromLine}
 		active={false}
 		onclick={() => gotoKeepSearch(routes.friends.outgoing)}

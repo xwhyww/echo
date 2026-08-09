@@ -24,15 +24,23 @@
 
 	let { voice }: Props = $props();
 
+	// Back leads to the group's own chat, and `exact` means *always* there — not
+	// whatever the last page happened to be. A channel is reachable from the
+	// channel list, the sidebar, the status bar and a link; the arrow here means
+	// "up to the group", which is one screen, so it cannot be history's answer.
+	//
 	// A voice channel is a fullscreen surface, so the app `Header` that mounts
-	// this gesture elsewhere is not rendered here. Same destination as the back
-	// button above: the channel list, not the chat list.
-	useSwipeBack(() => routes.chats.groupVoice(voiceId));
+	// the swipe gesture elsewhere is not rendered here — it is mounted by hand,
+	// with the same destination and the same `exact`. The two have to name one
+	// screen, or a swipe uncovers one page and lands on another.
+	const backHref = $derived(routes.chats.group(voiceId));
+
+	useSwipeBack(() => backHref, { exact: true });
 </script>
 
 <div class="vc-page">
 	<div class="vc-header">
-		<BackButton backHref={routes.chats.groupVoice(voiceId)} size={48}/>
+		<BackButton {backHref} exact size={48}/>
 		{#if voice.showQuality}
 			<ConnectionQualityIndicator />
 		{/if}
@@ -60,6 +68,7 @@
 				{#each voice.participants as p (p.identity)}
 					<VoiceParticipantTile
 						participant={p}
+						avatarUrl={voice.avatarFor(p.identity)}
 						share={voice.shareFor(p.identity)}
 						size={voice.tileSize}
 						onwatch={voice.watchShare}
@@ -70,8 +79,7 @@
 		{/if}
 
 		<VoiceControlBar
-			chatOpen={voice.chatOpen}
-			ontogglechat={voice.toggleChat}
+			onopenchat={voice.openChat}
 			onshare={voice.openSharePopup}
 			onleave={voice.leave}
 		/>
@@ -88,8 +96,6 @@
 		flex-direction: column;
 		height: 100%;
 		flex: 1;
-		min-width: 0;
-		padding: var(--sp-2);
 		padding-top: var(--safe-top);
 		padding-bottom: var(--safe-bottom);
 

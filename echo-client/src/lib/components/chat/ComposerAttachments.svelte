@@ -47,7 +47,8 @@
 />
 
 <ButtonIcon
-	size="md"
+	variant="glass"
+	size="lg"
 	title={t.chat.attachFile}
 	onclick={(e: MouseEvent) => { e.stopPropagation(); input?.click(); }}
 >

@@ -70,6 +70,7 @@ export const en = {
 		friends: 'Friends',
 		settings: 'Settings',
 		invites: 'Invites',
+		myFriends: 'My friends',
 		incomingRequests: 'Incoming requests',
 		outgoingRequests: 'Outgoing requests',
 		chats: 'Chats',
@@ -148,6 +149,8 @@ export const en = {
 		passwordSetDone: 'Password set',
 		passwordRemoved: 'Password removed',
 		uploadAvatar: 'Upload avatar',
+		selectAvatar: 'Use this avatar',
+		viewAvatar: 'View avatar',
 		deleteAvatar: 'Delete avatar',
 		removeAvatar: 'Remove avatar',
 		cropAvatar: 'Crop avatar',
@@ -315,6 +318,10 @@ export const en = {
 		messageTo: (name: string | null): string => (name ? `Message ${name}...` : 'Message yourself...'),
 		noMessages: 'No messages yet. Say something!',
 		unreadMessages: 'Unread messages',
+		/* Day dividers. Only these two days get a name — every other one is a
+		   date, which `Intl` formats in the active locale. */
+		today: 'Today',
+		yesterday: 'Yesterday',
 		deletedMessage: 'This message has been deleted',
 		onlyExistingChats: 'This user only accepts messages from existing chats',
 		privateProfile: 'This profile is private',
@@ -737,6 +744,13 @@ export const en = {
 
 	groupSettings: {
 		details: 'Details',
+		addPhoto: 'Add group photo',
+		changePhoto: 'Change group photo',
+		removePhoto: 'Remove group photo',
+		removePhotoBody: 'The group will go back to its lettered avatar.',
+		viewPhoto: 'View group photo',
+		avatarUploadFailed: 'Could not set the group photo',
+		avatarRemoveFailed: 'Could not remove the group photo',
 		namePlaceholder: 'Group name',
 		descriptionPlaceholder: "What's this group about?",
 		searchMembers: 'Search members...',

@@ -119,8 +119,10 @@ async function aggregateReactionsForMessage(messageId: string): Promise<DmReacti
 
 const URL_REGEX = /https?:\/\/[^\s)>\]]+/g;
 
+// Deduplicated: the links gallery lists a message's URLs, and the same URL
+// pasted twice in one message is still one link there, not two rows.
 function extractUrls(content: string): string[] {
-	return content.match(URL_REGEX) ?? [];
+	return [...new Set(content.match(URL_REGEX) ?? [])];
 }
 
 async function syncMessageLinks(messageId: string, chatId: string, content: string, createdAt: Date) {
@@ -1737,6 +1739,7 @@ personalChatsRoutes.get('/:chatId/media', async (c) => {
 			t instanceof Date ? t.toISOString() : t;
 
 		const items = linkRows.map((r) => ({
+			id: r.id,
 			messageId: r.message_id,
 			createdAt: tsToStr(r.created_at),
 			url: r.url,

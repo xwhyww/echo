@@ -17,9 +17,9 @@
 	// the pill's "is the active route even on this bar" check a question about
 	// `tabs`.
 	const tabs = $derived([
+		{ id: 'ac', path: routes.chats.list(), icon: MessagesSquare, title: t.nav.allChats, badge: 0 },
 		{ id: 'pc', path: routes.chats.list('personal'), icon: User, title: t.nav.personalChats, badge: 0 },
 		{ id: 'gr', path: routes.chats.list('groups'), icon: Users, title: t.nav.groups, badge: 0 },
-		{ id: 'ac', path: routes.chats.list(), icon: MessagesSquare, title: t.nav.allChats, badge: 0 },
 		{
 			id: 'friends',
 			path: routes.friends.root,
@@ -103,6 +103,8 @@
        the DOM, so without this the page overlays the bar and eats
        every tap (broken nav on /friends and /profile). */
 		z-index: var(--z-sticky);
+		/* Same blur-and-scrim as the header, mirrored to the bottom edge. */
+		@include bottom-veil;
 	}
 	
 	.sidebar-top {

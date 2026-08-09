@@ -1,6 +1,7 @@
 import { resolveUrl } from '$lib/api/client';
 import type { Attachment } from '$lib/api/personalChats.js';
 import type { LongPressDetail } from '$lib/actions/longpress.js';
+import { impact } from '$lib/utils/haptics.js';
 import { i18n } from '$lib/i18n/i18n.svelte.js';
 
 /** What the menu was opened on — decides which items it offers. */
@@ -116,7 +117,11 @@ export function useBubbleMenu(input: {
 			openAt({ kind: 'bubble' }, true);
 		},
 
-		openOnLongPress({ target }: LongPressDetail) {
+		openOnLongPress({ target, pointerType }: LongPressDetail) {
+			// At the moment the press is recognised, not when the menu finishes
+			// appearing — the point is to confirm the gesture landed, the way the
+			// bubble shrinking under the finger does.
+			if (pointerType === 'touch' || pointerType === 'pen') impact('medium');
 			input.onbeforelongpress?.();
 			window.getSelection()?.removeAllRanges();
 			const { target: resolved, only } = targetUnder(target);

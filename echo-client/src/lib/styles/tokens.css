@@ -82,6 +82,19 @@
 	/* Flat stand-in for places that need a single colour (borders, frames). */
 	--c-own-bubble: #0c3c40;
 
+	/* Backdrop behind an attachment image: the picture is `object-fit:
+	 * contain`, so whatever the aspect ratio doesn't cover shows through.
+	 * A soft ramp instead of a flat fill so the letterboxed bands read as
+	 * part of the bubble rather than a black plate. Built on the surface
+	 * tokens, so it follows the theme without a light-mode override. */
+	--grad-media-bg-1: #000000;
+	--grad-media-bg-2: #000000;
+	--grad-media-backdrop: linear-gradient(
+		160deg,
+		color-mix(in srgb, var(--grad-media-bg-1) 65%, transparent) 0%,
+		color-mix(in srgb, var(--grad-media-bg-2) 65%, transparent) 100%
+	);
+
 	/* Inset top edge that catches the "light", and the recessed wash used
 	 * by strips nested inside a bubble (reply quotes, own reaction chips). */
 	--c-bubble-highlight: rgba(255, 255, 255, 0.06);

@@ -1,4 +1,4 @@
-import { api } from './client.js';
+import { api, apiUpload } from './client.js';
 import type { Group, GroupMember, GroupMessage, GroupInvite, GroupRole, GroupAttachment, GroupMessageReaction } from './groups.js';
 
 class GroupsService {
@@ -12,6 +12,21 @@ class GroupsService {
 
 	get(id: string) {
 		return api<{ group: Group; members: GroupMember[] }>(`/groups/${id}`);
+	}
+
+	/**
+	 * Sets the group picture, replacing whatever was there. A group keeps one:
+	 * the server drops its claim on the previous blob as part of the swap, so
+	 * there is no separate "delete the old one" call to make.
+	 */
+	uploadAvatar(id: string, file: File) {
+		const formData = new FormData();
+		formData.append('avatar', file);
+		return apiUpload<{ group: Group }>(`/groups/${id}/avatar`, formData);
+	}
+
+	removeAvatar(id: string) {
+		return api<{ group: Group }>(`/groups/${id}/avatar`, { method: 'DELETE' });
 	}
 
 	getStats(id: string) {
@@ -33,7 +48,7 @@ class GroupsService {
 		params.set('kind', 'links');
 		if (cursor) params.set('cursor', cursor);
 		return api<{
-			items: { messageId: string; createdAt: string; url: string }[];
+			items: { id: number; messageId: string; createdAt: string; url: string }[];
 			hasMore: boolean;
 			nextCursor: string | null;
 		}>(`/groups/${id}/media?${params.toString()}`, { signal });

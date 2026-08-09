@@ -209,6 +209,14 @@ export function useGroupSettings(groupId: () => string) {
 		removeMember: moderation.removeMember,
 		/** Pulls the roster back in after the invite modal has added people. */
 		reload: load,
+		/**
+		 * Merges a group the server has just returned — the avatar editor's, so
+		 * far — without a round trip back through `load`. Local state only; the
+		 * caller that made the change owns telling the store about it.
+		 */
+		applyGroup(next: Group) {
+			group = group ? { ...group, ...next } : next;
+		},
 
 		get inviteLink() { return inviteLink; },
 		get copied() { return copied; },

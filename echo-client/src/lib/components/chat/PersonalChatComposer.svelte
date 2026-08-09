@@ -4,6 +4,7 @@
 	import ReplyPreview from '$lib/components/chat/ReplyPreview.svelte';
 	import SelectionToolbar from '$lib/components/chat/SelectionToolbar.svelte';
 	import TextField from '$lib/components/ui/TextField.svelte';
+	import { device } from '$lib/stores/device.svelte.js';
 	import { toasts } from '$lib/stores/toasts.svelte.js';
 	import { i18n } from '$lib/i18n/i18n.svelte.js';
 	import type { usePersonalChat } from '$lib/hooks/chat/usePersonalChat.svelte.js';
@@ -71,7 +72,10 @@
 				onvoice={handleSendVoice}
 				onvoiceerror={(m) => toasts.error(m)}
 			/>
-			{#if showEmoji}
+			<!-- `device.isTouch` as well as the flag: the button that sets it is not
+			     rendered on a phone, and a panel left open by a device that changed
+			     under us must not outlive it. -->
+			{#if showEmoji && !device.isTouch}
 				<div class="emoji-sidebar">
 					<EmojiPicker onselect={(e) => textField?.insertAtCursor(e)} />
 				</div>
