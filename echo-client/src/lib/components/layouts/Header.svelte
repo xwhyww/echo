@@ -123,7 +123,7 @@
 	   overlaps it. It keeps its own height and wears the inset as padding — the
 	   bar grows taller, the content inside it stays put. */
 	.app-header {
-		height: calc(var(--header-h) + var(--safe-top));
+		height: calc(var(--header-h) + var(--safe-top) + 30px);
 		width: 100%;
 		padding-right: var(--sp-2);
 		padding-left: var(--sp-2);
@@ -131,16 +131,56 @@
 		display: flex;
 		align-items: flex-end;
 		gap: var(--sp-2);
-		/* Scrim so content scrolling under the header stays legible. */
+		position: fixed;
+		top: 0;
+		padding-bottom: 30px;
+		/* Without this the bar is a positioned element at `z-index: auto`, and
+		   .page-area — which comes after it in the markup — paints over it. That
+		   goes unnoticed wherever the page behind is transparent and the header
+		   shows through anyway, and hides it completely on the screens with an
+		   opaque background of their own (/profile/*, the chat surfaces). */
+		z-index: var(--z-sticky);
+	}
+
+	/* Blur and scrim, in two layers behind the bar's contents.
+
+	   Both are pseudo-elements rather than properties on .app-header itself,
+	   because `backdrop-filter` samples whatever is painted beneath the element —
+	   and the element's own background counts. Put the scrim on the header and
+	   the blur would be blurring opaque black, which looks like nothing at all.
+	   Separated, the blur samples the page scrolling underneath and the scrim
+	   goes over it. `z-index: -1` keeps both under the back button and title
+	   while staying above the header's (now absent) background. */
+	.app-header::before,
+	.app-header::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		z-index: -1;
+		pointer-events: none;
+	}
+
+	.app-header::before {
+		/* Heavier than the `glass` mixin's *4: this sits over a moving message
+		   list rather than a static panel, and the extra blur is what stops text
+		   scrolling under it from reading through. */
+		backdrop-filter: blur(calc(var(--glass-blur) * 6)) saturate(150%);
+		-webkit-backdrop-filter: blur(calc(var(--glass-blur) * 6)) saturate(150%);
+		/* Faded out downwards so the blur ends where the scrim does. Without it
+		   the filter stops at the header's bottom edge in a hard line across the
+		   page. */
+		mask-image: linear-gradient(to bottom, #000 0%, #000 10%, transparent 10%);
+		-webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 10%, transparent 10%);
+	}
+
+	/* Scrim so content scrolling under the header stays legible. */
+	.app-header::after {
 		background: linear-gradient(
 			to bottom,
 			rgba(0, 0, 0, 1),
-			rgba(0, 0, 0, 0.8) 80%,
+			rgba(0, 0, 0, 0.8) 60%,
 			rgba(0, 0, 0, 0)
 		);
-		position: fixed;
-		top: 0;
-		z-index: 2;
 	}
 
 	/* The back button is out of flow, so the chat's own contents have to leave

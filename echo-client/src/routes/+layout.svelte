@@ -180,7 +180,6 @@
 		align-items: center;
 		flex-direction: column;
 		padding: 0 var(--sp-2) 0 var(--sp-2);
-		
 
 		background-image: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8)),
 		url('/chat-bg/chat-bg-1.jpg');
@@ -196,6 +195,14 @@
 			flex: 1;
 			min-height: 0;
 			width: 100%;
+			/* A flex column, so the page inside is sized by flex rather than by a
+			   percentage of it. WebKit will not resolve `height: 100%` against an
+			   ancestor whose own height came from `flex: 1` — it falls back to
+			   auto, the page grows to fit its content instead of scrolling, and
+			   .app-shell's `overflow: hidden` clips whatever does not fit. Chrome
+			   resolves it, which is why this only ever broke on the phone. */
+			display: flex;
+			flex-direction: column;
 		}
 
 		/* Mirrors the .empty-state wrapper on /settings. */
@@ -226,7 +233,13 @@
 			   would render underneath both. AppBars carries the same warning. */
 			position: relative;
 			width: 100%;
-			height: 100%;
+			/* Sized by flex, not by `height: 100%`, for the reason on .page-area.
+			   `min-height: 0` is what lets it shrink below its content so the
+			   scroller inside can take over. */
+			display: flex;
+			flex-direction: column;
+			flex: 1;
+			min-height: 0;
 		}
 	}
 	

@@ -100,6 +100,8 @@
 	<div
 		class="bubble"
 		class:own
+		class:media={bubble.mediaAttachments.length > 0}
+		class:solo-photo={bubble.mediaAttachments.length === 1}
 		class:pinned={isPinned}
 		data-msg-id={id}
 		oncontextmenu={(e) => {
@@ -192,6 +194,24 @@
 		position: relative;
 		/* Suppress double-tap-to-zoom so the second tap lands as a reaction. */
 		touch-action: manipulation;
+		/* Between the avatar and the message. Applies to the stacked messages too,
+		   where the slot is kept but empty, so a run of replies from one person
+		   stays aligned with the first. The pin indicator is absolutely
+		   positioned and so is untouched by this. */
+		gap: var(--sp-2);
+	}
+
+	/* The 70% cap in `bubble-row` is sized for text, where a long line reaching
+	   most of the way across is hard to read. A photo is not text: it is the
+	   message, and the cap is the only thing keeping it small — the grid inside
+	   is already at 100% of whatever it is given. So media bubbles are allowed
+	   wider, and a lone photo, with nothing to share the width with, widest. */
+	.bubble.media {
+		max-width: 85%;
+	}
+
+	.bubble.solo-photo {
+		max-width: 92%;
 	}
 
 	.pin-indicator {

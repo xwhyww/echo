@@ -36,8 +36,6 @@
 		display: flex;
 		flex-direction: column;
 		width: 100%;
-		margin: 0 auto;
-		padding: var(--sp-2);
 		padding-top: var(--header-h-padding-l);
 		gap: var(--page-gap);
 		padding-bottom: calc(var(--safe-bottom) + 88px);
@@ -49,6 +47,12 @@
 		   scrollport would hang below that clip by the height of the toolbars and
 		   the last screenful would stay cut off even at the end of the scroll. */
 		height: 100%;
+		/* And the flex equivalent, which is what actually carries it on iOS: the
+		   layout gives this a flex-column parent, where WebKit sizes the item
+		   properly instead of leaving `height: 100%` unresolved and letting the
+		   column grow past the clip. `min-height: 0` is required or a flex item
+		   refuses to shrink below its content and never scrolls. */
+		min-height: 0;
 		overflow: auto;
 	}
 </style>

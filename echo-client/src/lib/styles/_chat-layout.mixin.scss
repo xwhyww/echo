@@ -1,3 +1,5 @@
+@use '$lib/styles/glass.mixin' as *;
+
 /* ============================================
    Chat surface layout — one definition for every chat route
    ============================================
@@ -32,6 +34,7 @@
 	display: flex;
 	flex-direction: column;
 	overflow-y: auto;
+	padding-top: 200px;
 
 	/* Empty and loading states render a bare <p> — centre those instead. */
 	&:has(> p) {
@@ -88,6 +91,9 @@
 }
 
 @mixin chat-composer-overlay {
+	/* Same blur-and-scrim as the header, mirrored to the bottom edge, so the
+	   messages passing behind the composer stay readable. */
+	@include bottom-veil;
 	width: calc(100% - var(--sp-2) * 2);
 	/* Matches the mobile tab bar's gap, which is not the full inset: the bar
 	   sits at bottom:0 in a box --safe-bottom + 12px taller than the tab row it

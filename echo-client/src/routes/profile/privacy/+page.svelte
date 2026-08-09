@@ -9,8 +9,7 @@
 	const privacy = usePrivacy();
 </script>
 
-<!-- `paddingTop="0"`: the /profile layout already clears the header. -->
-<PageColumn paddingTop="0" gap="var(--sp-6)">
+<PageColumn gap="var(--sp-6)">
 	<LoadState loading={privacy.loading}>
 		<div class="settings">
 			{#each privacy.fields as field (field.key)}

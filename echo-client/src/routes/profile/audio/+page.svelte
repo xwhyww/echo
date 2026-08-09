@@ -16,8 +16,7 @@
 	const audio = useAudioSettings();
 </script>
 
-<PageColumn maxWidth="640px" paddingTop="0" gap="var(--sp-1)">
-	<h1 class="heading-xl">{t.audio.title}</h1>
+<PageColumn gap="var(--sp-1)">
 	<p class="body-sm text-faint">{t.audio.subtitle}</p>
 
 	<SettingsBlock title={t.audio.inputDevice} desc={t.audio.inputDeviceDesc}>
@@ -108,7 +107,7 @@
 </PageColumn>
 
 <style>
-	h1, p {
+	p {
 		margin: 0;
 	}
 

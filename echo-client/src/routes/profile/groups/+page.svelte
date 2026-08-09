@@ -17,10 +17,11 @@
 	let showCreate = $state(false);
 </script>
 
-<PageColumn maxWidth="720px" paddingTop="0">
+<PageColumn maxWidth="720px">
 	<header class="head">
+		<!-- No title of its own: the app header already names the page. The row
+		     stays for the create button, which has nowhere else to go. -->
 		<div class="head-title">
-			<h1 class="heading-xl">{t.groupsPage.title}</h1>
 			<Button variant="primary" onclick={() => (showCreate = true)}>
 				<Plus size={16} /> {t.groupsPage.create}
 			</Button>
@@ -71,7 +72,6 @@
 		gap: var(--sp-3);
 	}
 
-	.head h1,
 	.head p {
 		margin: 0;
 	}

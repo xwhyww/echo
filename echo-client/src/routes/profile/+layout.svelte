@@ -1,8 +1,9 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import MobileHeader from '$lib/components/layouts/MobileHeader.svelte';
-  import { routes } from '$lib/routes.js';
 
+  // No header of its own: the app header in the root layout names these pages
+  // and carries the way back. This wraps them only to give the section an
+  // opaque surface — see the background below.
   let { children }: { children: Snippet } = $props();
 </script>
 
@@ -14,8 +15,6 @@
   .body {
     flex: 1;
     height: 100%;
-    overflow-y: auto;
-    width: 100vw;
     /* Opaque, and the same treatment the shell already paints behind it — so
        this looks unchanged, while giving the back gesture something solid to
        slide off the settings menu underneath. Transparent, it would show that

@@ -50,7 +50,7 @@
 		hidden = false,
 		pinnedToBottom,
 		unread = 0,
-		jumpButtonBottom = 'calc(var(--safe-bottom) + 68px)',
+		jumpButtonBottom = 'calc(var(--safe-bottom) + 52px)',
 		selection,
 		onscroll,
 		onjumptobottom,

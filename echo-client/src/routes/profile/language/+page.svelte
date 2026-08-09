@@ -7,9 +7,7 @@
 	const t = $derived(i18n.t);
 </script>
 
-<!-- `paddingTop="0"`: the /profile layout already clears the header. -->
-<PageColumn maxWidth="560px" paddingTop="0" gap="var(--sp-1)">
-	<h1 class="heading-xl">{t.language.title}</h1>
+<PageColumn maxWidth="560px" gap="var(--sp-1)">
 	<p class="body-sm text-faint">{t.language.subtitle}</p>
 
 	<SettingsBlock title={t.language.interfaceLabel} desc={t.language.interfaceDesc}>
@@ -43,7 +41,6 @@
 <style lang="scss">
 	@use '$lib/styles/glass.mixin' as *;
 
-	h1,
 	p {
 		margin: 0;
 	}

@@ -32,3 +32,6 @@ tauri = { version = "2.10.3", features = [] }
 tauri-plugin-log = "2"
 tauri-plugin-screenshare = { path = "plugins/screenshare" }
 tauri-plugin-push = { path = "plugins/push" }
+
+[target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
+tauri-plugin-haptics = "2.3.2"

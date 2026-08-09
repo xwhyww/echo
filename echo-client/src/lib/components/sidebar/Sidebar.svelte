@@ -103,6 +103,8 @@
        the DOM, so without this the page overlays the bar and eats
        every tap (broken nav on /friends and /profile). */
 		z-index: var(--z-sticky);
+		/* Same blur-and-scrim as the header, mirrored to the bottom edge. */
+		@include bottom-veil;
 	}
 	
 	.sidebar-top {

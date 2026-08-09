@@ -8,6 +8,7 @@
   "permissions": [
     "core:default",
     "screenshare:default",
-    "push:default"
+    "push:default",
+    "haptics:allow-impact-feedback"
   ]
 }

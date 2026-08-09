@@ -8,6 +8,12 @@ pub fn run() {
     // the token is delivered to the app delegate rather than to any of this.
     .plugin(tauri_plugin_push::init())
     .setup(|app| {
+      // Haptics: the Taptic Engine is native-only, and there is no web API for
+      // it — WKWebView has no `navigator.vibrate`. Mobile-gated because the
+      // plugin exists for iOS and Android alone.
+      #[cfg(mobile)]
+      app.handle().plugin(tauri_plugin_haptics::init())?;
+
       if cfg!(debug_assertions) {
         app.handle().plugin(
           tauri_plugin_log::Builder::default()

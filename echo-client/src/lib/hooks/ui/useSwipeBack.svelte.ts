@@ -119,6 +119,7 @@ export function useSwipeBack(backHref: () => string | null | undefined) {
 		// True once the drag has proved itself horizontal. Separate from `start`,
 		// which only means a gesture is being considered.
 		let swiping = false;
+		let scrollLocked = false;
 		// The rAF handle and the position it will paint, so several pointer events
 		// in one frame collapse into a single write.
 		let frame = 0;
@@ -156,6 +157,10 @@ export function useSwipeBack(backHref: () => string | null | undefined) {
 
 		/** Undo everything `follow` did. Safe to call when it never ran. */
 		function settle(animated: boolean) {
+			// Every path out of a gesture goes through here, which makes it the one
+			// place the scroll lock has to be released.
+			swiping = false;
+			unlockScroll();
 			if (frame) {
 				cancelAnimationFrame(frame);
 				frame = 0;
@@ -194,11 +199,12 @@ export function useSwipeBack(backHref: () => string | null | undefined) {
 				if (inHorizontalScroller(e.target)) return;
 			}
 			start = { id: e.pointerId, x: e.clientX, y: e.clientY, at: e.timeStamp };
-			surface = document.querySelector<HTMLElement>(SURFACE);
-			// Promoted at touch-down rather than on the first move: building the
-			// layer costs a frame, and paying for it here means it is ready before
-			// there is anything to animate.
-			if (surface) surface.style.willChange = 'transform';
+			// Nothing is touched on the page here. This runs for *every* finger
+			// down, scrolls included, and it used to grab the surface and set
+			// `will-change: transform` on each one — promoting the whole page to
+			// its own layer at the start of every scroll and dropping it again
+			// afterwards, which is paid for in exactly the jank a scroll makes
+			// visible. The surface is claimed only once the drag proves horizontal.
 		}
 
 		function onPointerMove(e: PointerEvent) {
@@ -218,20 +224,46 @@ export function useSwipeBack(backHref: () => string | null | undefined) {
 				settle(true);
 				return;
 			}
-			// From here the gesture is ours, which is what `onTouchMove` needs to
-			// know: the message list must stop scrolling under the page while the
-			// page is being dragged aside.
-			swiping = true;
+			// From here the gesture is ours: the message list must stop scrolling
+			// under the page while the page is being dragged aside. Everything
+			// with a cost — finding the surface, promoting it to its own layer,
+			// binding the non-passive listener — happens at this point and not
+			// before, so a scroll never pays for any of it.
+			if (!swiping) {
+				swiping = true;
+				surface = document.querySelector<HTMLElement>(SURFACE);
+				if (surface) surface.style.willChange = 'transform';
+				lockScroll();
+			}
 			follow(dx);
 		}
 
-		// The only way to stop WebKit scrolling mid-gesture. It has to be a
-		// `touchmove` — preventDefault on a pointer event does nothing here — and
-		// the listener has to be non-passive, or the call is ignored with a
-		// console warning. Guarded by `swiping` so an ordinary scroll, which never
-		// sets it, is untouched.
+		// The only way to stop WebKit scrolling mid-gesture: `preventDefault` on a
+		// pointer event does nothing, and the listener must be non-passive or the
+		// call is ignored.
 		function onTouchMove(e: TouchEvent) {
-			if (swiping && e.cancelable) e.preventDefault();
+			if (e.cancelable) e.preventDefault();
+		}
+
+		// Bound only while a swipe is actually in progress, and torn down the
+		// moment it ends.
+		//
+		// It used to sit on the document permanently, cancelling or not depending
+		// on a flag — which meant every ordinary scroll on the app went through a
+		// non-passive handler, and any path that left the flag set killed
+		// scrolling outright until the page reloaded. Nothing to get stuck now:
+		// when no swipe is running the listener does not exist, so touch handling
+		// is exactly as it would be without this hook.
+		function lockScroll() {
+			if (scrollLocked) return;
+			scrollLocked = true;
+			document.addEventListener('touchmove', onTouchMove, { passive: false, capture: true });
+		}
+
+		function unlockScroll() {
+			if (!scrollLocked) return;
+			scrollLocked = false;
+			document.removeEventListener('touchmove', onTouchMove, true);
 		}
 
 		function onPointerUp(e: PointerEvent) {
@@ -266,9 +298,6 @@ export function useSwipeBack(backHref: () => string | null | undefined) {
 		document.addEventListener('pointermove', onPointerMove, opts);
 		document.addEventListener('pointerup', onPointerUp, opts);
 		document.addEventListener('pointercancel', onPointerCancel, opts);
-		// The one non-passive listener, and capture so it is reached before a
-		// scroller can act on the same touch.
-		document.addEventListener('touchmove', onTouchMove, { passive: false, capture: true });
 		return () => {
 			document.removeEventListener('pointerdown', onPointerDown);
 			document.removeEventListener('pointermove', onPointerMove);
