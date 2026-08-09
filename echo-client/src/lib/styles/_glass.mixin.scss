@@ -67,7 +67,7 @@
    every bar using this.
  
    `$rise` is how far above the bar the fade reaches. */
-@mixin bottom-veil($rise: 20px) {
+@mixin bottom-veil($rise: 0px) {
 	&::before,
 	&::after {
 		content: '';
@@ -75,7 +75,7 @@
 		left: calc(var(--sp-2) * -4);
 		right: calc(var(--sp-2) * -4);
 		top: calc(#{$rise} * -1);
-		bottom: calc((var(--safe-bottom) - var(--sp-1)));
+		bottom: calc(var(--sp-4) * -2);
 		z-index: -1;
 		pointer-events: none;
 	}

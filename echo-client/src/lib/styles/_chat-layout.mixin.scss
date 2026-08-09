@@ -102,6 +102,6 @@
 	flex-shrink: 0;
 	z-index: 10;
 	position: absolute;
-	bottom: calc(var(--safe-bottom) - var(--sp-1));
+	bottom: calc(var(--safe-bottom) - var(--sp-4));
 	@include bottom-veil;
 }

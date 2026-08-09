@@ -201,7 +201,7 @@
 	{#if recordingActive}
 		<ButtonIcon
 			size="m"
-			variant="danger"
+			variant="glass"
 			title={t.chat.cancelRecording}
 			onclick={voice.cancel}
 		>
