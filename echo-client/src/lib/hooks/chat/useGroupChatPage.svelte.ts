@@ -32,6 +32,25 @@ export function useGroupChatPage() {
 	// before the effect that would tell us, so the id is tracked alongside.
 	let loadedId: string | undefined;
 
+	/**
+	 * Did this group have anything waiting when we opened it? Re-opening a chat
+	 * you are already caught up on has nothing to acknowledge, so the panel uses
+	 * this to skip a read receipt that would move no marker.
+	 *
+	 * Asked by the panel rather than computed here on the way in, and it clears
+	 * the count as it answers. The two run in one order on a cold load and the
+	 * other on a client-side navigation, so anything precomputed by whichever
+	 * effect happened to go first was read as `false` half the time. Nobody has
+	 * to win the race if the count is still there to be read when the question
+	 * is asked.
+	 */
+	function takeUnread(id: string): boolean {
+		const listed = groupsStore.list.find((g) => g.id === id);
+		const had = (listed?.unreadCount ?? 0) > 0;
+		groupsStore.clearUnread(id);
+		return had;
+	}
+
 	// ─── Warm header cache ────────────────────────────────────
 	// Re-entering a group you were just in should paint immediately rather than
 	// blanking the header for a round-trip. Re-inserting on read makes the Map
@@ -47,22 +66,30 @@ export function useGroupChatPage() {
 	}
 
 	/**
-	 * Paints from the cache when there is one, and refreshes either way.
+	 * Paints from the cache when there is one, and only goes to the network on a
+	 * miss — re-entering a group you have already opened costs no request.
 	 *
-	 * The cache only ever buys the first frame. `group_updated` keeps it honest
-	 * while this page is mounted, but anything changed from *another* screen —
-	 * the settings page renaming the group or setting its picture — happens with
-	 * this page unmounted, so the event is never seen and the cached copy comes
-	 * back stale. Re-entering the group would show the old header until a reload.
+	 * What makes that safe for the group's own details is that they do not depend
+	 * on this page being mounted to stay current: `useGroups` holds a socket
+	 * subscription for as long as the app is open and applies `group_updated` to
+	 * `groupsStore` from whatever screen you are on. So the sidebar's copy, not
+	 * the snapshot banked when we left, is the truth about the name and picture —
+	 * a rename from the settings page is already in it by the time we read it.
+	 *
+	 * The roster is the one part with no such keeper: joins and leaves are only
+	 * folded in while this page is up (see the socket handler below). A cached
+	 * member list can therefore lag if the membership changed while you were on
+	 * another screen, until the next full load of the group.
 	 */
 	async function load(id: string) {
+		const listed = groupsStore.list.find((g) => g.id === id);
 		const cached = groupHeaderCaches.get(id);
 		if (cached) {
 			groupHeaderCaches.delete(id);
-			group = cached.group;
+			group = listed ? { ...cached.group, ...listed } : cached.group;
 			members = cached.members;
+			return;
 		}
-		groupsStore.clearUnread(id);
 
 		try {
 			const info = await groupsService.get(id);
@@ -72,8 +99,6 @@ export function useGroupChatPage() {
 			members = info.members;
 			groupsStore.upsert(info.group);
 		} catch (err) {
-			// A cache hit already put something on screen; a failed refresh leaves
-			// it there rather than blanking the header.
 			console.error('[useGroupChatPage] load failed', err);
 		}
 	}
@@ -179,6 +204,7 @@ export function useGroupChatPage() {
 		get groupId() { return groupId; },
 		get group() { return group; },
 		get members() { return members; },
+		takeUnread,
 		matchEvent,
 		reactorLookup(userId: string) {
 			return lookupMember(members, userId, auth.user ?? null);

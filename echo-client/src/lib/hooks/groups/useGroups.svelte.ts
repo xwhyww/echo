@@ -3,6 +3,7 @@ import { groupsService } from '$lib/api/groupsService.js';
 import { groupsStore } from '$lib/stores/groups.svelte.js';
 import { ws, type WsEvent } from '$lib/stores/ws.svelte.js';
 import { auth } from '$lib/stores/auth.svelte.js';
+import { noteGroupMessageWhileAway } from '$lib/hooks/chat/useGroupChatCache.svelte.js';
 
 let bootstrapped = false;
 
@@ -50,6 +51,9 @@ function handleWs(event: WsEvent) {
 		case 'group_message': {
 			const isMine = event.message.authorId === meId;
 			groupsStore.updateLastMessage(event.groupId, event.message, !isMine);
+			// Keeps the warm window of a chat nobody has open from going stale;
+			// a no-op for the one that is (it holds no cache entry while mounted).
+			noteGroupMessageWhileAway(event.groupId, event.message);
 			break;
 		}
 		case 'group_read':
@@ -67,7 +71,13 @@ export function useGroups() {
 			bootstrapped = true;
 			loadAll();
 		}
-		const off = ws.on(handleWs);
+		// Wrapped rather than passed straight in: `handleWs` is one shared
+		// module-level function, and the store keeps listeners in a Set. Every
+		// caller registering the same reference means one entry between them —
+		// so the first component to unmount used to delete the listener out from
+		// under all the others, and group events silently stopped arriving until
+		// a reload. A fresh closure per caller gives each its own entry.
+		const off = ws.on((event) => handleWs(event));
 		return () => off();
 	});
 

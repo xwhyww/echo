@@ -38,6 +38,14 @@
 		matchEvent: (e: WsEvent) => ChatPanelEvent | null;
 		reactorLookup?: (userId: string) => { name: string; avatarUrl: string | null } | null;
 		inputPlaceholder?: string;
+		/**
+		 * Asked once when the chat opens: does it have anything to acknowledge?
+		 * Callers that can tell pass this so re-entering a chat you are caught up
+		 * on sends no read receipt; omitted means "don't know" and one is sent as
+		 * before. A function rather than a value because the answer has to be
+		 * read at open time — see `hasUnreadOnOpen` in the hook.
+		 */
+		hasUnreadOnOpen?: (id: string) => boolean;
 		/** After the first load resolves — callers mark the chat read locally, etc. */
 		onLoaded?: () => void;
 		/** A message arrived over the socket, for callers keeping their own previews. */
@@ -68,6 +76,7 @@
 		matchEvent,
 		reactorLookup,
 		inputPlaceholder,
+		hasUnreadOnOpen,
 		onLoaded,
 		onMessageReceived,
 		emojiOpen = $bindable(false),
@@ -82,6 +91,7 @@
 		service: () => service,
 		cache: () => cache,
 		matchEvent: (e) => matchEvent(e),
+		hasUnreadOnOpen: (chatId) => hasUnreadOnOpen?.(chatId) ?? true,
 		onLoaded: () => onLoaded?.(),
 		onMessageReceived: (msg) => onMessageReceived?.(msg),
 	});

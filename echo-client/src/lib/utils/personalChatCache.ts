@@ -51,6 +51,30 @@ export function invalidateChatCache(companionId: string): void {
 	chatCaches.delete(companionId);
 }
 
+/**
+ * Folds a message that arrived over the socket into a banked conversation.
+ *
+ * The chat being viewed holds no entry here — `takeCachedChat` hands ownership
+ * to the hook and it writes back on the way out — so this only ever fires for
+ * conversations nobody is looking at. Without it the sidebar row updates while
+ * the window behind it does not, and opening the chat restores it exactly as it
+ * was left: the message you were just told about is missing, and nothing
+ * refetches because the cache counted as a hit.
+ *
+ * A window showing history is left alone. `hasNewer` means there is already a
+ * gap between it and the end of the conversation, so appending would splice the
+ * newest message onto a window it is not continuous with; paging down fills
+ * that in properly.
+ */
+export function noteMessageWhileAway(chatId: string, message: PersonalMessage): void {
+	for (const cache of chatCaches.values()) {
+		if (cache.chatId !== chatId) continue;
+		if (cache.hasNewer) continue;
+		if (cache.messages.some((m) => m.id === message.id)) continue;
+		cache.messages = [...cache.messages, message];
+	}
+}
+
 /** Apply a reactions update to cached (non-currently-viewed) chats so that
  * when the user navigates back the reactions are already present. */
 export function applyReactionsToCache(

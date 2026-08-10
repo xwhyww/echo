@@ -93,3 +93,35 @@ export function isVoiceChannelRoute (routeId: string | null): boolean {
 export function isVoiceChannelChatRoute(routeId: string | null): boolean {
 	return routeId === VOICE_CHANNEL_CHAT_ROUTE_ID;
 }
+
+/**
+ * Where the back arrow leads from a screen that belongs to one conversation —
+ * its info, its settings, its media. These are "up one level" arrows: the page
+ * is about a single chat, so the arrow returns to that chat whether you arrived
+ * from it, from a deep link or from a reload.
+ *
+ * Without an entry here a route falls through to HOME, which drops you out of
+ * the conversation entirely instead of stepping up inside it.
+ *
+ * Media goes back to the info screen rather than the chat, because that is the
+ * screen that lists the media and thus the only place you can arrive from.
+ */
+export function chatDetailBackHref(
+	routeId: string | null,
+	id: string | undefined,
+): string | null {
+	if (!routeId || !id) return null;
+	switch (routeId) {
+		case '/chats/perschat/[id]/info':
+			return routes.chats.perschatUser(id);
+		case '/chats/perschat/[id]/media':
+			return routes.chats.perschatInfo(id);
+		case '/chats/groups/[id]/info':
+		case '/chats/groups/[id]/settings':
+			return routes.chats.group(id);
+		case '/chats/groups/[id]/media':
+			return routes.chats.groupInfo(id);
+		default:
+			return null;
+	}
+}

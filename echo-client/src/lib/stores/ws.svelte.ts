@@ -84,6 +84,12 @@ class WsStore {
 	connected = $state(false);
 
 	connect(token: string) {
+		// Already on this session's socket: do nothing. Tearing down a healthy
+		// connection and opening a new one makes `onopen` see `wasConnected` and
+		// announce a `reconnected` that never happened — and every listener
+		// treats that as "you may have missed messages" and refetches its list.
+		// Only a different token is a different session.
+		if (this.ws && this.token === token) return;
 		if (this.ws) this.disconnect();
 		this.token = token;
 		this.open();

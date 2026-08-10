@@ -488,6 +488,7 @@ export const en = {
 	},
 
 	userProfile: {
+		title: 'Profile',
 		message: 'Message',
 		addFriend: 'Add friend',
 		requestSent: 'Request sent',

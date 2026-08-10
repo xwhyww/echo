@@ -19,24 +19,39 @@
 		// swipe. Both affordances hang off this one prop so they cannot drift
 		// apart.
 		backHref?: string | null;
+		/**
+		 * Whether `backHref` is the destination or merely the fallback.
+		 *
+		 * True for a screen whose arrow means "up one level" — see below. False
+		 * for one reachable from several unrelated places, where the arrow means
+		 * "undo the last navigation" and `backHref` only catches a deep link or a
+		 * reload, which have no history to step back through.
+		 */
+		backExact?: boolean;
 		title?: string;
 	}
 
-	let { backHref = null, title = '' }: Props = $props();
+	let { backHref = null, backExact = true, title = '' }: Props = $props();
 
 	const t = $derived(i18n.t);
 
 	// The touch equivalent of the back button beside it. Mounts nothing when
 	// there is no button.
 	//
-	// `exact` on both: the destination the layout computes for this bar is always
-	// a section root — the chat list, the settings menu, the channel a chat
-	// belongs to. That is an "up one level" arrow, not an "undo the last
-	// navigation" one, and history would answer the second question. It also has
-	// to be `exact` for the reveal layer to be honest: the screen mounted under
-	// the page while it is dragged aside is the one `backHref` names, so landing
-	// anywhere else would uncover one screen and arrive at another.
-	useSwipeBack(() => backHref, { exact: true });
+	// `exact` on both, for almost every screen: the destination the layout
+	// computes for this bar is a section root — the chat list, the settings menu,
+	// the channel a chat belongs to. That is an "up one level" arrow, not an
+	// "undo the last navigation" one, and history would answer the second
+	// question. Being `exact` is also what keeps the reveal layer honest: the
+	// screen mounted under the page while it is dragged aside is the one
+	// `backHref` names, so landing anywhere else would uncover one screen and
+	// arrive at another. A screen that opts out of `exact` therefore has to be
+	// one with no reveal layer — see `backExact` above.
+	//
+	// Read through a getter rather than passed as a value: this bar outlives the
+	// pages under it, so `backExact` changes as you navigate, and the settings
+	// object is built once.
+	useSwipeBack(() => backHref, { get exact() { return backExact; } });
 
 	// An open chat fills the bar with its own contents — who you are talking to
 	// and their presence, or the group and its size — in place of the page
@@ -66,27 +81,31 @@
 <header class="app-header" class:has-chat={!!chat} {onclick}>
 	{#if backHref}
 		<div class="header-back">
-			<BackButton {backHref} exact size={48} />
+			<BackButton {backHref} exact={backExact} size={48} />
 		</div>
 	{:else}
 		<div class="empty"></div>
 	{/if}
 
+	<!-- Every read below is optional-chained even though the branch has already
+	     established the kind. These expressions become lazy getters for the
+	     children's props, and a child's effect can evaluate one after `chat` has
+	     gone null (the open chat was left) but before this block has torn down. -->
 	{#if chat?.kind === 'personal'}
 		<div class="header-center">
 			<h4 class="body-xs fw-medium">
-				{chat.isSelf ? t.chat.notes : (chat.title ?? chat.companion?.username ?? '')}
+				{chat?.isSelf ? t.chat.notes : (chat?.title ?? chat?.companion?.username ?? '')}
 			</h4>
-			{#if chat.isSelf}
+			{#if chat?.isSelf}
 				<span class="body-xs text-faint">{t.chat.chatWithYourself}</span>
-			{:else if (chat.typingUsers ?? []).length > 0}
+			{:else if (chat?.typingUsers ?? []).length > 0}
 				<!-- Typing is the more current fact about someone than online is, and
 				     they'd say the same thing twice standing side by side. -->
-				<TypingIndicator users={chat.typingUsers ?? []} />
-			{:else if chat.companion}
-				<span class="presence body-xs text-faint" class:online={chat.companion.isOnline}>
-					<Status status={chat.companion.isOnline ? 'online' : 'offline'} size={6} />
-					<span>{chat.companion.isOnline ? t.common.online : t.common.offline}</span>
+				<TypingIndicator users={chat?.typingUsers ?? []} />
+			{:else if chat?.companion}
+				<span class="presence body-xs text-faint" class:online={chat?.companion?.isOnline}>
+					<Status status={chat?.companion?.isOnline ? 'online' : 'offline'} size={6} />
+					<span>{chat?.companion?.isOnline ? t.common.online : t.common.offline}</span>
 				</span>
 			{/if}
 		</div>
@@ -102,10 +121,10 @@
 		</div>
 	{:else if chat?.kind === 'group'}
 		<div class="header-center">
-			<h4 class="body-xs fw-medium">{chat.group?.name ?? '...'}</h4>
+			<h4 class="body-xs fw-medium">{chat?.group?.name ?? '...'}</h4>
 			<span class="members body-xs text-faint">
 				<Users size={12} />
-				<span>{t.groupInfo.memberCount(chat.memberCount)}</span>
+				<span>{t.groupInfo.memberCount(chat?.memberCount ?? 0)}</span>
 			</span>
 		</div>
 
@@ -116,20 +135,20 @@
 				class="avatar-btn"
 				onclick={(e) => {
 					e.stopPropagation();
-					chat.onopensettings();
+					chat?.onopensettings();
 				}}
 				title={t.groupInfo.groupSettings}
 				aria-label={t.groupInfo.groupSettings}
 			>
-				<Avatar name={chat.group?.name ?? '?'} avatarUrl={chat.group?.avatarUrl ?? null} size={36} />
+				<Avatar name={chat?.group?.name ?? '?'} avatarUrl={chat?.group?.avatarUrl ?? null} size={36} />
 			</button>
 		</div>
 	{:else if chat?.kind === 'voice'}
 		<div class="header-center">
 			<h4 class="body-xs fw-medium">
-				{chat.channelName ? `#${chat.channelName}` : t.voice.channelChat.title}
+				{chat?.channelName ? `#${chat.channelName}` : t.voice.channelChat.title}
 			</h4>
-			{#if chat.groupName}
+			{#if chat?.groupName}
 				<span class="body-xs text-faint">{chat.groupName}</span>
 			{/if}
 		</div>

@@ -12,6 +12,7 @@
 	import {
 		HOME,
 		routes,
+		chatDetailBackHref,
 		isChatRoute,
 		isVoiceChannelChatRoute,
 		isVoiceChannelRoute,
@@ -66,8 +67,26 @@
 		friends: t.nav.friends,
 		settings: t.settings.title,
 	});
+	/**
+	 * Someone else's profile. Called out because it is the one screen the arrow
+	 * cannot point "up" from: it is opened from a conversation, a member list, a
+	 * friend row, a search result — places with no common parent — so the only
+	 * honest answer is the way you came. `backHref` stays as the fallback for a
+	 * deep link or a reload, which have no history to step back through.
+	 *
+	 * It has no reveal layer, which is what makes stepping back safe here: there
+	 * is no screen mounted underneath promising a destination that history would
+	 * then contradict.
+	 */
+	const inUserProfile = $derived(page.route.id === '/user/[id]');
+
 	const headerTitle = $derived(
-		routeTitles[page.url.pathname] ?? (activeSidebar ? sectionTitles[activeSidebar] : ''),
+		routeTitles[page.url.pathname]
+			?? (inUserProfile
+				? t.userProfile.title
+				: activeSidebar
+					? sectionTitles[activeSidebar]
+					: ''),
 	);
 
 	// Mobile screen modes. Desktop shows rail + list + main side by side; a
@@ -121,6 +140,10 @@
 	// tabs are query strings on this same route, so the pathname is the test.
 	const atChatsRoot = $derived(page.url.pathname === routes.chats.root || page.url.pathname === routes.settings);
 
+	// A screen that belongs to one conversation — its info, settings or media —
+	// steps up inside that conversation rather than back out to the list.
+	const chatDetailBack = $derived(chatDetailBackHref(page.route.id, page.params.id));
+
 	// Where the arrow leads. A channel's chat is the one chat surface whose way
 	// back is not the chat list: it belongs to the channel it was opened from.
 	const backHref = $derived(
@@ -128,9 +151,8 @@
 			? null
 			: inVoiceChannelChat
 				? routes.chats.groupVoiceChannel(page.params.id!, page.params.channelId!)
-				: inProfile
-					? routes.settings
-					: HOME,
+				: (chatDetailBack ??
+					(inProfile ? routes.settings : HOME)),
 	);
 </script>
 
@@ -142,12 +164,18 @@
 </svelte:head>
 
 
-{#if guard.showSidebar}
+<!-- Nothing at all until the session is known — see `guard.ready`. `children()`
+     is rendered in both branches below, so drawing it while `showSidebar` is
+     still settling mounts the page twice and fires every load-time request
+     twice. The boot cover is still over the screen for this whole wait. -->
+{#if !guard.ready}
+	<!-- intentionally empty -->
+{:else if guard.showSidebar}
 	<div class="app-shell" class:settings-mode={settingsMode} class:m-detail={mobileDetail} class:m-content={mobileContent}>
 		{#if !hideChrome || hasChatHeader}
 			<!-- The fallback destination has to name the same screen the reveal
 			     layer shows, or a swipe uncovers one page and lands on another. -->
-			<Header {backHref} title={headerTitle} />
+			<Header {backHref} backExact={!inUserProfile} title={headerTitle} />
 		{/if}
 		
 		<AppBars />

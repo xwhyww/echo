@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import { auth } from '$lib/stores/auth.svelte.js';
 	import JumpToReactionButton from '$lib/components/chat/JumpToReactionButton.svelte';
 	import MessageList from '$lib/components/chat/MessageList.svelte';
@@ -17,8 +18,7 @@
 	const chat = $derived(perschat.chat);
 
 	// The header is drawn by the root layout, so what belongs in it is published
-	// rather than rendered — see `chatHeader`. Cleared on the way out, or the
-	// next screen would inherit this conversation's title.
+	// rather than rendered — see `chatHeader`.
 	$effect(() => {
 		chatHeader.set({
 			kind: 'personal',
@@ -28,8 +28,13 @@
 			typingUsers: chat.typingUsers,
 			onopeninfo: perschat.openInfo,
 		});
-		return () => chatHeader.clear();
 	});
+
+	// Cleared on the way out, or the next screen would inherit this
+	// conversation's title. This cannot be the effect's teardown: that also runs
+	// before every re-run, so every typing tick blanked the header state the
+	// layout is reading mid-flush.
+	onDestroy(() => chatHeader.clear());
 </script>
 
 <!-- Not a PageColumn: a conversation fills the viewport and scrolls its own

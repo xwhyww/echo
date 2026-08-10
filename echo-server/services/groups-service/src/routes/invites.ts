@@ -37,6 +37,17 @@ function generateCode(): string {
 	return randomBytes(8).toString('base64url');
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// drizzle wraps driver failures in a DrizzleQueryError, so the SQLSTATE that
+// used to sit on `err.code` is now one (or more) `cause` hops down.
+function pgErrorCode(err: unknown): string | undefined {
+	for (let e: any = err; e; e = e.cause) {
+		if (typeof e.code === 'string') return e.code;
+	}
+	return undefined;
+}
+
 async function areFriends(currentUserId: string, targetId: string, token: string): Promise<boolean> {
 	try {
 		const resp = await fetch(`${config.friendsServiceUrl}/friends/status/${targetId}`, {
@@ -58,6 +69,7 @@ invitesRoutes.post('/:id/invites', async (c) => {
 	const body = await c.req.json().catch(() => ({}));
 	const inviteeId = body?.userId ? String(body.userId) : '';
 	if (!inviteeId) return c.json({ error: 'userId required' }, 400);
+	if (!UUID_RE.test(inviteeId)) return c.json({ error: 'userId must be a uuid' }, 400);
 	if (inviteeId === me.userId) return c.json({ error: 'cannot invite yourself' }, 400);
 
 	const role = await membership(id, me.userId);
@@ -105,7 +117,7 @@ invitesRoutes.post('/:id/invites', async (c) => {
 		}).returning();
 	} catch (err: any) {
 		// Partial unique index on (group_id, invitee_id) WHERE status='pending'
-		if (err?.code === '23505') return c.json({ error: 'invite already pending' }, 409);
+		if (pgErrorCode(err) === '23505') return c.json({ error: 'invite already pending' }, 409);
 		throw err;
 	}
 
@@ -268,7 +280,7 @@ invitesRoutes.post('/:id/invite-link/regenerate', async (c) => {
 				.where(eq(groups.id, id));
 			return c.json({ inviteCode: code });
 		} catch (err: any) {
-			if (err?.code !== '23505' || attempt === 2) throw err;
+			if (pgErrorCode(err) !== '23505' || attempt === 2) throw err;
 		}
 	}
 	return c.json({ error: 'could not generate code' }, 500);

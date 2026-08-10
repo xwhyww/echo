@@ -14,11 +14,19 @@ export function useAuthGuard() {
 		auth.init();
 	});
 
-	// Connect/disconnect WebSocket based on auth state
+	// Connect/disconnect WebSocket based on auth state.
+	//
+	// Depends on the token and nothing else. `isAuthenticated` also reads
+	// `auth.user`, so any refresh of the profile object — a new avatar, a
+	// presence update — used to re-run this and reconnect a socket that was
+	// perfectly healthy. Waiting for `loading` is what `isAuthenticated`
+	// really bought us here: the token is set before `/auth/me` resolves, and
+	// `loading` only clears once the user is in.
 	$effect(() => {
 		if (auth.loading) return;
-		if (auth.isAuthenticated && auth.token) {
-			ws.connect(auth.token);
+		const token = auth.token;
+		if (token) {
+			ws.connect(token);
 			friendsStore.init();
 		} else {
 			ws.disconnect();
@@ -63,5 +71,14 @@ export function useAuthGuard() {
 
 	return {
 		get showSidebar() { return showSidebar; },
+		/**
+		 * Whether the session question has been answered yet. The layout renders
+		 * `children()` on both sides of `showSidebar`, so anything drawn before
+		 * this is true gets mounted once under the signed-out branch and again
+		 * under the signed-in one — every page effect run twice, every fetch on
+		 * open sent twice. Nothing is on screen during the wait anyway: the boot
+		 * cover from `app.html` is still up (see `useBootCover`).
+		 */
+		get ready() { return !auth.loading; },
 	};
 }

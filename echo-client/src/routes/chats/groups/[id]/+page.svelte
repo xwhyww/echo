@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import ChatPanel from '$lib/components/chat/ChatPanel.svelte';
 	import EmojiPicker from '$lib/components/emoji/EmojiPicker.svelte';
 	import { groupsService } from '$lib/api/groupsService.js';
@@ -16,8 +17,7 @@
 	let insertAtCursor = $state<((emoji: string) => void) | null>(null);
 
 	// The header is drawn by the root layout, so what belongs in it is published
-	// rather than rendered — see `chatHeader`. Cleared on the way out, or the
-	// next screen would inherit this group's title.
+	// rather than rendered — see `chatHeader`.
 	$effect(() => {
 		chatHeader.set({
 			kind: 'group',
@@ -26,8 +26,13 @@
 			onopeninfo: groupChat.openInfo,
 			onopensettings: groupChat.openSettings,
 		});
-		return () => chatHeader.clear();
 	});
+
+	// Cleared on the way out, or the next screen would inherit this group's
+	// title. This cannot be the effect's teardown: that also runs before every
+	// re-run, so each time the group or its roster loaded it blanked the header
+	// state the layout is reading mid-flush.
+	onDestroy(() => chatHeader.clear());
 </script>
 
 <!-- Not a PageColumn: a conversation fills the viewport and scrolls its own
@@ -41,6 +46,7 @@
 				cache={groupChatPanelCaches}
 				matchEvent={groupChat.matchEvent}
 				reactorLookup={groupChat.reactorLookup}
+				hasUnreadOnOpen={groupChat.takeUnread}
 				inputPlaceholder={groupChat.group
 					? t.chat.messageTo(groupChat.group.name)
 					: t.chat.messagePlaceholder}

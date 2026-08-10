@@ -35,6 +35,18 @@ export interface ChatPanelOptions<TMsg extends ChatMessage, TAtt extends ChatAtt
 	 * which kind of chat this is.
 	 */
 	matchEvent: (e: WsEvent) => ChatPanelEvent | null;
+	/**
+	 * Does opening this chat have anything to acknowledge? Re-entering a
+	 * conversation you are already caught up on posts a read receipt that moves
+	 * no marker, so callers that can tell (the group page reads the unread count
+	 * the socket keeps for it) say so and save the request. Left out means
+	 * "don't know", and the receipt is sent as before.
+	 *
+	 * Asked exactly once per open, at the moment the chat is opened — not read
+	 * from a value the caller prepared, because the caller's effect and this
+	 * one do not run in a fixed order.
+	 */
+	hasUnreadOnOpen?: (id: string) => boolean;
 	/** After the first load resolves — callers mark the chat read locally, etc. */
 	onLoaded?: () => void;
 	/** A message arrived over the socket, for callers keeping their own previews. */
@@ -102,6 +114,12 @@ export function useChatPanel<TMsg extends ChatMessage, TAtt extends ChatAttachme
 		});
 	}
 
+	/** Nothing waiting means nothing to acknowledge — see `hasUnreadOnOpen`. */
+	function markReadOnOpen(cur: string) {
+		if (options.hasUnreadOnOpen?.(cur) === false) return;
+		service.markRead(cur).catch(() => {});
+	}
+
 	async function load() {
 		const cur = id;
 		const cached = cache.get(cur);
@@ -112,7 +130,7 @@ export function useChatPanel<TMsg extends ChatMessage, TAtt extends ChatAttachme
 			hasMore = cached.hasMore;
 			nextCursor = cached.nextCursor;
 			loading = false;
-			service.markRead(cur).catch(() => {});
+			markReadOnOpen(cur);
 			options.onLoaded?.();
 			await tick();
 			if (cached.scrollPosition === null) scroll.toBottom();
@@ -126,7 +144,7 @@ export function useChatPanel<TMsg extends ChatMessage, TAtt extends ChatAttachme
 			messages = res.messages;
 			hasMore = res.hasMore;
 			nextCursor = res.nextCursor;
-			service.markRead(cur).catch(() => {});
+			markReadOnOpen(cur);
 			void loadPinned();
 			options.onLoaded?.();
 			await tick();

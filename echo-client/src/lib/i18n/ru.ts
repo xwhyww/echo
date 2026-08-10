@@ -500,6 +500,7 @@ export const ru: Dict = {
 	},
 
 	userProfile: {
+		title: 'Профиль',
 		message: 'Написать',
 		addFriend: 'Добавить в друзья',
 		requestSent: 'Заявка отправлена',

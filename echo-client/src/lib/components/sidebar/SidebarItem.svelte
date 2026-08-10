@@ -100,7 +100,7 @@
 			<span class="item-name truncate body-xs">{chatName || name}</span>
 			<span class="item-subtitle truncate body-xs text-faint" class:accent={subtitleAccent}>
 				{#if messageRead !== null}
-					<span class="msg-status text-faint" class:read={messageRead}>
+					<span class="msg-status" class:text-faint={!messageRead} class:text-accent={messageRead}>
 						{#if messageRead}
 							<CheckCheck size={14} />
 						{:else}
@@ -119,16 +119,17 @@
 			{#if timestampLabel}
 				<span class="item-timestamp body-xs lh-none text-faint" title={timestampTitle}>{timestampLabel}</span>
 			{/if}
-			{#if reactionEmoji}
-				<span class="item-reaction body-sm lh-none" title={t.chat.newReaction}><AppleEmoji emoji={reactionEmoji} size={14} /></span>
-			{/if}
+			<div class="lower">
+				{#if reactionEmoji}
+					<span class="item-reaction body-sm lh-none" title={t.chat.newReaction}><AppleEmoji emoji={reactionEmoji} size={14} /></span>
+				{/if}
+				{#if badge}
+					<span class="item-badge body-xs lh-none text-inverse">{badge}</span>
+				{/if}
+			</div>
 		</div>
 	{:else}
 		<span class="item-name body-sm truncate">{name}</span>
-	{/if}
-
-	{#if badge}
-		<span class="item-badge body-xs fw-semibold lh-none text-inverse">{badge}</span>
 	{/if}
 
 	{#if trailing}
@@ -183,6 +184,10 @@
 		align-self: stretch;
 		flex-shrink: 0;
 		min-width: 100px;
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
+		align-items: flex-end;
 	}
 
 	.item-timestamp {
@@ -216,25 +221,26 @@
 		vertical-align: middle;
 	}
 
-	.msg-status.read {
-		color: var(--c-accent, #25939d);
-	}
-
 	.item-reaction {
-		position: absolute;
 		right: 0;
 		bottom: 4px;
+	}
+	
+	.lower {
+		display: flex;
+		flex-direction: row;
+		gap: var(--sp-1);
 	}
 
 	.item-badge {
 		background: var(--c-accent);
-		margin-left: auto;
 		min-width: 18px;
+		max-width: max-content;
 		height: 18px;
-		padding: 0 5px;
 		border-radius: var(--radius-full);
 		display: flex;
 		align-items: center;
 		justify-content: center;
+		margin-bottom: var(--sp-1);
 	}
 </style>

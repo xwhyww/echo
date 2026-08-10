@@ -20,16 +20,17 @@
 	<AppleEmoji {emoji} size={20} />
 </button>
 
-<style>
+<style lang="scss">
+	@use '$lib/styles/glass.mixin' as *;
+	
 	.jump-to-reaction {
 		position: absolute;
-		bottom: 8px;
-		right: 20px;
-		width: 40px;
-		height: 40px;
+		width: 48px;
+		height: 48px;
 		border-radius: 50%;
 		background: var(--c-bg-3);
 		border: 1px solid var(--c-border);
+		padding-top: 4px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -37,7 +38,12 @@
 		transition: background var(--duration-fast) var(--ease-default);
 		box-shadow: var(--shadow-lg, 0 2px 8px rgba(0, 0, 0, 0.3));
 		z-index: 10;
+		@include glass;
+		bottom: calc(var(--safe-bottom) + 52px);
+		right: 0;
 	}
 
-	.jump-to-reaction.stacked { bottom: 56px; }
+	.jump-to-reaction.stacked {
+		bottom: calc(var(--safe-bottom) + 52px + 56px);
+	}
 </style>

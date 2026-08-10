@@ -81,7 +81,9 @@
 	<!-- A forward banner rides above the collage when there is one, and inside
 	     the text surface otherwise. -->
 	{#if forwardedFrom && hasMedia}
+		<div class="margin">
 		<ForwardStrip {forwardedFrom} {onuserclick} />
+		</div>
 	{/if}
 
 	{#if hasMedia}
@@ -208,6 +210,10 @@
 		   press. */
 		transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
 	}
+	
+	.margin {
+		padding-bottom: var(--sp-1);
+	}
 
 	/* The author and the forward banner, side by side above the message. The
 	   surrounding text surface already supplies the padding. */
@@ -216,7 +222,7 @@
 		align-items: center;
 		gap: var(--sp-2);
 		min-width: 0;
-		margin-bottom: 2px;
+		padding-bottom: var(--sp-1);
 	}
 
 	/* Clipped rather than wrapped, and allowed to shrink: a long display name

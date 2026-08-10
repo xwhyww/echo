@@ -25,7 +25,6 @@
 		display: flex;
 		align-items: baseline;
 		gap: var(--sp-1);
-		margin-bottom: var(--sp-1);
 	}
 
 	.forward-label {

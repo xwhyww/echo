@@ -7,7 +7,7 @@ import type { User as UserType } from '$lib/api/auth.js';
 import type { PersonalChat } from '$lib/api/personalChats.js';
 import { personalChatsService } from '$lib/api/personalChatsService.js';
 import { personalChatsStore } from '$lib/stores/personalChats.svelte.js';
-import { applyReactionsToCache } from '$lib/utils/personalChatCache.js';
+import { applyReactionsToCache, noteMessageWhileAway } from '$lib/utils/personalChatCache.js';
 import { routes } from '$lib/routes.js';
 
 export function usePersonalChats() {
@@ -40,6 +40,10 @@ export function usePersonalChats() {
 
 	const unsubscribe = ws.on((event) => {
 		if (event.type === 'dm') {
+			// Keeps the warm window of a chat nobody has open from going stale;
+			// a no-op for the one being viewed, which holds no cache entry.
+			noteMessageWhileAway(event.chatId, event.message);
+
 			const chats = personalChatsStore.list;
 			const idx = chats.findIndex((c) => c.id === event.chatId);
 			const isViewingChat = chats[idx]?.user.id === page.params.id;

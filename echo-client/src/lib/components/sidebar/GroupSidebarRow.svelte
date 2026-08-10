@@ -61,13 +61,13 @@
 			onclick={toggle}
 			title={voice.expanded ? t.sidebar.hideVoiceChannels : t.sidebar.showVoiceChannels}
 		>
-			<span class="chevron">
-							{#if voice.expanded}
-				<ChevronDown size={14} />
-			{:else}
-				<ChevronRight size={14} />
-			{/if}
-			</span>
+<!--			<span class="chevron">-->
+<!--							{#if voice.expanded}-->
+<!--				<ChevronDown size={14} />-->
+<!--			{:else}-->
+<!--				<ChevronRight size={14} />-->
+<!--			{/if}-->
+<!--			</span>-->
 		</button>
 	</div>
 

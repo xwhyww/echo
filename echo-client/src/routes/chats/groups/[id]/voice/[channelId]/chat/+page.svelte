@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import ChatPanel from '$lib/components/chat/ChatPanel.svelte';
 	import EmojiPicker from '$lib/components/emoji/EmojiPicker.svelte';
 	import { voiceChatService } from '$lib/api/voiceChatService.js';
@@ -17,16 +18,20 @@
 	let insertAtCursor = $state<((emoji: string) => void) | null>(null);
 
 	// The header is drawn by the root layout, so what belongs in it is published
-	// rather than rendered — see `chatHeader`. Cleared on the way out, or the
-	// next screen would inherit this channel's name.
+	// rather than rendered — see `chatHeader`.
 	$effect(() => {
 		chatHeader.set({
 			kind: 'voice',
 			channelName: chat.channelName,
 			groupName: chat.groupName,
 		});
-		return () => chatHeader.clear();
 	});
+
+	// Cleared on the way out, or the next screen would inherit this channel's
+	// name. This cannot be the effect's teardown: that also runs before every
+	// re-run, so resolving the channel name blanked the header state the layout
+	// is reading mid-flush.
+	onDestroy(() => chatHeader.clear());
 </script>
 
 <!-- Not a PageColumn: a conversation fills the viewport and scrolls its own
