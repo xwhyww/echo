@@ -117,7 +117,15 @@
 		@include glass;
 		padding: var(--sp-2) var(--sp-2);
 		border-radius: 32px;
-		width: 100%;
+		/* Takes the room left over beside the avatar, rather than `width: 100%`,
+		   which claimed the whole bar and pushed the avatar and its 8px margin
+		   past the right edge. The bar is absolutely positioned against the
+		   viewport — .app-shell is not positioned, so its `overflow: hidden` does
+		   not clip this — and that overflow is what scrolls the page sideways.
+		   `min-width: 0` lets the pill row shrink instead of insisting on its
+		   content width. */
+		flex: 1;
+		min-width: 0;
 	}
 	
 	.sidebar-bottom {

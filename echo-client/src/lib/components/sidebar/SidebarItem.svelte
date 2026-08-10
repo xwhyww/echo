@@ -161,11 +161,6 @@
 		flex-shrink: 0;
 	}
 
-	.sidebar-item.active {
-		color: var(--c-text);
-		background: var(--c-bg-4);
-	}
-
 	.sidebar-item.danger {
 		color: var(--c-error);
 	}

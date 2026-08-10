@@ -208,7 +208,7 @@
 		background: linear-gradient(
 			to bottom,
 			rgba(0, 0, 0, 1),
-			rgba(0, 0, 0, 0.85) 80%,
+			rgba(0, 0, 0, 0.8) 70%,
 			rgba(0, 0, 0, 0)
 		);
 	}

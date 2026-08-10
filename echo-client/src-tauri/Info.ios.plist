@@ -7,6 +7,15 @@
 -->
 <plist version="1.0">
 <dict>
+	<!-- The app is dark-only (see `color-scheme: dark` in reset.css), and without
+	     this the *system* half of it follows the phone instead. That shows up
+	     first as a white flash at launch: LaunchScreen.storyboard paints
+	     `systemBackgroundColor`, which resolves to white on a phone in light
+	     mode, before the webview has drawn anything. Pinning the style also keeps
+	     the keyboard, share sheets and system alerts dark. -->
+	<key>UIUserInterfaceStyle</key>
+	<string>Dark</string>
+
 	<!-- iOS kills the process rather than showing a permission prompt if the
 	     matching usage string is missing. The mic one is not optional: every
 	     voice channel and call goes through getUserMedia. -->

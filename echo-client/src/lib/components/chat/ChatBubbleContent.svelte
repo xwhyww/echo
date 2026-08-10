@@ -37,6 +37,9 @@
 		reactions?: MessageReaction[];
 		currentUserId?: string | null;
 		reactorLookup?: (userId: string) => { name: string; avatarUrl: string | null } | null;
+		/** Names the author above the message — group surfaces, where an avatar
+		 *  alone does not say who is speaking. */
+		showAuthor?: boolean;
 		onmention?: (username: string) => void;
 		onuserclick?: (userId: string) => void;
 	}
@@ -56,6 +59,7 @@
 		reactions = [],
 		currentUserId = null,
 		reactorLookup,
+		showAuthor = false,
 		onmention,
 		onuserclick,
 	}: Props = $props();
@@ -98,8 +102,20 @@
 				class:emoji-only={bareEmoji}
 				class:has-attachments={hasMedia}
 			>
-				{#if forwardedFrom && !hasMedia}
-					<ForwardStrip {forwardedFrom} {onuserclick} />
+				<!-- One line above the message: who sent it, and — when it was
+				     passed on — where it came from. Wrapped because
+				     `.bubble-content` is a block, so left to themselves the two
+				     stack instead of sitting side by side. -->
+				{#if showAuthor || (forwardedFrom && !hasMedia)}
+					<div class="byline">
+						{#if showAuthor}
+							<span class="author body-xs fw-medium text-accent">{authorName}</span>
+						{/if}
+
+						{#if forwardedFrom && !hasMedia}
+							<ForwardStrip {forwardedFrom} {onuserclick} />
+						{/if}
+					</div>
 				{/if}
 
 				{#if replyToSnapshot}
@@ -191,6 +207,26 @@
 		   soft-landing curve is long enough to see the message settle into the
 		   press. */
 		transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+	}
+
+	/* The author and the forward banner, side by side above the message. The
+	   surrounding text surface already supplies the padding. */
+	.byline {
+		display: flex;
+		align-items: center;
+		gap: var(--sp-2);
+		min-width: 0;
+		margin-bottom: 2px;
+	}
+
+	/* Clipped rather than wrapped, and allowed to shrink: a long display name
+	   should give way to the forward banner beside it instead of pushing it out
+	   of the bubble. */
+	.author {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	/* Held under a finger: the message itself shrinks to acknowledge the press

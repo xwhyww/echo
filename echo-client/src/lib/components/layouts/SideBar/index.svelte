@@ -37,6 +37,12 @@
 			padding-top: var(--header-h-padding-l);
 			flex: 1;
 			overflow-y: auto;
+			/* Explicit, because `overflow-y: auto` alone makes the other axis
+			   `auto` too: anything sticking out sideways by a pixel then gives the
+			   list a horizontal scroll, which on a phone reads as the screen
+			   jiggling left and right under the finger. A vertical list has no
+			   business scrolling sideways. */
+			overflow-x: hidden;
 			display: flex;
 			flex-direction: column;
 			gap: var(--sp-2);

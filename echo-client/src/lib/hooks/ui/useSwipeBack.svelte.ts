@@ -1,3 +1,4 @@
+import { afterNavigate } from '$app/navigation';
 import { goBack } from '$lib/utils/navigation';
 
 /** Travel that commits the gesture on its own, however slowly it was made. */
@@ -12,7 +13,16 @@ const MAX_DURATION_MS = 800;
  * anywhere on the screen now, so "mostly sideways" is not a strong enough claim
  * — a diagonal flick during a scroll would qualify.
  */
-const HORIZONTAL_RATIO = 2;
+/**
+ * How sideways the drag has to be to count as a swipe: `|dx| >= |dy| * ratio`.
+ *
+ * Below 1 the benefit of the doubt goes to the swipe — a diagonal at 45°, and
+ * anything up to roughly 51°, is taken as "back" rather than as a scroll. Only a
+ * drag that is clearly more up-and-down than sideways is left to the scroller,
+ * which is the way round people actually gesture: a back swipe wanders, a scroll
+ * does not.
+ */
+const HORIZONTAL_RATIO = 0.8;
 
 /**
  * Things that own horizontal dragging themselves and must keep it.
@@ -59,6 +69,19 @@ function followLimit(): number {
 }
 /** Long enough to read as "it snapped back", short enough not to feel stuck. */
 const SETTLE_MS = 220;
+/**
+ * The commit: the page carries on to the right and off the screen. Quicker than
+ * the snap-back, and linear-out rather than soft-landing — it is leaving, not
+ * coming to rest.
+ */
+const EXIT_MS = 200;
+const EXIT_EASE = 'cubic-bezier(0.32, 0, 0.67, 0)';
+/**
+ * How long the exit transform may outlive the navigation before it is cleared
+ * regardless. Only reached if the navigation never arrives — without it a page
+ * that failed to change would be left parked off-screen.
+ */
+const EXIT_RESET_MS = 900;
 /**
  * Decelerating hard at the end reads as weight rather than as a linear slide
  * stopping dead. easeOutQuint.
@@ -109,6 +132,30 @@ export function useSwipeBack(
 	/** Mirrors `BackButton`'s: always this destination, never history. */
 	settings?: { exact?: boolean },
 ) {
+	// The page left parked off the right edge by a committed gesture, waiting for
+	// the navigation it triggered. Held here rather than inside the effect
+	// because it has to survive the effect being torn down mid-flight — which is
+	// exactly what navigating does.
+	let exiting: HTMLElement | null = null;
+
+	function clearExit() {
+		const el = exiting;
+		exiting = null;
+		if (!el) return;
+		el.style.transition = 'none';
+		el.style.transform = '';
+		el.style.willChange = '';
+		// Cleared on the next frame so removing the transition cannot animate the
+		// reset it was meant to skip.
+		requestAnimationFrame(() => {
+			el.style.transition = '';
+		});
+	}
+
+	// The moment the destination has rendered: the surface can drop back to rest
+	// carrying the new page, with nothing of the old one left to show.
+	afterNavigate(clearExit);
+
 	$effect(() => {
 		// Typed as a plain string so the handlers below, which capture it, do not
 		// have to re-prove it is non-null.
@@ -203,50 +250,62 @@ export function useSwipeBack(
 				if (inHorizontalScroller(e.target)) return;
 			}
 			start = { id: e.pointerId, x: e.clientX, y: e.clientY, at: e.timeStamp };
-			// Nothing is touched on the page here. This runs for *every* finger
-			// down, scrolls included, and it used to grab the surface and set
-			// `will-change: transform` on each one — promoting the whole page to
-			// its own layer at the start of every scroll and dropping it again
-			// afterwards, which is paid for in exactly the jank a scroll makes
-			// visible. The surface is claimed only once the drag proves horizontal.
+			// Bound now, before anything has been decided, and this is the whole
+			// reason the gesture feels crisp. A non-passive `touchmove` makes the
+			// browser wait for this handler before it scrolls anything, which is
+			// what buys the chance to claim the drag. Bound at recognition instead,
+			// the first movements have already gone to the scroller, iOS has
+			// committed the touch to scrolling, and every `touchmove` after that
+			// arrives non-cancelable — the swipe then drags the page while the list
+			// scrolls underneath it.
+			//
+			// Nothing else happens here: no surface lookup, no layer promotion.
+			// Those cost real work on a list, and a scroll must not pay for them.
+			lockScroll();
 		}
 
-		function onPointerMove(e: PointerEvent) {
-			if (!start || e.pointerId !== start.id) return;
-			const dx = e.clientX - start.x;
-			const dy = e.clientY - start.y;
-			// Nothing has been decided until the finger has actually moved;
-			// judging direction from a jitter of a pixel or two throws away real
-			// gestures.
-			if (Math.abs(dx) < MOVE_THRESHOLD_PX && Math.abs(dy) < MOVE_THRESHOLD_PX) return;
-			// A scroll is not allowed to become a back gesture halfway through,
-			// and neither is a leftward drag that happens to end up right of
-			// where it started.
-			if (dx <= 0 || Math.abs(dx) < Math.abs(dy) * HORIZONTAL_RATIO) {
-				start = null;
-				swiping = false;
-				settle(true);
-				return;
-			}
-			// From here the gesture is ours: the message list must stop scrolling
-			// under the page while the page is being dragged aside. Everything
-			// with a cost — finding the surface, promoting it to its own layer,
-			// binding the non-passive listener — happens at this point and not
-			// before, so a scroll never pays for any of it.
+		/**
+		 * Decides what the finger is doing, and acts on it in the same event.
+		 *
+		 * Both halves have to happen here rather than in `pointermove`:
+		 * `preventDefault` on a pointer event does nothing to scrolling, so
+		 * deciding there and cancelling here would always be a frame late.
+		 */
+		function onTouchMove(e: TouchEvent) {
+			if (!start) return;
+			const touch = e.touches[0];
+			if (!touch) return;
+
+			const dx = touch.clientX - start.x;
+			const dy = touch.clientY - start.y;
+
 			if (!swiping) {
+				// Nothing is decided until the finger has actually moved; judging
+				// direction from a jitter of a pixel or two throws away real
+				// gestures. Returning without preventing lets the browser get on
+				// with whatever it was going to do.
+				if (Math.abs(dx) < MOVE_THRESHOLD_PX && Math.abs(dy) < MOVE_THRESHOLD_PX) return;
+
+				// Up-and-down, or leftward: not ours. Unbinding hands the rest of
+				// the gesture back to the scroller for good — a drag that starts as
+				// a scroll must never turn into a back swipe halfway through.
+				if (dx <= 0 || Math.abs(dx) < Math.abs(dy) * HORIZONTAL_RATIO) {
+					start = null;
+					unlockScroll();
+					settle(true);
+					return;
+				}
+
 				swiping = true;
 				surface = document.querySelector<HTMLElement>(SURFACE);
 				if (surface) surface.style.willChange = 'transform';
-				lockScroll();
 			}
-			follow(dx);
-		}
 
-		// The only way to stop WebKit scrolling mid-gesture: `preventDefault` on a
-		// pointer event does nothing, and the listener must be non-passive or the
-		// call is ignored.
-		function onTouchMove(e: TouchEvent) {
+			// Ours from here: the list must hold still while the page is dragged
+			// aside. Not cancelable means iOS took the touch first — nothing to be
+			// done about that one, and the ratio test above is what keeps it rare.
 			if (e.cancelable) e.preventDefault();
+			follow(dx);
 		}
 
 		// Bound only while a swipe is actually in progress, and torn down the
@@ -270,6 +329,45 @@ export function useSwipeBack(
 			document.removeEventListener('touchmove', onTouchMove, true);
 		}
 
+		/**
+		 * Carries the page the rest of the way off the right edge, then
+		 * navigates.
+		 *
+		 * The gesture used to end by snapping the page home and navigating in the
+		 * same breath, which read as the screen vanishing rather than being
+		 * pushed aside. Finishing the movement is the whole point: the reveal
+		 * layer underneath already shows where you are going, so once the page
+		 * has cleared the edge the destination is simply there.
+		 *
+		 * The transform stays until `afterNavigate` clears it. Resetting it any
+		 * earlier would put the *old* page back at rest for the frames before the
+		 * new one renders.
+		 */
+		function flingOut(target: string) {
+			if (frame) {
+				cancelAnimationFrame(frame);
+				frame = 0;
+			}
+			swiping = false;
+			unlockScroll();
+			const el = surface;
+			surface = null;
+			if (!el) {
+				goBack(target, { exact: settings?.exact });
+				return;
+			}
+
+			exiting = el;
+			el.style.transition = `transform ${EXIT_MS}ms ${EXIT_EASE}`;
+			el.style.transform = `translate3d(${window.innerWidth}px, 0, 0)`;
+
+			setTimeout(() => goBack(target, { exact: settings?.exact }), EXIT_MS);
+			// A navigation that never happens — a destination equal to where we
+			// already are, say — would otherwise leave the page off-screen for
+			// good, with no way back to it.
+			setTimeout(clearExit, EXIT_RESET_MS);
+		}
+
 		function onPointerUp(e: PointerEvent) {
 			const from = start;
 			start = null;
@@ -284,11 +382,8 @@ export function useSwipeBack(
 			const flicked = dx > FLICK_MIN_PX && dx / Math.max(elapsed, 1) > FLICK_VELOCITY;
 			const commit = elapsed <= MAX_DURATION_MS && (dx > DISTANCE_PX || flicked);
 
-			// Not animated on commit: the page is being replaced, and sliding it
-			// home first would play the gesture backwards before the navigation
-			// lands.
-			settle(!commit);
-			if (commit) goBack(href, { exact: settings?.exact });
+			if (commit) flingOut(href);
+			else settle(true);
 		}
 
 		function onPointerCancel() {
@@ -297,14 +392,15 @@ export function useSwipeBack(
 			settle(true);
 		}
 
+		// No `pointermove`: the movement is read from `touchmove` instead, which is
+		// the only event where the drag can be judged and the scroll cancelled at
+		// the same moment. These three are lifecycle only.
 		const opts = { passive: true } as const;
 		document.addEventListener('pointerdown', onPointerDown, opts);
-		document.addEventListener('pointermove', onPointerMove, opts);
 		document.addEventListener('pointerup', onPointerUp, opts);
 		document.addEventListener('pointercancel', onPointerCancel, opts);
 		return () => {
 			document.removeEventListener('pointerdown', onPointerDown);
-			document.removeEventListener('pointermove', onPointerMove);
 			document.removeEventListener('pointerup', onPointerUp);
 			document.removeEventListener('pointercancel', onPointerCancel);
 			document.removeEventListener('touchmove', onTouchMove, true);

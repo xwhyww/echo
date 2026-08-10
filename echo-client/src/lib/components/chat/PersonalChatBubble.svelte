@@ -37,11 +37,16 @@
 	}
 </script>
 
+<!-- `align` and `showAvatar` are for saved messages: every message there is your
+     own, so the usual right-hand column would pin the whole conversation to one
+     edge, and the avatar beside each one would be your own face repeated down
+     the screen. -->
 <ChatBubble
 	id={msg.id}
 	content={msg.content}
 	attachments={msg.attachments}
 	authorName={msg.author.displayName ?? msg.author.username}
+	authorId={msg.authorId}
 	avatarUrl={msg.author.avatarUrl}
 	time={msg.createdAt}
 	{own}
@@ -56,6 +61,8 @@
 	currentUserId={myId ?? null}
 	{reactorLookup}
 	hideAvatar={next?.authorId === msg.authorId}
+	align={chat.isSelf ? 'start' : undefined}
+	showAvatar={!chat.isSelf}
 	selecting={selection.selecting}
 	selected={selection.has(msg.id)}
 	onselect={selection.toggle}

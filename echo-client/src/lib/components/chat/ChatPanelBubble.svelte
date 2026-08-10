@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { auth } from '$lib/stores/auth.svelte.js';
+	import { routes } from '$lib/routes.js';
 	import ChatBubble from '$lib/components/chat/ChatBubble.svelte';
 	import type { ChatMessage } from '$lib/chat/types.js';
 	import type { Attachment, ForwardedFrom } from '$lib/api/personalChats.js';
@@ -34,6 +36,14 @@
 	}
 
 	let { msg, hideAvatar, selection, reactorLookup, actions }: Props = $props();
+
+	// Group and voice chats have no mention navigation of their own — the
+	// one-to-one surface resolves the profile through `useMentionNavigation`
+	// because it also has to handle @names. Here the id is already in hand, so
+	// the profile page is a plain navigation.
+	function openUser(userId: string) {
+		goto(routes.user(userId));
+	}
 </script>
 
 <ChatBubble
@@ -45,6 +55,9 @@
 	avatarUrl={msg.author.avatarUrl}
 	time={msg.createdAt}
 	own={msg.authorId === auth.user?.id}
+	showAuthor={msg.authorId !== auth.user?.id}
+	authorId={msg.authorId}
+	onuserclick={openUser}
 	isEdited={msg.isEdited}
 	isPinned={!!msg.pinnedAt}
 	forwardedFrom={msg.forwardedFrom as ForwardedFrom | null | undefined}

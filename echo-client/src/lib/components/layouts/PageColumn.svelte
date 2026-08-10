@@ -48,6 +48,12 @@
 		   scrollport would hang below that clip by the height of the toolbars and
 		   the last screenful would stay cut off even at the end of the scroll. */
 		height: 100%;
-		overflow: auto;
+		overflow-y: auto;
+		/* Not `overflow: auto`. Anything that sticks out sideways by a pixel —
+		   a negative margin, a row that will not shrink — otherwise gives the
+		   column a horizontal scroll of its own, which on a phone shows up as the
+		   screen twitching left and right under the finger rather than as a
+		   scrollbar. A column of stacked sections has no sideways axis to offer. */
+		overflow-x: hidden;
 	}
 </style>

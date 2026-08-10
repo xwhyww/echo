@@ -23,6 +23,7 @@
 	import CallScreen from '$lib/components/call/CallScreen.svelte';
 	import { useAuthGuard } from '$lib/hooks/auth/useAuthGuard.svelte.js';
 	import { useKeyboardDismiss } from '$lib/hooks/ui/useKeyboardDismiss.svelte.js';
+	import { useBootCover } from '$lib/hooks/ui/useBootCover.svelte.js';
 	import { chatHeader } from '$lib/stores/chatHeader.svelte.js';
 	import { usePushRegistration } from '$lib/hooks/auth/usePushRegistration.svelte.js';
 	import { i18n } from '$lib/i18n/i18n.svelte.js';
@@ -31,6 +32,8 @@
 	let { children } = $props();
 
 	const guard = useAuthGuard();
+	// Takes down the black cover app.html paints over the cold start.
+	useBootCover();
 	// Outside the guard on purpose: the login code field needs it too.
 	useKeyboardDismiss();
 	// Waits for sign-in itself, then registers this install for notifications.

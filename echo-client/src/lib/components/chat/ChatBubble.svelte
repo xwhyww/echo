@@ -19,6 +19,8 @@
 		content: string;
 		attachments?: Attachment[];
 		authorName: string;
+		/** Who to open when the avatar is tapped. Without it the avatar is inert. */
+		authorId?: string | null;
 		avatarUrl?: string | null;
 		time: string;
 		own?: boolean;
@@ -26,6 +28,18 @@
 		isEdited?: boolean;
 		showAvatar?: boolean;
 		hideAvatar?: boolean;
+		/**
+		 * Which side the message sits on. Defaults to following `own`, which is
+		 * right for a conversation between two people — but not for saved
+		 * messages, where every message is your own and a column pinned to the
+		 * right edge is just a column in the wrong place.
+		 */
+		align?: 'start' | 'end';
+		/**
+		 * Names the author above the message. For group surfaces, where the
+		 * avatar alone does not say who is speaking.
+		 */
+		showAuthor?: boolean;
 		isPinned?: boolean;
 		replyToId?: string | null;
 		replyToSnapshot?: ReplyToSnapshot | null;
@@ -52,8 +66,9 @@
 	}
 
 	let {
-		id, content, attachments = [], authorName, avatarUrl, time, own = false, read = false,
-		isEdited = false, showAvatar = true, hideAvatar = false, isPinned = false, replyToId,
+		id, content, attachments = [], authorName, authorId = null, avatarUrl, time, own = false, read = false,
+		isEdited = false, showAvatar = true, hideAvatar = false, align, showAuthor = false,
+		isPinned = false, replyToId,
 		replyToSnapshot, forwardedFrom, reactions = [], currentUserId = null, reactorLookup,
 		seenBy = [], selecting = false, selected = false, onselect, onforward, ondelete, onedit,
 		onpin, onunpin, onreply, onreact, onopenemoji, onreplyjump, onmedia, onmention, onuserclick,
@@ -79,8 +94,12 @@
 	const contentProps = $derived({
 		bubble, content, attachments, authorName, time, own, read, isEdited,
 		replyToId, replyToSnapshot, forwardedFrom, reactions, currentUserId,
-		reactorLookup, onmention, onuserclick,
+		reactorLookup, onmention, onuserclick, showAuthor,
 	});
+
+	// `own` is only the default: saved messages are all your own and still belong
+	// on the left.
+	const alignEnd = $derived((align ?? (own ? 'end' : 'start')) === 'end');
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -100,6 +119,7 @@
 	<div
 		class="bubble"
 		class:own
+		class:align-end={alignEnd}
 		class:media={bubble.mediaAttachments.length > 0}
 		class:solo-photo={bubble.mediaAttachments.length === 1}
 		class:pinned={isPinned}
@@ -115,8 +135,26 @@
 		{/if}
 
 		{#if showAvatar}
+			<!-- A button only when there is someone to open: on the stacked
+			     messages the slot is kept but empty, and a target that leads
+			     nowhere would still swallow the press. `stopPropagation` because
+			     the bubble beneath opens the menu on its own presses. -->
 			<div class="avatar-slot" class:hideAvatar>
-				<Avatar name={authorName} {avatarUrl} size={22} />
+				{#if authorId && onuserclick && !hideAvatar}
+					<button
+						class="avatar-btn"
+						onclick={(e) => {
+							e.stopPropagation();
+							onuserclick(authorId);
+						}}
+						title={authorName}
+						aria-label={authorName}
+					>
+						<Avatar name={authorName} {avatarUrl} size={32} />
+					</button>
+				{:else}
+					<Avatar name={authorName} {avatarUrl} size={32} />
+				{/if}
 			</div>
 		{/if}
 
@@ -235,6 +273,15 @@
 		flex-shrink: 0;
 	}
 
+	.avatar-btn {
+		display: block;
+		padding: 0;
+		border: none;
+		background: transparent;
+		cursor: pointer;
+		border-radius: var(--radius-full);
+	}
+
 	.hideAvatar {
 		opacity: 0;
 	}
@@ -250,10 +297,27 @@
 		user-select: none;
 	}
 
+	/* Your own messages against the right edge, everyone else's against the left.
+	   `margin-left: auto` rather than `justify-content` on the row, because the
+	   row also carries the selection mark, which belongs on the left whichever
+	   side the message is on — the margin moves the bubble alone and leaves the
+	   mark where it is. */
+	.bubble.align-end {
+		margin-left: auto;
+		/* Mirrored: the avatar belongs on the outer side of the message, which for
+		   your own is the right. Reversing the row rather than reordering the
+		   markup keeps one source order for both sides — and so one reading order
+		   for a screen reader, where the author still comes before what they
+		   said. The gap between them is unaffected. */
+		flex-direction: row-reverse;
+	}
+
 	/* Undo the column alignment the bubble normally inherits from .bubble-row,
-	   and let it use the full preview width rather than 70% of it. */
+	   and let it use the full preview width rather than 70% of it. The preview is
+	   centred in the menu, so the margin above has to go too. */
 	.context-preview .bubble {
 		max-width: 100%;
+		margin-left: 0;
 	}
 
 	/* Mobile: let long messages use most of the row. */
