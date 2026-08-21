@@ -1,0 +1,73 @@
+# Single-node Loki: one process, local disk, no object store and no ring.
+# Everything here is sized for one small server holding a few weeks of logs, not
+# for a cluster.
+
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+  grpc_listen_port: 9096
+  # Loki's own logs go to the same json-file driver as everything else, and it
+  # is chatty at info. This keeps its 50MB of rotation for its own errors.
+  log_level: warn
+
+common:
+  instance_addr: 127.0.0.1
+  path_prefix: /loki
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
+  replication_factor: 1
+  ring:
+    kvstore:
+      store: inmemory
+
+schema_config:
+  configs:
+    # TSDB with the v13 schema — the only combination Loki 3 accepts for new
+    # installs. `from` is the date this index takes effect; it must be in the
+    # past, and it must not be edited once data exists under it.
+    - from: 2024-01-01
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+limits_config:
+  # The retention the compactor enforces below. Anything older is deleted.
+  retention_period: ${LOKI_RETENTION_PERIOD:-720h}
+  # Docker restarts and clock skew both produce lines that are older than the
+  # newest one already stored. Rejecting them would lose exactly the logs from
+  # the incident you are looking into.
+  reject_old_samples: false
+  # A wedged service can produce a great deal very fast. These caps stop that
+  # from filling the disk before the compactor's next run.
+  ingestion_rate_mb: 8
+  ingestion_burst_size_mb: 16
+  # Ten services on one host; the default of 10k streams would never be
+  # approached, but a label with high cardinality could. Fail loudly instead.
+  max_global_streams_per_user: 5000
+
+compactor:
+  working_directory: /loki/compactor
+  # Retention is off unless the compactor is the one enforcing it — without
+  # these two lines `retention_period` is silently ignored and the disk fills.
+  retention_enabled: true
+  delete_request_store: filesystem
+  compaction_interval: 10m
+  # How long a chunk stays on disk after it falls out of retention. Short,
+  # because the whole point of this file is to bound disk use.
+  retention_delete_delay: 2h
+
+ruler:
+  storage:
+    type: local
+    local:
+      directory: /loki/rules
+
+# No phone-home. This server is not on the public internet by choice.
+analytics:
+  reporting_enabled: false

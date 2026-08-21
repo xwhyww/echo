@@ -1,0 +1,72 @@
+# Promtail: reads container logs from the Docker daemon and pushes them to Loki.
+#
+# Discovery goes through the Docker socket rather than tailing
+# /var/lib/docker/containers/*.log directly. The files are named by container
+# ID, so the file path alone cannot tell you which service wrote a line — the
+# daemon is what knows that a container is `echo-auth-1` running the `auth`
+# service, and those are the labels worth querying by.
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+  log_level: warn
+
+positions:
+  # How far into each container's log this instance has read. On a volume, so a
+  # promtail restart resumes instead of re-shipping everything it can still see.
+  filename: /promtail/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+    # Loki being down must not cost logs that json-file still holds. Promtail
+    # keeps retrying and the positions file means it picks up where it stopped.
+    backoff_config:
+      min_period: 500ms
+      max_period: 5m
+      max_retries: 20
+
+scrape_configs:
+  - job_name: echo-containers
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 15s
+        filters:
+          # Only this stack. Anything else on the host — another project, a
+          # one-off `docker run` — is not ours to ship or to store.
+          - name: label
+            values: ["com.docker.compose.project=echo"]
+
+    relabel_configs:
+      # `service` is the compose service name (auth, gateway, postgres…), which
+      # is what the README's log recipes already talk in.
+      - source_labels: ["__meta_docker_container_label_com_docker_compose_service"]
+        target_label: service
+      # The container name disambiguates replicas of one service. Docker hands
+      # it over with a leading slash.
+      - source_labels: ["__meta_docker_container_name"]
+        regex: "/?(.*)"
+        target_label: container
+      # A constant, so a second stack shipping into the same Loki stays apart.
+      - target_label: stack
+        replacement: echo
+
+    pipeline_stages:
+      # The app services log pino JSON, one object per line. Postgres, Redis,
+      # NATS, Caddy and LiveKit do not, and a json stage that finds nothing
+      # simply passes the line through unchanged — which is why there is no
+      # per-service branching here.
+      - json:
+          expressions:
+            level: level
+            name: name
+            requestId: requestId
+      # pino levels are numbers: 30 info, 40 warn, 50 error, 60 fatal. Low
+      # cardinality, so it is safe as a label and makes `{level="50"}` cheap.
+      # `requestId` deliberately stays out of the labels — it is unique per
+      # request, and a label per request is how a Loki index is destroyed. Grep
+      # for it in the line body instead, the same way the README already does.
+      # Only what a `labels` stage names becomes a label; `name` and `requestId`
+      # are extracted purely so this list documents what a line carries. The
+      # line itself ships verbatim either way.
+      - labels:
+          level:

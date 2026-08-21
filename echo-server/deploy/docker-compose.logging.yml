@@ -1,0 +1,85 @@
+# Log shipping overlay: Loki + Promtail, so history outlives the 3×50 MB that
+# the json-file driver keeps per container.
+#
+#   cd echo-server/deploy
+#   docker compose -f docker-compose.prod.yml -f docker-compose.logging.yml up -d
+#
+# Nothing else has to change. Promtail reads the same json-file logs the
+# `logging:` block in docker-compose.prod.yml already writes, so `docker compose
+# logs` keeps working exactly as before and a Loki outage cannot lose a line
+# that json-file still holds. That is the reason this is not the Loki *logging
+# driver*: that one replaces json-file, and when the driver cannot reach Loki
+# the container's own stdout blocks or drops.
+#
+# Loki is published on loopback only. Query it through an SSH tunnel:
+#
+#   ssh -L 3100:127.0.0.1:3100 root@<server>
+#   logcli --addr=http://127.0.0.1:3100 query '{service="auth"} |= "error"'
+#   # or without logcli:
+#   curl -sG http://127.0.0.1:3100/loki/api/v1/query_range \
+#     --data-urlencode 'query={stack="echo",level="50"}' | jq .
+#
+# Publishing it any wider would be an unauthenticated read of every log line in
+# the system — `auth_enabled: false` in loki-config.yml means exactly that.
+# Grafana, if you want one, belongs behind Caddy with its own auth; it is not
+# here because it is a second thing to keep patched for a stack this size.
+#
+# Disk: retention is LOKI_RETENTION_PERIOD (30 days by default) and the
+# compactor enforces it. Loki's own index and chunks live in the `lokidata`
+# volume, which is the one thing this overlay adds to the backup surface — and
+# deliberately not something backup.sh touches. Logs are not irreplaceable.
+
+services:
+  loki:
+    restart: unless-stopped
+    image: grafana/loki:3.3.2
+    # `-config.expand-env` is what makes ${LOKI_RETENTION_PERIOD} in the config
+    # file resolve; without it Loki stores the literal string and fails to start.
+    command: ["-config.file=/etc/loki/loki-config.yml", "-config.expand-env=true"]
+    environment:
+      LOKI_RETENTION_PERIOD: ${LOKI_RETENTION_PERIOD:-720h}
+    ports:
+      # Loopback only — see the header. Without the 127.0.0.1 prefix Docker
+      # publishes to 0.0.0.0 and writes its iptables rules ahead of ufw, so the
+      # firewall would not save you.
+      - "127.0.0.1:3100:3100"
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - lokidata:/loki
+    # No healthcheck on purpose. The app services get one because a wedged Node
+    # process still reports "up" and silently swallows traffic; Loki has no
+    # traffic to swallow, and Promtail's backoff already covers it being down or
+    # slow to start. A check built on a shell tool the image may not ship would
+    # only manufacture a permanently-unhealthy container.
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  promtail:
+    restart: unless-stopped
+    image: grafana/promtail:3.3.2
+    command: ["-config.file=/etc/promtail/promtail-config.yml"]
+    volumes:
+      - ./promtail/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      - promtaildata:/promtail
+      # Read-only, and it is still the docker socket: a process that can read it
+      # can enumerate and inspect every container on the host. Promtail needs it
+      # for both halves of its job — discovering which containers exist and what
+      # service each one is, and then reading their logs through the daemon's
+      # API. There is no file mount because it never touches the log files
+      # directly; they are named by container id and carry no service name.
+      # Promtail is the only container in this stack that gets the socket.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - loki
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+volumes:
+  lokidata:
+  promtaildata:
