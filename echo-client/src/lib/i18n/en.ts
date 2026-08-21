@@ -269,6 +269,10 @@ export const en = {
 		deepFilterNetDesc: 'Deep-learning suppression that flattens non-stationary noise (mechanical keyboards, mouse clicks, distant talking) far more aggressively than RNNoise. Heavier — first use downloads ~5 MB of model + WASM and uses noticeably more CPU. Recommended if RNNoise still leaves background sounds through.',
 		vadGate: 'Voice activity gate (Silero VAD)',
 		vadGateDesc: 'Mutes your mic the instant you stop speaking, so anything between words (typing, breath, room noise) is fully silent regardless of how the suppression handles it. Loaded only when enabled. Adds a small (~30 ms) onset delay since the model needs a few frames before deciding.',
+		/** Shown under a toggle that is on and costs mouth-to-ear delay. */
+		latencyNote: (ms: number): string => `Adds about ${ms} ms before teammates hear you.`,
+		latencyTotal: (ms: number): string =>
+			`Processing adds about ${ms} ms on top of network delay. Turn options off below if conversation feels laggy.`,
 		test: {
 			title: 'Test microphone',
 			start: 'Test microphone',

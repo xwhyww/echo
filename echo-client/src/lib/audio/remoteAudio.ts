@@ -16,6 +16,28 @@ import { voiceVolumes } from '$lib/stores/voiceVolumes.svelte.js';
  * So each track gets an element that stays permanently muted (it exists only to
  * keep the decoder running) plus a MediaStreamSource on the raw track feeding a
  * GainNode. That gain is the volume slider.
+ *
+ * ## Why not LiveKit's `webAudioMix`
+ *
+ * Checked against livekit-client 2.18: `webAudioMix: true` builds the identical
+ * graph. `RemoteAudioTrack.connectWebAudio` attaches an element, sets
+ * `volume = 0` and `muted = true` on it, then runs
+ * `createMediaStreamSource → GainNode → destination` on a context it opens with
+ * `latencyHint: 'interactive'`. `setVolume()` writes that gain, so it clears
+ * 1.0 the same way ours does — needed, since `VOICE_VOLUME_MAX` is 2.0 and an
+ * element's `volume` caps at 1.
+ *
+ * Which means the "parallel graph" is not parallel and costs no extra buffer:
+ * either way there is one muted element feeding one gain node. Both paths are
+ * one WebAudio hop, so switching would trade ~165 reviewed lines carrying
+ * Chromium's decoder quirk for the same latency and a behaviour change in
+ * deafen (we pause the element to stop the decoder; the SDK only zeroes gain)
+ * and in per-share volume. Not worth it while nothing is measurably gained.
+ *
+ * The one thing the SDK does that this doesn't is honour `setSinkId` for output
+ * device selection. Echo has no output-device picker, so nothing is lost today.
+ * If one is ever added, either forward the id to `AudioContext.setSinkId`
+ * (Chrome 110+) or revisit `webAudioMix` then.
  */
 
 /** Just enough of a LiveKit audio track — keeps this module out of the SDK. */

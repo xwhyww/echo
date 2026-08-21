@@ -94,8 +94,17 @@
 	</SettingsBlock>
 
 	<div class="toggles">
+		{#if audio.addedLatencyMs > 0}
+			<p class="body-xs lh-base text-accent">{t.audio.latencyTotal(audio.addedLatencyMs)}</p>
+		{/if}
 		{#each audio.toggles as item (item.key)}
-			<SettingRow label={item.label} desc={item.desc} badge={item.badge} layout="inline">
+			<SettingRow
+				label={item.label}
+				desc={item.desc}
+				badge={item.badge}
+				note={item.note}
+				layout="inline"
+			>
 				<Switch
 					checked={audio.isOn(item.key)}
 					onchange={() => audio.toggle(item.key)}
@@ -141,6 +150,7 @@
 	.toggles {
 		display: flex;
 		flex-direction: column;
+		gap: var(--sp-1);
 		margin-top: var(--sp-2);
 	}
 </style>

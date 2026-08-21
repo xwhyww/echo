@@ -8,6 +8,7 @@ import {
 	type RemoteVideoTrack,
 	type RemoteParticipant,
 } from 'livekit-client';
+import { ROOM_OPTIONS } from '$lib/voice/roomOptions.js';
 
 // Media layer for a 1-to-1 DM call. Deliberately separate from
 // `voiceClient` (which is bound to group voice channels, per-role permissions,
@@ -108,7 +109,7 @@ export const callClient = {
 
 	async connect(url: string, token: string, opts: { video?: boolean } = {}): Promise<void> {
 		await this.disconnect();
-		const r = new Room({ adaptiveStream: true, dynacast: true });
+		const r = new Room(ROOM_OPTIONS);
 		attachListeners(r);
 		room = r;
 		connectionState = ConnectionState.Connecting;

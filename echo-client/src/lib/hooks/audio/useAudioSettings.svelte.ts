@@ -1,8 +1,31 @@
 import { microphoneSettings } from '$lib/stores/microphoneSettings.svelte.js';
+import type { MicrophoneSettings } from '$lib/stores/microphoneSettings.svelte.js';
 import { voiceVolumes } from '$lib/stores/voiceVolumes.svelte.js';
 import { i18n } from '$lib/i18n/i18n.svelte.js';
 
 const DEFAULT_DEVICE = '__default__';
+
+/**
+ * Mouth-to-ear delay each option adds when it is on, in milliseconds.
+ *
+ * These are the stage's own algorithmic cost, not measurements of a particular
+ * machine: a worklet that needs N frames before it can emit one holds the
+ * signal for N frames no matter how fast the CPU is. The browser's native DSP
+ * (suppression, echo cancellation, AGC) runs inside the capture pipeline whose
+ * buffer we already pay for, so it is listed at zero and left out of the total.
+ *
+ *   • rnnoise         — 480-sample (10 ms) frames, one frame of hold.
+ *   • deepFilterNet   — 480-sample frames plus the model's own lookahead.
+ *   • vadGate         — the model needs a few frames to call speech (~30 ms),
+ *                       then `RAMP_OPEN_S` in gate.ts spends 20 ms opening.
+ *
+ * Keep these in step with `lib/audio/{noiseSuppression,vadGate,gate}.ts`.
+ */
+const ADDED_LATENCY_MS: Partial<Record<keyof MicrophoneSettings, number>> = {
+	rnnoise: 10,
+	deepFilterNet: 40,
+	vadGate: 50,
+};
 
 /**
  * The microphone settings screen: the input-device list (which the browser only
@@ -54,16 +77,45 @@ export function useAudioSettings() {
 		})),
 	]);
 
-	// The processing chain, in the order it's applied.
-	const toggles = $derived([
-		{ key: 'noiseSuppression', label: t.audio.noiseSuppression, desc: t.audio.noiseSuppressionDesc, badge: t.audio.badges.native },
-		{ key: 'echoCancellation', label: t.audio.echoCancellation, desc: t.audio.echoCancellationDesc, badge: t.audio.badges.native },
-		{ key: 'autoGainControl', label: t.audio.autoGainControl, desc: t.audio.autoGainControlDesc, badge: t.audio.badges.native },
-		{ key: 'loudnessLimit', label: t.audio.loudnessLimit, desc: t.audio.loudnessLimitDesc, badge: undefined },
-		{ key: 'rnnoise', label: t.audio.rnnoise, desc: t.audio.rnnoiseDesc, badge: t.audio.badges.beta },
-		{ key: 'deepFilterNet', label: t.audio.deepFilterNet, desc: t.audio.deepFilterNetDesc, badge: t.audio.badges.ai },
-		{ key: 'vadGate', label: t.audio.vadGate, desc: t.audio.vadGateDesc, badge: t.audio.badges.ai },
-	] satisfies { key: keyof typeof settings; label: string; desc: string; badge: string | undefined }[]);
+	// The processing chain, in the order it's applied. `satisfies` rather than a
+	// type annotation so `key` keeps its literal type and can index the settings.
+	const toggles = $derived(
+		(
+			[
+				{ key: 'noiseSuppression', label: t.audio.noiseSuppression, desc: t.audio.noiseSuppressionDesc, badge: t.audio.badges.native },
+				{ key: 'echoCancellation', label: t.audio.echoCancellation, desc: t.audio.echoCancellationDesc, badge: t.audio.badges.native },
+				{ key: 'autoGainControl', label: t.audio.autoGainControl, desc: t.audio.autoGainControlDesc, badge: t.audio.badges.native },
+				{ key: 'loudnessLimit', label: t.audio.loudnessLimit, desc: t.audio.loudnessLimitDesc, badge: undefined },
+				{ key: 'rnnoise', label: t.audio.rnnoise, desc: t.audio.rnnoiseDesc, badge: t.audio.badges.beta },
+				{ key: 'deepFilterNet', label: t.audio.deepFilterNet, desc: t.audio.deepFilterNetDesc, badge: t.audio.badges.ai },
+				{ key: 'vadGate', label: t.audio.vadGate, desc: t.audio.vadGateDesc, badge: t.audio.badges.ai },
+			] satisfies { key: keyof MicrophoneSettings; label: string; desc: string; badge: string | undefined }[]
+		).map((item) => {
+			// The note describes what the option is costing *now*, so it appears
+			// only while the stage is actually in the pipeline. An off option costs
+			// nothing, and a note on every row would just be noise.
+			const cost = isActive(item.key) ? (ADDED_LATENCY_MS[item.key] ?? 0) : 0;
+			return { ...item, note: cost > 0 ? t.audio.latencyNote(cost) : undefined };
+		}),
+	);
+
+	const addedLatencyMs = $derived(
+		(Object.keys(ADDED_LATENCY_MS) as (keyof MicrophoneSettings)[])
+			.filter(isActive)
+			.reduce((sum, key) => sum + (ADDED_LATENCY_MS[key] ?? 0), 0),
+	);
+
+	/**
+	 * Whether a stage is switched on *and* reaches the pipeline. RNNoise is on
+	 * but inert whenever DeepFilterNet is on, because `captureMic` picks one of
+	 * the two — charging for both would overstate the delay by exactly the stage
+	 * that never runs.
+	 */
+	function isActive(key: keyof MicrophoneSettings): boolean {
+		if (settings[key] !== true) return false;
+		if (key === 'rnnoise' && settings.deepFilterNet) return false;
+		return true;
+	}
 
 	const micGainPercent = $derived(Math.round(voiceVolumes.micGain * 100));
 
@@ -74,6 +126,7 @@ export function useAudioSettings() {
 		get labelsHidden() { return !labelsAvailable && inputs.length > 0; },
 		get inputsError() { return inputsError; },
 		get toggles() { return toggles; },
+		get addedLatencyMs() { return addedLatencyMs; },
 		get micGain() { return voiceVolumes.micGain; },
 		get micGainPercent() { return micGainPercent; },
 

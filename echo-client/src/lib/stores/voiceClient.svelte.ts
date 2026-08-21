@@ -18,6 +18,7 @@ import { call } from '$lib/stores/call.svelte.js';
 import { playVoiceJoin, playVoiceLeave } from '$lib/utils/sounds.js';
 import { createVoiceAudioState } from '$lib/voice/audioState.svelte.js';
 import { createScreenShare, type ScreenShareSurface } from '$lib/voice/screenShare.svelte.js';
+import { ROOM_OPTIONS } from '$lib/voice/roomOptions.js';
 import {
 	snapshotParticipants,
 	snapshotScreenShares,
@@ -236,10 +237,7 @@ export const voiceClient = {
 		const { url, token, channel, canShare: granted } = await voiceService.join(channelId);
 		canShare = granted;
 
-		const r = new Room({
-			adaptiveStream: true,
-			dynacast: true,
-		});
+		const r = new Room(ROOM_OPTIONS);
 		attachListeners(r);
 		room = r;
 		connectionState = ConnectionState.Connecting;

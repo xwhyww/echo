@@ -10,6 +10,12 @@
 		/** Short qualifier beside the label — "Native", "Beta", "AI". */
 		badge?: string;
 		/**
+		 * A consequence of the setting's *current* value, as opposed to `desc`,
+		 * which explains the setting itself. Callers pass it only while it
+		 * applies — e.g. the latency an option costs once it is switched on.
+		 */
+		note?: string;
+		/**
 		 * `stacked` puts the control under the description, for wide controls like
 		 * a segmented picker. `inline` keeps it at the end of the row, for a switch.
 		 */
@@ -17,7 +23,7 @@
 		children: Snippet;
 	}
 
-	let { label, desc, badge, layout = 'stacked', children }: Props = $props();
+	let { label, desc, badge, note, layout = 'stacked', children }: Props = $props();
 </script>
 
 <div class="setting-row setting-row-{layout}">
@@ -30,6 +36,9 @@
 		</div>
 		{#if desc}
 			<span class="body-xs lh-base text-faint">{desc}</span>
+		{/if}
+		{#if note}
+			<span class="setting-row-note body-xs lh-base text-accent">{note}</span>
 		{/if}
 	</div>
 	{@render children()}
@@ -74,6 +83,10 @@
 		display: flex;
 		align-items: center;
 		gap: var(--sp-2);
+	}
+
+	.setting-row-note {
+		margin-top: var(--sp-1);
 	}
 
 	.setting-row-badge {
