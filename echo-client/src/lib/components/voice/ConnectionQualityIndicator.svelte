@@ -10,6 +10,16 @@
 	const loss = $derived(voiceClient.packetLossPercent);
 	const jitter = $derived(voiceClient.jitterMs);
 
+	// 'UDP · host' / 'TCP · host'. TCP here means ICE fell back to LiveKit's
+	// TCP port, which inflates the ping above and makes audio bursty — worth
+	// seeing, because the number alone looks like a slow network.
+	const transport = $derived.by(() => {
+		const proto = voiceClient.transport;
+		if (!proto) return null;
+		const kind = voiceClient.candidateType;
+		return kind ? `${proto.toUpperCase()} · ${kind}` : proto.toUpperCase();
+	});
+
 	const meta = $derived(qualityMeta(voiceClient.connectionQuality, t));
 
 	// Hover with a small open delay so a mouse passing over the bars on the way
@@ -20,10 +30,10 @@
 	const CLOSE_DELAY_MS = 120;
 
 	// Conservative size estimates used for placement. The real popover is about
-	// 200×130 with `padding: var(--sp-3)`; we round up so a slightly larger
+	// 200×150 with `padding: var(--sp-3)`; we round up so a slightly larger
 	// rendered box still fits inside the chosen quadrant.
 	const POPOVER_W = 220;
-	const POPOVER_H = 150;
+	const POPOVER_H = 172;
 	const VIEWPORT_MARGIN = 8;
 
 	let open = $state(false);
@@ -117,6 +127,10 @@
 				<div class="row body-xs">
 					<dt class="text-faint">{t.voice.quality.jitter}</dt>
 					<dd class="text-default">{jitter !== null ? `${jitter} ms` : '—'}</dd>
+				</div>
+				<div class="row body-xs">
+					<dt class="text-faint">{t.voice.quality.transport}</dt>
+					<dd class="text-default">{transport ?? '—'}</dd>
 				</div>
 			</dl>
 			<p class="popover-foot body-xxs text-faint">{t.voice.quality.roundTrip}</p>

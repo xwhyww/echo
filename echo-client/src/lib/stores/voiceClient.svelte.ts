@@ -91,7 +91,6 @@ const screenShare = createScreenShare({
 // one of these: read the room back out into the arrays the UI renders.
 function refreshParticipants() {
 	participants = snapshotParticipants(room, speakingIds, audio.muted);
-	console.log(333, participants);
 }
 
 function refreshShares() {
@@ -203,6 +202,12 @@ export const voiceClient = {
 	},
 	get jitterMs() {
 		return voiceStats.jitterMs;
+	},
+	get transport() {
+		return voiceStats.transport;
+	},
+	get candidateType() {
+		return voiceStats.candidateType;
 	},
 	get isScreenSharing() {
 		return screenShare.isSharing;

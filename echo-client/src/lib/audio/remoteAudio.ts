@@ -51,7 +51,10 @@ function ensureCtx(): AudioContext {
 	const Ctx =
 		window.AudioContext ||
 		(window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-	ctx = new Ctx();
+	// Playback rides on top of the WebRTC jitter buffer, so whatever this
+	// context buffers is added to the delay a listener actually hears. Ask for
+	// the smallest buffer the platform will give us.
+	ctx = new Ctx({ latencyHint: 'interactive' });
 	if (ctx.state === 'suspended') ctx.resume().catch(() => {});
 	return ctx;
 }

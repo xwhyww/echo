@@ -81,7 +81,14 @@ export async function captureMic(settings: ProcessingSettings): Promise<MicCaptu
 	const Ctx =
 		window.AudioContext ||
 		(window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-	const audioCtx = useAiSuppression ? new Ctx({ sampleRate: 48000 }) : new Ctx();
+	// `latencyHint: 'interactive'` is nominally the default, but only when the
+	// option object is absent — several platforms fall back to a much larger
+	// buffer once any option is passed, and Chromium on Windows picks a
+	// conservative WASAPI buffer either way. Saying it out loud costs nothing
+	// and keeps a conversation from gaining 20-40 ms it never needed.
+	const audioCtx = useAiSuppression
+		? new Ctx({ sampleRate: 48000, latencyHint: 'interactive' })
+		: new Ctx({ latencyHint: 'interactive' });
 	const source = audioCtx.createMediaStreamSource(rawStream);
 
 	const chainNodes: AudioNode[] = [];

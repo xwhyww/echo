@@ -9,10 +9,17 @@ import { ConnectionQuality, type Room } from 'livekit-client';
 
 const POLL_INTERVAL_MS = 3000;
 
+/** ICE transport of the nominated pair: 'udp' | 'tcp' (or 'ssltcp'/'tls'). */
+export type IceTransport = string;
+/** ICE candidate type: 'host' | 'srflx' | 'prflx' | 'relay'. */
+export type IceCandidateType = string;
+
 let quality = $state<ConnectionQuality>(ConnectionQuality.Unknown);
 let latencyMs = $state<number | null>(null);
 let packetLossPercent = $state<number | null>(null);
 let jitterMs = $state<number | null>(null);
+let transport = $state<IceTransport | null>(null);
+let candidateType = $state<IceCandidateType | null>(null);
 
 let timer: ReturnType<typeof setInterval> | null = null;
 /** Cumulative counters from the last sample, used to compute deltas. */
@@ -40,6 +47,7 @@ async function sample(r: Room): Promise<void> {
 	}
 
 	let rttSec: number | null = null;
+	let localCandidateId: string | null = null;
 	let packetsSent = 0;
 	let packetsLost = 0;
 	let jitterSum = 0;
@@ -48,6 +56,12 @@ async function sample(r: Room): Promise<void> {
 	report.forEach((stat: any) => {
 		if (stat.type === 'candidate-pair' && stat.state === 'succeeded' && stat.nominated) {
 			if (typeof stat.currentRoundTripTime === 'number') rttSec = stat.currentRoundTripTime;
+			// Which candidate won matters as much as the number beside it: a pair
+			// that fell back to LiveKit's TCP port reads far higher than the path
+			// really is, because the RTT is measured over TCP-wrapped STUN and
+			// carries Nagle and retransmits with it. Without this the readout
+			// cannot tell a slow network from a blocked UDP range.
+			if (typeof stat.localCandidateId === 'string') localCandidateId = stat.localCandidateId;
 		}
 		// Outbound: how many audio packets we sent. Loss is reported back to us
 		// via remote-inbound-rtp — the receiver tells us what they missed.
@@ -64,6 +78,17 @@ async function sample(r: Room): Promise<void> {
 	});
 
 	if (rttSec !== null) latencyMs = Math.round(rttSec * 1000);
+
+	if (localCandidateId) {
+		// `relayProtocol` is set only on relay candidates and names the transport
+		// to the TURN server, which is the one that actually costs latency there.
+		const local = report.get(localCandidateId) as any;
+		if (local) {
+			transport = local.relayProtocol ?? local.protocol ?? null;
+			candidateType = local.candidateType ?? null;
+		}
+	}
+
 	if (jitterCount > 0) jitterMs = Math.round((jitterSum / jitterCount) * 1000);
 
 	if (lastSample) {
@@ -83,6 +108,8 @@ export const voiceStats = {
 	get latencyMs() { return latencyMs; },
 	get packetLossPercent() { return packetLossPercent; },
 	get jitterMs() { return jitterMs; },
+	get transport() { return transport; },
+	get candidateType() { return candidateType; },
 
 	start(r: Room): void {
 		voiceStats.stop();
@@ -103,6 +130,8 @@ export const voiceStats = {
 		latencyMs = null;
 		packetLossPercent = null;
 		jitterMs = null;
+		transport = null;
+		candidateType = null;
 		quality = ConnectionQuality.Unknown;
 	},
 };
