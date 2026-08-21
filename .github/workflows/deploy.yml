@@ -160,6 +160,153 @@ jobs:
             client-dist/ \
             "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/echo-server/deploy/client-dist/"
 
+      # The stack's whole configuration, rendered from repository variables and
+      # production environment secrets. The server's .env is an output of this
+      # workflow now, not a file anybody edits in place — an edit there lasts
+      # exactly until the next deploy.
+      #
+      # Values never reach the log: the runner masks every secret, and the
+      # summary below compares hashes so it can name which keys changed without
+      # printing what they changed to.
+      #
+      # Split along the blast radius: anything that would appear in a log or be
+      # shipped to a browser anyway is a repository variable, and every
+      # credential is an *environment* secret on `production` — so a workflow
+      # running on some other branch cannot read it even if someone can push
+      # that branch.
+      - name: Render the server's .env
+        env:
+          # ── public: domains, endpoints, switches ──────────────────────
+          APP_DOMAIN: ${{ vars.APP_DOMAIN }}
+          API_DOMAIN: ${{ vars.API_DOMAIN }}
+          WS_DOMAIN: ${{ vars.WS_DOMAIN }}
+          LIVE_DOMAIN: ${{ vars.LIVE_DOMAIN }}
+          ACME_EMAIL: ${{ vars.ACME_EMAIL }}
+          ALLOWED_ORIGINS: ${{ vars.ALLOWED_ORIGINS }}
+          POSTGRES_USER: ${{ vars.POSTGRES_USER }}
+          LOG_LEVEL: ${{ vars.LOG_LEVEL }}
+          S3_BUCKET: ${{ vars.S3_BUCKET }}
+          S3_ENDPOINT: ${{ vars.S3_ENDPOINT }}
+          S3_REGION: ${{ vars.S3_REGION }}
+          S3_FORCE_PATH_STYLE: ${{ vars.S3_FORCE_PATH_STYLE }}
+          SMS_DRIVER: ${{ vars.SMS_DRIVER }}
+          SMS_FALLBACK_DRIVER: ${{ vars.SMS_FALLBACK_DRIVER }}
+          SMS_TEMPLATE: ${{ vars.SMS_TEMPLATE }}
+          TELEGRAM_GATEWAY_BASE_URL: ${{ vars.TELEGRAM_GATEWAY_BASE_URL }}
+          AUTH_TEST_ENABLED: ${{ vars.AUTH_TEST_ENABLED }}
+          AUTH_TEST_PHONES: ${{ vars.AUTH_TEST_PHONES }}
+          PUSH_MESSAGE_PREVIEW: ${{ vars.PUSH_MESSAGE_PREVIEW }}
+          RATE_LIMIT_GLOBAL_PER_MINUTE: ${{ vars.RATE_LIMIT_GLOBAL_PER_MINUTE }}
+          RATE_LIMIT_OTP_REQUESTS: ${{ vars.RATE_LIMIT_OTP_REQUESTS }}
+          LOKI_RETENTION_PERIOD: ${{ vars.LOKI_RETENTION_PERIOD }}
+          APNS_KEY_PATH: ${{ vars.APNS_KEY_PATH }}
+          APNS_KEY_ID: ${{ vars.APNS_KEY_ID }}
+          APNS_TEAM_ID: ${{ vars.APNS_TEAM_ID }}
+          APNS_BUNDLE_ID: ${{ vars.APNS_BUNDLE_ID }}
+          FCM_SERVICE_ACCOUNT_PATH: ${{ vars.FCM_SERVICE_ACCOUNT_PATH }}
+          # ── credentials ──────────────────────────────────────────────
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          INTERNAL_API_KEY: ${{ secrets.INTERNAL_API_KEY }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          MESSAGE_ENCRYPTION_KEY: ${{ secrets.MESSAGE_ENCRYPTION_KEY }}
+          MESSAGE_ENCRYPTION_CURRENT_KEY_ID: ${{ secrets.MESSAGE_ENCRYPTION_CURRENT_KEY_ID }}
+          LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
+          LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
+          S3_ACCESS_KEY: ${{ secrets.S3_ACCESS_KEY }}
+          S3_SECRET_KEY: ${{ secrets.S3_SECRET_KEY }}
+          TELEGRAM_GATEWAY_TOKEN: ${{ secrets.TELEGRAM_GATEWAY_TOKEN }}
+          SMSC_LOGIN: ${{ secrets.SMSC_LOGIN }}
+          SMSC_PASSWORD: ${{ secrets.SMSC_PASSWORD }}
+          SMSC_SENDER: ${{ secrets.SMSC_SENDER }}
+          AUTH_TEST_CODE: ${{ secrets.AUTH_TEST_CODE }}
+          # ── where to put it ──────────────────────────────────────────
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ vars.DEPLOY_PORT || '22' }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/root/echo' }}
+        run: |
+          set -euo pipefail
+
+          # Everything docker-compose.prod.yml marks `:?`. Compose refuses to
+          # start without them anyway — but it would refuse *after* this step had
+          # already replaced a working file, and for MESSAGE_ENCRYPTION_KEY the
+          # cost of writing a wrong value is every stored message becoming
+          # unreadable. So the check is here, before anything is written.
+          REQUIRED="ACME_EMAIL ALLOWED_ORIGINS API_DOMAIN APP_DOMAIN INTERNAL_API_KEY
+                    JWT_SECRET LIVEKIT_API_KEY LIVEKIT_API_SECRET LIVE_DOMAIN
+                    MESSAGE_ENCRYPTION_KEY POSTGRES_PASSWORD WS_DOMAIN"
+          missing=
+          for name in $REQUIRED; do
+            [ -n "${!name:-}" ] || missing="$missing $name"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::refusing to write .env — these are empty:$missing"
+            exit 1
+          fi
+
+          # The rest may be empty. Every one of them is read by compose as
+          # ${VAR:-default}, where empty and absent mean the same thing.
+          KEYS="APP_DOMAIN API_DOMAIN WS_DOMAIN LIVE_DOMAIN ACME_EMAIL ALLOWED_ORIGINS
+                JWT_SECRET INTERNAL_API_KEY
+                POSTGRES_USER POSTGRES_PASSWORD
+                MESSAGE_ENCRYPTION_KEY MESSAGE_ENCRYPTION_CURRENT_KEY_ID
+                LIVEKIT_API_KEY LIVEKIT_API_SECRET
+                S3_BUCKET S3_ACCESS_KEY S3_SECRET_KEY S3_ENDPOINT S3_REGION S3_FORCE_PATH_STYLE
+                SMS_DRIVER SMS_FALLBACK_DRIVER SMS_TEMPLATE
+                TELEGRAM_GATEWAY_TOKEN TELEGRAM_GATEWAY_BASE_URL
+                SMSC_LOGIN SMSC_PASSWORD SMSC_SENDER
+                AUTH_TEST_ENABLED AUTH_TEST_PHONES AUTH_TEST_CODE
+                PUSH_MESSAGE_PREVIEW
+                RATE_LIMIT_GLOBAL_PER_MINUTE RATE_LIMIT_OTP_REQUESTS
+                APNS_KEY_PATH APNS_KEY_ID APNS_TEAM_ID APNS_BUNDLE_ID
+                FCM_SERVICE_ACCOUNT_PATH
+                LOKI_RETENTION_PERIOD
+                LOG_LEVEL"
+
+          {
+            echo "# Generated by .github/workflows/deploy.yml on every deploy."
+            echo "# Editing this file on the server lasts until the next one —"
+            echo "# change the repository variable or the production secret instead."
+            for name in $KEYS; do
+              printf '%s=%s\n' "$name" "${!name:-}"
+            done
+          } > env.rendered
+
+          ssh -i ~/.ssh/id_deploy -p "$DEPLOY_PORT" -o IdentitiesOnly=yes \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "umask 077; cat > '$DEPLOY_PATH/echo-server/deploy/.env.new'" < env.rendered
+
+          ssh -i ~/.ssh/id_deploy -p "$DEPLOY_PORT" -o IdentitiesOnly=yes \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "DEPLOY_PATH='$DEPLOY_PATH' bash -s" <<'REMOTE'
+          set -euo pipefail
+          cd "$DEPLOY_PATH/echo-server/deploy"
+
+          # KEY plus a short hash of its value, so the diff below can name the
+          # keys that moved without ever printing what they moved to.
+          fingerprint() {
+            grep -E '^[A-Za-z_][A-Za-z0-9_]*=' "$1" | while IFS= read -r line; do
+              printf '%s %s\n' "${line%%=*}" "$(printf '%s' "${line#*=}" | sha256sum | cut -c1-12)"
+            done | sort
+          }
+
+          if [ -f .env ] && cmp -s .env .env.new; then
+            echo ".env unchanged"
+            rm -f .env.new
+          else
+            if [ -f .env ]; then
+              changed=$(comm -3 <(fingerprint .env) <(fingerprint .env.new) \
+                        | awk '{print $1}' | sort -u | tr '\n' ' ')
+              echo "changed keys: ${changed:-(formatting only)}"
+              cp -p .env .env.bak
+            else
+              echo "writing .env for the first time"
+            fi
+            chmod 600 .env.new
+            mv .env.new .env
+          fi
+          REMOTE
+
       # Caddy reads client-dist per request, so the client is already live at
       # this point. The services follow.
       #

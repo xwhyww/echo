@@ -98,6 +98,8 @@ none of this applies.
 git clone <repo> && cd echo/echo-server/deploy
 cp .env.prod.example .env
 $EDITOR .env          # domains + every secret; the file says how to generate each
+                      # (deploying through GitHub instead? .env is generated —
+                      #  see "Deploying from GitHub" below)
 
 docker compose -f docker-compose.prod.yml up -d --build
 ```
@@ -178,32 +180,64 @@ ssh-keyscan -H <server-ip>        # goes into DEPLOY_KNOWN_HOSTS
 Deploying as `root` is what this stack already assumes; a less privileged user
 works as well, provided it is in the `docker` group and owns the clone.
 
-### Secrets
+### Configuration lives in the repository, not on the server
+
+`deploy/.env` is **generated on every deploy** from repository variables and
+`production` environment secrets. Editing it on the server lasts until the next
+deploy; change the variable or the secret instead.
+
+The split follows the blast radius. Anything that ends up in a log or in the
+JavaScript a browser downloads is a **variable** — hiding it would only make the
+workflow harder to read. Every credential is an **environment secret on
+`production`**, which a workflow running on another branch cannot read even if
+someone can push that branch.
 
 ```bash
-gh secret set DEPLOY_HOST        # 203.0.113.10
-gh secret set DEPLOY_USER        # root
-gh secret set DEPLOY_SSH_KEY     < ~/.ssh/echo-deploy
-gh secret set DEPLOY_KNOWN_HOSTS # output of ssh-keyscan -H <server-ip>
+# Credentials — environment secrets, note the --env flag.
+for k in JWT_SECRET INTERNAL_API_KEY POSTGRES_PASSWORD MESSAGE_ENCRYPTION_KEY          LIVEKIT_API_KEY LIVEKIT_API_SECRET S3_ACCESS_KEY S3_SECRET_KEY          TELEGRAM_GATEWAY_TOKEN; do gh secret set "$k" --env production; done
+
+# Public configuration — repository variables.
+for k in APP_DOMAIN API_DOMAIN WS_DOMAIN LIVE_DOMAIN ACME_EMAIL ALLOWED_ORIGINS          POSTGRES_USER LOG_LEVEL S3_BUCKET S3_ENDPOINT S3_REGION          S3_FORCE_PATH_STYLE SMS_DRIVER SMS_TEMPLATE          TELEGRAM_GATEWAY_BASE_URL; do gh variable set "$k"; done
 ```
+
+Optional, and empty unless you set them — compose reads each as
+`${VAR:-default}`, so empty and absent mean the same thing:
+`MESSAGE_ENCRYPTION_CURRENT_KEY_ID`, `SMSC_LOGIN`, `SMSC_PASSWORD`,
+`SMSC_SENDER`, `AUTH_TEST_CODE` (secrets); `SMS_FALLBACK_DRIVER`,
+`AUTH_TEST_ENABLED`, `AUTH_TEST_PHONES`, `PUSH_MESSAGE_PREVIEW`,
+`RATE_LIMIT_GLOBAL_PER_MINUTE`, `RATE_LIMIT_OTP_REQUESTS`, `APNS_KEY_PATH`,
+`APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_BUNDLE_ID`, `FCM_SERVICE_ACCOUNT_PATH`,
+`LOKI_RETENTION_PERIOD` (variables).
+
+Twelve of them are not optional — the ones `docker-compose.prod.yml` marks
+`:?`. The render step refuses to write `.env` at all if any is empty, rather
+than letting compose discover it after a working file has been replaced. For
+`MESSAGE_ENCRYPTION_KEY` that distinction is the difference between a failed
+deploy and every stored message becoming unreadable.
+
+Each deploy keeps the file it replaced as `.env.bak`, and prints which keys
+changed — by name only, comparing hashes, so no value reaches the log.
+
+**Two things are still files on the server, not secrets**, because they are
+credentials on disk that a container mounts: `deploy/apns/*.p8` and
+`deploy/fcm/*.json`. The deploy does not touch them.
+
+### The deploy's own access
+
+```bash
+gh secret set DEPLOY_HOST         # 203.0.113.10
+gh secret set DEPLOY_USER         # root
+gh secret set DEPLOY_SSH_KEY      < ~/.ssh/echo-deploy
+gh secret set DEPLOY_KNOWN_HOSTS  # output of ssh-keyscan -H <server-ip>
+```
+
+These stay **repository** secrets rather than environment ones: the job needs
+them before it reaches the environment-gated steps.
 
 `DEPLOY_KNOWN_HOSTS` is optional and worth setting. Without it each run accepts
 whatever host key answers on the address, because every run starts on a machine
 that has never seen the server before — trust on first use, thirty times a
 month. With it, the key is checked against a value you put there.
-
-### Variables
-
-Not secrets, and deliberately: the two `VITE_` values are inlined into the
-JavaScript every visitor downloads, and the domains are in DNS. Hiding them
-would only make the workflow harder to read.
-
-```bash
-gh variable set VITE_API_URL  # https://api.example.com
-gh variable set VITE_WS_URL   # wss://ws.example.com/ws
-gh variable set APP_DOMAIN    # app.example.com — the deploy's link in the UI
-gh variable set API_DOMAIN    # api.example.com — where the health check looks
-```
 
 Three more have working defaults and only need setting if yours differ:
 `DEPLOY_PATH` (`/root/echo`), `DEPLOY_PORT` (`22`), and
@@ -220,14 +254,16 @@ torn down on the next deploy).
    a directory that looks fine.
 3. Uploads it. Caddy reads the directory per request, so the new client is live
    from this moment; the API it talks to is still the old one for a minute.
-4. `git fetch` and `git reset --hard <sha>` — not `git pull`, because the
+4. Renders `.env` from the variables and secrets, keeping the previous one as
+   `.env.bak`, and refuses to write anything if a required value is empty.
+5. `git fetch` and `git reset --hard <sha>` — not `git pull`, because the
    answer to "someone edited a file on the server" is that this commit is the
    truth, not a merge conflict at 3am. Untracked files are left alone, so
    `.env`, the APNs key and the FCM credentials stay where they are.
-5. `docker compose up -d --build`, then `docker image prune -f`. Migrations run
+6. `docker compose up -d --build`, then `docker image prune -f`. Migrations run
    on container boot as always, so there is no separate step and no window where
    the code is new and the schema is not.
-6. Polls `https://$API_DOMAIN/health` for up to five minutes. `docker compose up`
+7. Polls `https://$API_DOMAIN/health` for up to five minutes. `docker compose up`
    returns long before a Node service has migrated and started listening, so
    without this a broken deploy would finish green. If it never answers, the run
    fails and prints `docker compose ps` and the last fifty log lines.
