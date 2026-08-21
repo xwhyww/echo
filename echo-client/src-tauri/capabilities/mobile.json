@@ -1,0 +1,11 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "mobile",
+  "description": "Permissions for plugins that only exist on a phone.",
+  "//": "Separate from default.json because tauri-plugin-haptics is a mobile-only dependency in Cargo.toml. Listed unconditionally, its permission cannot be resolved for a desktop target and `cargo check`/`npm run desktop` fail before anything is compiled. `platforms` is what makes the capability itself conditional.",
+  "platforms": ["android", "iOS"],
+  "windows": ["main"],
+  "permissions": [
+    "haptics:allow-impact-feedback"
+  ]
+}

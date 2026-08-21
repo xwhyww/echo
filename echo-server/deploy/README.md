@@ -201,13 +201,53 @@ point Promtail at the Docker socket.
 
 Two things are irreplaceable:
 
-- **Postgres** — `docker compose -f docker-compose.prod.yml exec postgres
-  pg_dumpall -U echo | gzip > echo-$(date +%F).sql.gz`, off the server.
+- **Postgres** — `./backup.sh` writes a gzipped `pg_dumpall` into `./backups`
+  and rotates anything older than `KEEP_DAYS` (14 by default). Install it as a
+  cron job:
+
+  ```
+  0 3 * * * cd /root/echo/echo-server/deploy && ./backup.sh >> /var/log/echo-backup.log 2>&1
+  ```
+
+  It deliberately stops at writing the file. **A backup that lives on the
+  machine it is backing up is not a backup** — it survives a dropped table and
+  nothing else. Add a copy step to somewhere else: another host over rsync, an
+  object store, a provider snapshot.
+
 - **`MESSAGE_ENCRYPTION_KEY`** — without it every stored message is
-  unreadable, dump or no dump. It is not in the database on purpose.
+  unreadable, dump or no dump. It is not in the database on purpose, and the
+  backup script does not touch it. Since it now covers personal chats, groups
+  *and* voice-channel chats, losing it loses every conversation in the system.
+  Keep it in two places that are neither this server nor this repository.
 
 Blobs live in Yandex Object Storage; enable versioning on the bucket there
 rather than backing them up by hand.
+
+## Is it up?
+
+Every app service has a Docker healthcheck that polls its own `/health`.
+`restart: unless-stopped` alone only notices a process that *exited*; a Node
+service that is alive but no longer answering would otherwise sit there as "up"
+forever, taking its share of the traffic with it.
+
+```bash
+./health.sh            # one line per container
+./health.sh --quiet    # only failures — what cron wants
+docker compose -f docker-compose.prod.yml ps   # the same state, Docker's own view
+```
+
+Note what a healthcheck does and does not do: Docker marks the container
+unhealthy, it does not restart it. Something has to watch — cron plus the line
+below is the cheapest version, and its silence is the signal:
+
+```
+*/5 * * * * cd /root/echo/echo-server/deploy && ./health.sh --quiet
+```
+
+Logs are capped at 3×50MB per container so they cannot fill the disk and take
+Postgres down. That cap is also the retention: anything older is gone. Shipping
+them somewhere (Loki + Promtail, or the provider's own log service) is the next
+step if you want to be able to look back further than a few days.
 
 ## Things that will bite you
 

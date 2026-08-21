@@ -27,6 +27,28 @@ x-app: &app
   <<: *service
   build:
     context: ..
+  # `restart: unless-stopped` only notices a process that exited. A Node service
+  # that is alive but no longer answering — a wedged event loop, a lost database
+  # pool it never recovers from — stays "up" forever and takes its traffic with
+  # it. This is what makes that visible, and what lets `docker compose ps` and
+  # any external monitor agree on what "healthy" means.
+  #
+  # `node -e` rather than curl or wget: node is the one thing guaranteed to be
+  # in the image, and its exit code is the whole result. Every service listens
+  # on its own PORT, which is why the URL is built at runtime rather than pinned
+  # here.
+  healthcheck:
+    test:
+      - CMD
+      - node
+      - -e
+      - "fetch('http://127.0.0.1:'+process.env.PORT+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+    interval: 30s
+    timeout: 5s
+    # Generous: the first run of a container also applies its migrations before
+    # the server starts listening.
+    start_period: 60s
+    retries: 3
   environment: &app-env
     NODE_ENV: production
     LOG_LEVEL: ${LOG_LEVEL:-info}
@@ -155,6 +177,8 @@ services:
       GROUPS_SERVICE_URL: http://groups:3007
       VOICE_SERVICE_URL: http://voice:3008
       PUSH_SERVICE_URL: http://push:3009
+      RATE_LIMIT_OTP_REQUESTS: ${RATE_LIMIT_OTP_REQUESTS:-10}
+      RATE_LIMIT_GLOBAL_PER_MINUTE: ${RATE_LIMIT_GLOBAL_PER_MINUTE:-600}
       # Handed to clients by GET /ws-info, so it must be the public wss:// URL.
       WS_GATEWAY_URL: wss://${WS_DOMAIN}
     depends_on: [auth, user, pers-chats, friends, ws-gateway, blobs, groups, voice, push]
@@ -182,10 +206,14 @@ services:
       TELEGRAM_GATEWAY_TOKEN: ${TELEGRAM_GATEWAY_TOKEN:-}
       TELEGRAM_GATEWAY_BASE_URL: ${TELEGRAM_GATEWAY_BASE_URL:-}
       # Test accounts — phones that sign in with a fixed code and send no
-      # message. On in production on purpose (store reviewers, end-to-end
+      # message. Allowed in production on purpose (store reviewers, end-to-end
       # tests); AUTH_TEST_ENABLED=false is the off switch. Leaving the phone
       # list blank means the defaults in auth-service/src/config.ts, which is
       # why clearing it is not how you disable this.
+      #
+      # AUTH_TEST_CODE has no default in production. Unset means test sign-in
+      # stays off — the numbers are public in that config file, so a default
+      # code would be nine accounts anyone could walk into.
       AUTH_TEST_ENABLED: ${AUTH_TEST_ENABLED:-}
       AUTH_TEST_PHONES: ${AUTH_TEST_PHONES:-}
       AUTH_TEST_CODE: ${AUTH_TEST_CODE:-}
@@ -307,6 +335,9 @@ services:
       USER_SERVICE_URL: http://user:3002
       FRIENDS_SERVICE_URL: http://friends:3005
       BLOB_SERVICE_URL: http://blobs:3006
+      # Group messages are encrypted at rest under the same key as personal
+      # ones. Losing it loses both — back it up off this server.
+      MESSAGE_ENCRYPTION_KEY: ${MESSAGE_ENCRYPTION_KEY:?set MESSAGE_ENCRYPTION_KEY in .env}
     depends_on:
       postgres: { condition: service_healthy }
       nats: { condition: service_started }
@@ -325,6 +356,9 @@ services:
       GROUPS_SERVICE_URL: http://groups:3007
       BLOB_SERVICE_URL: http://blobs:3006
       LIVEKIT_URL: ws://livekit:7880
+      # Voice-channel chats are encrypted at rest under the same key as the
+      # personal and group ones. Losing it loses all three.
+      MESSAGE_ENCRYPTION_KEY: ${MESSAGE_ENCRYPTION_KEY:?set MESSAGE_ENCRYPTION_KEY in .env}
       # Handed to browsers in the join token response, so it must be the
       # TLS-terminated public URL, not the internal one.
       LIVEKIT_PUBLIC_URL: wss://${LIVE_DOMAIN}
@@ -346,9 +380,9 @@ services:
   #   docker compose -f docker-compose.prod.yml exec postgres \
   #     psql -U echo -d postgres -c 'CREATE DATABASE echo_push'
   #
-  # Runs fine with no APNs credentials: it registers devices and logs what it
-  # would have sent. Leaving APNS_* unset is the correct state until the iOS app
-  # can actually obtain a device token.
+  # Runs fine with no credentials at all: it registers devices and logs what it
+  # would have sent. The two providers are independent — Android can be live on
+  # FCM while APNS_* stays unset waiting on an Apple Developer membership.
   push:
     <<: *app
     build:
@@ -370,11 +404,20 @@ services:
       APNS_KEY_ID: ${APNS_KEY_ID:-}
       APNS_TEAM_ID: ${APNS_TEAM_ID:-}
       APNS_BUNDLE_ID: ${APNS_BUNDLE_ID:-}
+      # The service-account JSON from the Firebase console (Project settings →
+      # Service accounts → Generate new private key), dropped into deploy/fcm/ on
+      # the server. Mounted read-only below and gitignored; the path is the one
+      # *inside* the container, e.g.
+      #   FCM_SERVICE_ACCOUNT_PATH=/run/secrets/fcm/echo-firebase-adminsdk.json
+      FCM_SERVICE_ACCOUNT_PATH: ${FCM_SERVICE_ACCOUNT_PATH:-}
       # Off by default: messages are encrypted at rest, and a preview would put
-      # their plaintext on Apple's servers and on the lock screen.
+      # their plaintext on Apple's and Google's servers and on the lock screen.
+      # This is only the default — each user can override it for their own
+      # account on the notifications settings screen.
       PUSH_MESSAGE_PREVIEW: ${PUSH_MESSAGE_PREVIEW:-false}
     volumes:
       - ./apns:/run/secrets/apns:ro
+      - ./fcm:/run/secrets/fcm:ro
     depends_on:
       postgres: { condition: service_healthy }
       nats: { condition: service_started }

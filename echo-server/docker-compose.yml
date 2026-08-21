@@ -97,6 +97,7 @@ services:
       VOICE_SERVICE_URL: http://voice:3008
       PUSH_SERVICE_URL: http://push:3009
       WS_GATEWAY_URL: ws://ws-gateway:3004
+      REDIS_URL: redis://redis:6379
     depends_on:
       auth:
         condition: service_started
@@ -115,6 +116,10 @@ services:
       voice:
         condition: service_started
       push:
+        condition: service_started
+      # Not required — the limiter keeps counters in process when Redis is
+      # missing — but starting it first avoids a needless degraded window.
+      redis:
         condition: service_started
 
   auth:
@@ -289,6 +294,8 @@ services:
       FRIENDS_SERVICE_URL: http://friends:3005
       BLOB_SERVICE_URL: http://blobs:3006
       INTERNAL_API_KEY: dev-internal-key
+      # The same key pers-chats uses. One key, one backup to keep.
+      MESSAGE_ENCRYPTION_KEY: ${MESSAGE_ENCRYPTION_KEY:-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=}
     depends_on:
       postgres:
         condition: service_healthy
@@ -318,6 +325,9 @@ services:
       USER_SERVICE_URL: http://user:3002
       GROUPS_SERVICE_URL: http://groups:3007
       INTERNAL_API_KEY: dev-internal-key
+      # Voice-channel chats are encrypted at rest under the same key as the
+      # personal and group ones.
+      MESSAGE_ENCRYPTION_KEY: ${MESSAGE_ENCRYPTION_KEY:-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=}
       LIVEKIT_URL: ws://livekit:7880
       LIVEKIT_PUBLIC_URL: ws://localhost:7880
       LIVEKIT_API_KEY: devkey

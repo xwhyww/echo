@@ -1,3 +1,5 @@
 
 # APNs signing key — private credential, mounted into push-service at runtime.
 deploy/apns/*.p8
+# Firebase service-account key — a private credential, same as the APNs .p8.
+deploy/fcm/*.json
