@@ -98,9 +98,6 @@ export const en = {
 		},
 	},
 
-	home: {
-		text: 'This is your Echo home. Spaces and channels coming soon.',
-	},
 
 	login: {
 		welcome: 'Welcome',
@@ -155,6 +152,25 @@ export const en = {
 		removeAvatar: 'Remove avatar',
 		cropAvatar: 'Crop avatar',
 		saveAvatar: 'Save avatar',
+	},
+
+	notifications: {
+		enabled: 'Push notifications',
+		enabledDesc: 'Banners on your phone while the app is closed. Off means nothing is sent to any of your devices.',
+		directMessages: 'Direct messages',
+		directMessagesDesc: 'When someone writes to you one to one.',
+		groupMessages: 'Group messages',
+		groupMessagesDesc: 'New messages in groups you belong to. Join and leave notices stay silent.',
+		friendRequests: 'Friend requests',
+		friendRequestsDesc: 'When someone asks to connect, and when someone accepts your request.',
+		groupInvites: 'Group invites',
+		groupInvitesDesc: 'When you are invited to a group.',
+		preview: 'Message preview',
+		previewDesc: 'Show the text of the message in the banner. Off shows only who wrote — the message itself never leaves the server.',
+		previewOn: 'Show',
+		previewOff: 'Hide',
+		previewDefault: 'Server default',
+		noDevices: 'No device is registered for notifications yet. Sign in on a phone to receive them.',
 	},
 
 	privacy: {
@@ -596,6 +612,7 @@ export const en = {
 			lost: 'Lost',
 			measuring: 'Measuring...',
 			ping: 'Ping',
+			transport: 'Transport',
 			packetLoss: 'Packet loss',
 			jitter: 'Jitter',
 			roundTrip: 'Round-trip to the voice server.',

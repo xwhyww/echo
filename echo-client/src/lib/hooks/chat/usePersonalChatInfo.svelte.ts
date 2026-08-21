@@ -3,6 +3,8 @@ import { goto } from '$app/navigation';
 import { auth } from '$lib/stores/auth.svelte.js';
 import { personalChatsStore } from '$lib/stores/personalChats.svelte.js';
 import { personalChatsService } from '$lib/api/personalChatsService.js';
+import { groupsService } from '$lib/api/groupsService.js';
+import { voiceService } from '$lib/api/voiceService.js';
 import { routes } from '$lib/routes.js';
 import { i18n } from '$lib/i18n/i18n.svelte.js';
 import type { StatItem } from '$lib/components/ui/StatsList.svelte';
@@ -51,7 +53,6 @@ export function usePersonalChatInfo(userId: () => string) {
 		gifs: 0,
 		audio: 0,
 		voiceMessages: 0,
-		// Not yet backed by the API — kept as zero placeholders for now.
 		commonGroups: 0,
 		voiceChannels: 0,
 	});
@@ -87,7 +88,25 @@ export function usePersonalChatInfo(userId: () => string) {
 			};
 		}
 
+		// Separate from loadStats: the shared-group counters come from two other
+		// services and must not keep the message and media numbers waiting, nor
+		// blank them out if either service is down.
+		async function loadShared() {
+			if (isSelf) {
+				stats = { ...stats, commonGroups: 0, voiceChannels: 0 };
+				return;
+			}
+			const { groups, count } = await groupsService.listCommon(targetUserId);
+			if (cancelled) return;
+			stats = { ...stats, commonGroups: count };
+
+			const { count: channels } = await voiceService.countChannels(groups.map((g) => g.id));
+			if (cancelled) return;
+			stats = { ...stats, voiceChannels: channels };
+		}
+
 		loadStats().catch(() => {});
+		loadShared().catch(() => {});
 		return () => {
 			cancelled = true;
 		};

@@ -8,6 +8,17 @@ class VoiceService {
 		);
 	}
 
+	/**
+	 * How many voice channels the caller can see inside the given groups.
+	 * Returns 0 for an empty list without a round trip.
+	 */
+	countChannels(groupIds: string[]) {
+		if (groupIds.length === 0) return Promise.resolve({ count: 0 });
+		return api<{ count: number }>(
+			`/voice/channels/count?groupIds=${encodeURIComponent(groupIds.join(','))}`,
+		);
+	}
+
 	createChannel(input: { groupId: string; name: string; categoryId?: string | null }) {
 		return api<{ channel: VoiceChannel }>('/voice/channels', { method: 'POST', body: input });
 	}

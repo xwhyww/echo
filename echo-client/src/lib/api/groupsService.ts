@@ -29,6 +29,14 @@ class GroupsService {
 		return api<{ group: Group }>(`/groups/${id}/avatar`, { method: 'DELETE' });
 	}
 
+	/** Groups the caller shares with another user. Empty for the self-chat. */
+	listCommon(userId: string) {
+		return api<{
+			groups: { id: string; name: string; avatarUrl: string | null }[];
+			count: number;
+		}>(`/groups/common/${userId}`);
+	}
+
 	getStats(id: string) {
 		return api<{
 			messages: number;
