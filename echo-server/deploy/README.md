@@ -123,8 +123,12 @@ A static SvelteKit build, served by the same Caddy from `deploy/client-dist`.
 It is uploaded rather than built into an image, so a frontend change ships
 without rebuilding anything.
 
-Build it **on your machine** with the endpoints baked in — Vite inlines them, so
-this is build-time, not run-time:
+**A push to `main` already does all of this** — see "Deploying from GitHub"
+below. What follows is the same thing by hand, for a machine with no GitHub
+access or when the workflow is what is broken.
+
+Build it with the endpoints baked in — Vite inlines them, so this is build-time,
+not run-time:
 
 ```bash
 cd echo-client
@@ -146,6 +150,101 @@ as well — put that origin in `ALLOWED_ORIGINS` and leave `client-dist` empty.
 For the Tauri desktop build the same two variables have to be set before
 `tauri build`; its origin is `tauri://localhost`, which the gateway allows
 unconditionally.
+
+## Deploying from GitHub
+
+A push to `main` deploys. `.github/workflows/deploy.yml` runs the same checks
+as every other push, builds the client once with the real endpoints inlined,
+rsyncs it into `client-dist`, then SSHes in and does what the section below
+describes by hand. A push to `dev` runs the checks and stops — there is no
+staging stack.
+
+The manual route still works and is still the fallback: everything the workflow
+does, it does with the same commands.
+
+### What the server needs, once
+
+```bash
+# A clone at the path the workflow will use, on main, with a GitHub origin.
+git clone https://github.com/xwhyww/echo.git /root/echo
+
+# A key for the workflow to log in with. No passphrase — nothing can type one.
+ssh-keygen -t ed25519 -C 'github-actions deploy' -f ~/.ssh/echo-deploy -N ''
+cat ~/.ssh/echo-deploy.pub >> ~/.ssh/authorized_keys
+cat ~/.ssh/echo-deploy            # the private half — goes into DEPLOY_SSH_KEY
+ssh-keyscan -H <server-ip>        # goes into DEPLOY_KNOWN_HOSTS
+```
+
+Deploying as `root` is what this stack already assumes; a less privileged user
+works as well, provided it is in the `docker` group and owns the clone.
+
+### Secrets
+
+```bash
+gh secret set DEPLOY_HOST        # 203.0.113.10
+gh secret set DEPLOY_USER        # root
+gh secret set DEPLOY_SSH_KEY     < ~/.ssh/echo-deploy
+gh secret set DEPLOY_KNOWN_HOSTS # output of ssh-keyscan -H <server-ip>
+```
+
+`DEPLOY_KNOWN_HOSTS` is optional and worth setting. Without it each run accepts
+whatever host key answers on the address, because every run starts on a machine
+that has never seen the server before — trust on first use, thirty times a
+month. With it, the key is checked against a value you put there.
+
+### Variables
+
+Not secrets, and deliberately: the two `VITE_` values are inlined into the
+JavaScript every visitor downloads, and the domains are in DNS. Hiding them
+would only make the workflow harder to read.
+
+```bash
+gh variable set VITE_API_URL  # https://api.example.com
+gh variable set VITE_WS_URL   # wss://ws.example.com/ws
+gh variable set APP_DOMAIN    # app.example.com — the deploy's link in the UI
+gh variable set API_DOMAIN    # api.example.com — where the health check looks
+```
+
+Three more have working defaults and only need setting if yours differ:
+`DEPLOY_PATH` (`/root/echo`), `DEPLOY_PORT` (`22`), and
+`DEPLOY_COMPOSE_FILES` (`-f docker-compose.prod.yml` — add
+`-f docker-compose.logging.yml` here if you run the Loki overlay, or it will be
+torn down on the next deploy).
+
+### What a deploy does, in order
+
+1. Server tests and client tests, typecheck, `svelte-check`, and a build. A
+   failure here stops everything; the server is not touched.
+2. Builds the client with the real endpoints and checks the output is not empty
+   — otherwise `rsync --delete` would wipe the live client and serve 404s from
+   a directory that looks fine.
+3. Uploads it. Caddy reads the directory per request, so the new client is live
+   from this moment; the API it talks to is still the old one for a minute.
+4. `git fetch` and `git reset --hard <sha>` — not `git pull`, because the
+   answer to "someone edited a file on the server" is that this commit is the
+   truth, not a merge conflict at 3am. Untracked files are left alone, so
+   `.env`, the APNs key and the FCM credentials stay where they are.
+5. `docker compose up -d --build`, then `docker image prune -f`. Migrations run
+   on container boot as always, so there is no separate step and no window where
+   the code is new and the schema is not.
+6. Polls `https://$API_DOMAIN/health` for up to five minutes. `docker compose up`
+   returns long before a Node service has migrated and started listening, so
+   without this a broken deploy would finish green. If it never answers, the run
+   fails and prints `docker compose ps` and the last fifty log lines.
+
+There is no automatic rollback. Reverting the commit and letting the workflow
+run again is the rollback, and it takes the same few minutes as the deploy did.
+
+### Deploying without a push
+
+`gh workflow run Deploy --ref main`, or the **Run workflow** button on the
+Actions tab. Useful after fixing a secret, or to put the current `main` back
+after something was changed on the server by hand.
+
+Two deploys never overlap: the workflow holds a concurrency group and the second
+one waits. Cancelling one half way is the single state nothing here knows how to
+recover from — some containers on the new image, some on the old — so a run in
+flight is never cancelled either.
 
 ## Updating
 
@@ -193,9 +292,117 @@ docker compose -f docker-compose.prod.yml logs --since 1h --no-log-prefix \
 ```
 
 `LOG_LEVEL=debug` in `.env` plus a restart of the one service turns on the
-per-query and per-event lines. Retention is 3×50 MB per container (json-file
-rotation); for anything longer, add Loki + Promtail to this compose file and
-point Promtail at the Docker socket.
+per-query and per-event lines.
+
+### Keeping more than 3×50 MB
+
+That is what the json-file driver holds per container, and it is also the
+retention: once a service has written 150 MB, its oldest lines are gone. A
+busy day of `LOG_LEVEL=debug` on the gateway can cover less than a day.
+
+`docker-compose.logging.yml` adds Loki and Promtail for history that outlives
+that:
+
+```bash
+docker compose -f docker-compose.prod.yml -f docker-compose.logging.yml up -d
+```
+
+Nothing else changes. Promtail reads the same json-file logs through the Docker
+API, so every recipe above keeps working and a Loki outage cannot lose a line
+that json-file still holds — which is why this is not the Loki *logging driver*,
+which replaces json-file and drops or blocks when it cannot reach Loki.
+
+Loki is published on **loopback only** (`auth_enabled: false` means anyone who
+can reach port 3100 can read every log line in the system). Query it over an SSH
+tunnel:
+
+```bash
+ssh -L 3100:127.0.0.1:3100 root@<server>
+
+# with logcli (https://grafana.com/docs/loki/latest/query/logcli/)
+logcli --addr=http://127.0.0.1:3100 query '{service="auth"}'
+logcli --addr=http://127.0.0.1:3100 query '{stack="echo"} |= "0b7f..."'
+
+# or plain curl — level="50" is pino's error, 40 warn, 30 info
+curl -sG http://127.0.0.1:3100/loki/api/v1/query_range \
+  --data-urlencode 'query={stack="echo",level="50"}' \
+  --data-urlencode 'since=1h' | jq .
+```
+
+Lines are labelled `service` (the compose service name, the same word the
+recipes above use), `container`, `stack` and `level`. `requestId` is
+deliberately *not* a label — one label value per request is how a Loki index is
+destroyed — so trace a request by grepping the line body (`|= "0b7f..."`), the
+same as with `docker compose logs`.
+
+Retention is `LOKI_RETENTION_PERIOD` in `.env`, 30 days by default, enforced by
+Loki's compactor. The `lokidata` volume is the only thing this overlay adds to
+the disk footprint, and `backup.sh` deliberately does not touch it: logs are
+not irreplaceable.
+
+Promtail gets the Docker socket read-only. That is a real grant — a process
+that can read it can enumerate and inspect every container on the host — and
+it is the price of labelling lines by service name: the log files themselves
+are named by container id and carry nothing else.
+
+There is no Grafana here. If you want dashboards, put one behind Caddy with its
+own auth; it is a second thing to keep patched, which is not obviously worth it
+for a stack this size.
+
+## A second SFU node
+
+**Not deployed, and probably not yet worth deploying.** The files are here so
+the decision is a decision and not a week of work: `docker-compose.multiregion.yml`
+turns the current LiveKit into the first member of a cluster, and
+`docker-compose.sfu-node.yml` plus `Caddyfile.sfu-node` are the whole stack for
+the second machine.
+
+Read PLAN.md A.3 first. A second node cures **distance** and nothing else. If
+the voice quality indicator says TCP rather than UDP, the problem is a firewall
+rule and a second VPS would change nothing while costing every month.
+
+### What was actually checked
+
+Two `livekit/livekit-server:1.11.0` containers were run against one Redis with
+these configs. Both registered — `redis-cli hlen nodes` returned 2 — and each
+reported its own region on startup. The merged production config
+(`docker compose -f docker-compose.prod.yml -f docker-compose.multiregion.yml`)
+was then fed to a container verbatim and started cleanly, with
+`"region":"moscow"` and the right ICE range in its log.
+
+What has *not* been tried: a second machine, the network between the two, and a
+real call crossing regions.
+
+### How the routing works
+
+Nodes find each other through Redis alone: set `redis:` and LiveKit swaps
+"single-node routing" for the distributed router and publishes itself into the
+`nodes` hash. But joining a cluster lowers nobody's latency by itself — rooms
+are pinned to a node when they are created, so a Novosibirsk caller in a
+Moscow-hosted room still sends every packet to Moscow.
+
+`node_selector.kind: regionaware` is the part that matters: the node handling
+the create request picks one in the region nearest the client instead of the
+least loaded anywhere. Which is why each node needs its own `region:`, and why
+the `regions` list has to be **identical on every node** — a region only one
+node knows about is one the others cannot route to.
+
+### The awkward part
+
+Redis is currently reachable only on the internal docker network, and the second
+node needs the same Redis. Do not just publish the port; an open Redis is a
+remote shell waiting to happen. In order of preference:
+
+1. A private network between the two VPSs (Timeweb offers one), Redis bound to
+   that interface only.
+2. WireGuard between the hosts — same idea, without depending on the provider.
+3. `requirepass` + TLS + a firewall allowlist. Workable, and the one with the
+   most ways to be quietly wrong.
+
+The second node also needs its own DNS record and its own certificate: a client
+connects to a node directly, so it cannot share `LIVE_DOMAIN`. And its media
+ports (50000-50200/udp, 7881/tcp) need opening in that host's firewall *and* in
+the provider's security group, which is a separate list.
 
 ## Backups
 

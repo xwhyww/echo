@@ -1,0 +1,240 @@
+name: Deploy
+
+# Production deploy: main only.
+#
+# The shape matches what deploy/README.md already describes doing by hand — the
+# server pulls the commit and builds its own images. No registry is involved,
+# which is deliberate: the stack has always built from source on the box, and
+# Docker Hub already answers 429 to anonymous pulls from most Russian
+# datacentre ranges (hence the registry mirror in daemon.json). Adding a
+# registry hop would add a second thing that has to be reachable from there.
+#
+# The client is the exception. It is a static build with its endpoints inlined
+# by Vite at build time, so it is built here — once, from the same commit — and
+# rsynced into the directory Caddy serves.
+#
+# `dev` deploys nowhere. It runs CI and stops. Adding a staging stack later is
+# a second `deploy` job with its own environment and its own domains; nothing
+# here has to change for it.
+
+on:
+  push:
+    branches: [main]
+  # Re-run a deploy without an empty commit — after fixing a secret, or to put
+  # the current main back after a manual change on the server.
+  workflow_dispatch:
+
+# Never cancel a deploy in flight. Cancelling `docker compose up` half way
+# leaves some containers on the new image and some on the old, which is the one
+# state nothing here knows how to recover from. A second push waits instead.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  # The same checks that run on every push and pull request, reused rather than
+  # copied. Nothing reaches the server that has not passed them.
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  build-client:
+    name: build client
+    runs-on: ubuntu-latest
+    needs: ci
+    defaults:
+      run:
+        working-directory: echo-client
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: echo-client/package-lock.json
+
+      - run: npm ci
+
+      # Vite inlines these, so they are build-time and cannot be changed on the
+      # server afterwards. Repository *variables*, not secrets: they are public
+      # URLs that end up in the shipped JavaScript either way, and pretending
+      # otherwise would only make them harder to read in a log.
+      - name: Build
+        run: npm run build
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_WS_URL: ${{ vars.VITE_WS_URL }}
+
+      # Guard against a build that silently produced nothing: rsync --delete
+      # would then wipe the live client and serve 404s from a directory that
+      # looks fine.
+      - name: Check the build is not empty
+        run: test -s build/index.html
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: client-dist
+          path: echo-client/build/
+          retention-days: 7
+
+  deploy:
+    name: deploy to production
+    runs-on: ubuntu-latest
+    needs: [ci, build-client]
+    # Auto-created on the first run. Add required reviewers or a branch rule to
+    # it in Settings → Environments if a deploy should ever need a human.
+    environment:
+      name: production
+      url: https://${{ vars.APP_DOMAIN }}
+
+    steps:
+      # Fails loudly and early rather than as an ssh error forty lines down.
+      # Deliberately a failure and not a skip: a deploy job that quietly does
+      # nothing is worse than one that says it cannot.
+      - name: Check the deploy is configured
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          API_DOMAIN: ${{ vars.API_DOMAIN }}
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+        run: |
+          missing=
+          for name in DEPLOY_HOST DEPLOY_USER DEPLOY_SSH_KEY API_DOMAIN VITE_API_URL; do
+            [ -n "${!name:-}" ] || missing="$missing $name"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::not configured yet — set:$missing (see echo-server/deploy/README.md, \"Deploying from GitHub\")"
+            exit 1
+          fi
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: client-dist
+          path: client-dist
+
+      - name: Set up SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ vars.DEPLOY_PORT || '22' }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+
+          if [ -n "${DEPLOY_KNOWN_HOSTS:-}" ]; then
+            # Pinned. The host key is checked against a value you put there, so
+            # a machine-in-the-middle on the first connection gains nothing.
+            printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          else
+            # Trust on first use, every time — each run is a fresh machine that
+            # has never seen this host, so this accepts whatever answers on the
+            # address. Good enough to get started; set DEPLOY_KNOWN_HOSTS to
+            # close it. `ssh-keyscan -H "$DEPLOY_HOST"` on the server prints the
+            # value.
+            echo "::warning::DEPLOY_KNOWN_HOSTS is not set — accepting the host key unverified"
+            ssh-keyscan -p "$DEPLOY_PORT" -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          fi
+          chmod 600 ~/.ssh/known_hosts
+
+      # Before the server rebuilds, so a failure here costs nothing: the running
+      # stack is untouched and the old client is still being served.
+      #
+      # --delete because the build is content-hashed — without it every deploy
+      # leaves the previous build's chunks behind and the directory grows
+      # forever. Everything it removes came from a previous run of this step.
+      - name: Upload the client
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ vars.DEPLOY_PORT || '22' }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/root/echo' }}
+        run: |
+          set -euo pipefail
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/id_deploy -p $DEPLOY_PORT -o IdentitiesOnly=yes" \
+            client-dist/ \
+            "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/echo-server/deploy/client-dist/"
+
+      # Caddy reads client-dist per request, so the client is already live at
+      # this point. The services follow.
+      #
+      # `git fetch` + `reset --hard` rather than `git pull`: a pull fails on any
+      # local edit, and the answer to "someone changed a file on the server" is
+      # that this commit is the truth, not a merge conflict at 3am. It does not
+      # touch untracked files, so deploy/.env, the APNs key and the FCM
+      # credentials stay exactly where they are.
+      - name: Deploy
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ vars.DEPLOY_PORT || '22' }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/root/echo' }}
+          COMPOSE_FILES: ${{ vars.DEPLOY_COMPOSE_FILES || '-f docker-compose.prod.yml' }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/id_deploy -p "$DEPLOY_PORT" -o IdentitiesOnly=yes \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "DEPLOY_PATH='$DEPLOY_PATH' COMPOSE_FILES='$COMPOSE_FILES' SHA='$SHA' bash -s" <<'REMOTE'
+          set -euo pipefail
+
+          cd "$DEPLOY_PATH"
+          git fetch --prune origin
+          # Discard anything edited on the server first, so the checkout below
+          # cannot fail on a stray file. Untracked files are left alone.
+          git reset --hard HEAD
+          # -B rather than checkout + reset: it works whether main exists
+          # locally, points somewhere else, or the repo is in detached HEAD.
+          git checkout -B main "$SHA"
+          echo "deploying $(git log -1 --oneline)"
+
+          cd echo-server/deploy
+          # Each service applies its own migrations on boot, so there is no
+          # separate migration step — and no window where the code is new and
+          # the schema is not.
+          docker compose $COMPOSE_FILES up -d --build
+
+          # Layers from previous builds, which are otherwise the fastest way to
+          # fill a VPS disk. Images still referenced by a container are kept.
+          docker image prune -f
+          REMOTE
+
+      # `docker compose up -d` returns as soon as the containers are started,
+      # which is well before a Node service has finished migrating and started
+      # listening. This waits for the answer that actually matters, and fails
+      # the run if it never comes.
+      - name: Wait for healthy
+        env:
+          API_DOMAIN: ${{ vars.API_DOMAIN }}
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 30); do
+            if curl -fsS --max-time 10 "https://$API_DOMAIN/health" | grep -q '"ok"'; then
+              echo "healthy after ${i} attempts"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::$API_DOMAIN/health did not come back within five minutes"
+          exit 1
+
+      # Only reached when the health check failed. Says what is actually wrong
+      # rather than leaving a red tick and an SSH session to open.
+      - name: Report what is not healthy
+        if: failure()
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ vars.DEPLOY_PORT || '22' }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/root/echo' }}
+          COMPOSE_FILES: ${{ vars.DEPLOY_COMPOSE_FILES || '-f docker-compose.prod.yml' }}
+        run: |
+          ssh -i ~/.ssh/id_deploy -p "$DEPLOY_PORT" -o IdentitiesOnly=yes \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "cd '$DEPLOY_PATH/echo-server/deploy' && docker compose $COMPOSE_FILES ps && docker compose $COMPOSE_FILES logs --tail 50" \
+            || true

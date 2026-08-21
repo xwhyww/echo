@@ -6,10 +6,16 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
+  # Called by deploy.yml, so production is only ever built from a commit these
+  # same checks have passed. Reused rather than duplicated: two copies of a
+  # test matrix drift, and the copy that drifts is the one guarding the deploy.
+  workflow_call:
 
 # A new push to the same branch makes the previous run's answer irrelevant.
+# `github.workflow` rather than a literal, so a run reached through
+# workflow_call groups under the caller and cannot cancel a direct CI run.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -21,6 +27,31 @@ jobs:
     defaults:
       run:
         working-directory: echo-server
+
+    # The integration tests need a real database — a mock that agrees with the
+    # code is no evidence about the schema. They skip themselves when
+    # TEST_DATABASE_URL is unset, so without this service they would go quietly
+    # green, which is worse than not having them.
+    #
+    # One database per service, created by the setup step below:
+    # TEST_DATABASE_URL is a template and each service appends its own suffix.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: echo
+          POSTGRES_PASSWORD: echo_ci
+          POSTGRES_DB: echo_test
+        ports:
+          - 5432:5432
+        # Steps start as soon as the container does; without this one they race
+        # the first `initdb` and fail to connect.
+        options: >-
+          --health-cmd "pg_isready -U echo"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - uses: actions/checkout@v4
 
@@ -43,7 +74,17 @@ jobs:
       # `include: []`; checking that alone type-checks nothing and always passes.
       - run: pnpm typecheck
 
+      # Creates echo_test_auth, echo_test_users, … one per service. Idempotent.
+      - run: pnpm test:integration:setup
+        env:
+          TEST_DATABASE_URL: postgresql://echo:echo_ci@localhost:5432/echo_test
+
+      # One command for both kinds. The integration suites migrate their own
+      # database and truncate between tests; see
+      # echo-server/packages/test-support/src/index.ts.
       - run: pnpm test
+        env:
+          TEST_DATABASE_URL: postgresql://echo:echo_ci@localhost:5432/echo_test
 
   client:
     name: echo-client
@@ -73,8 +114,10 @@ jobs:
       # green typecheck is not enough on its own.
       - run: npm run build
         env:
-          # Baked in at build time by Vite. Not the real endpoints — nothing is
-          # deployed from CI, this only has to be a valid absolute URL so the
-          # build does not fall back to a localhost that means the runner.
+          # Placeholders on purpose. This build is a check that the prerender
+          # crawl still passes, and its output is thrown away — the artifact
+          # that actually ships is built by deploy.yml with the real endpoints.
+          # They still have to be valid absolute URLs, or the client falls back
+          # to a localhost that means the runner.
           VITE_API_URL: https://api.example.invalid
           VITE_WS_URL: wss://ws.example.invalid/ws
