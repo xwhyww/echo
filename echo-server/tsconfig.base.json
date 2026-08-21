@@ -8,6 +8,11 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
+    // On, because the sweep that turned them up found seventeen — including a
+    // `const isNewEmoji = distinctEmojis === 0 || true` that was never read and
+    // a helper nothing had called since a refactor. Unused names are how dead
+    // code hides; catching them costs nothing.
+    "noUnusedLocals": true,
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true

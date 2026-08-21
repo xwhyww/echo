@@ -1,12 +1,22 @@
 {
-  "extends": "./tsconfig.base.json",
-  "references": [
-    { "path": "packages/shared" },
-    { "path": "services/gateway" },
-    { "path": "services/auth-service" },
-    { "path": "services/user-service" },
-    { "path": "services/pers-chats-service" },
-    { "path": "services/ws-gateway" }
-  ],
-  "include": []
+	"extends": "./tsconfig.base.json",
+	// A solution file listing every project, so `tsc --noEmit -p .` has something
+	// to check. It previously listed six of the eleven and set `include: []`,
+	// which — without `--build` — meant it type-checked nothing at all and
+	// reported success. A CI step on that config would have been permanently
+	// green. Use `pnpm typecheck`, which walks the projects explicitly.
+	"references": [
+		{ "path": "packages/shared" },
+		{ "path": "services/gateway" },
+		{ "path": "services/auth-service" },
+		{ "path": "services/user-service" },
+		{ "path": "services/pers-chats-service" },
+		{ "path": "services/ws-gateway" },
+		{ "path": "services/friends-service" },
+		{ "path": "services/blob-service" },
+		{ "path": "services/groups-service" },
+		{ "path": "services/voice-service" },
+		{ "path": "services/push-service" }
+	],
+	"include": []
 }

@@ -1,8 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { createHash, randomBytes, randomInt } from 'crypto';
+import { randomBytes, randomInt } from 'crypto';
 import { and, desc, eq, ne } from 'drizzle-orm';
 import { signToken, verifyToken, SUBJECTS, type UserCreatedEvent, type UserUpdatedEvent } from '@echo/shared';
 import { createDb } from '../db/index.js';
@@ -11,6 +10,15 @@ import { config } from '../config.js';
 import { getNatsConnection } from '../nats.js';
 import { sendVerificationCode } from '../sms.js';
 import { log } from '../log.js';
+import {
+	OTP_TTL_MS,
+	OTP_RESEND_COOLDOWN_MS,
+	OTP_MAX_ATTEMPTS,
+	normalizePhone,
+	hashCode,
+	signPendingToken,
+	verifyPendingToken,
+} from '../otp.js';
 
 const db = createDb(config.databaseUrl);
 
@@ -40,9 +48,6 @@ function clearAuthCookie(c: { header: (name: string, value: string, options?: { 
 // account has a password set, the OTP step returns a short-lived pending
 // token that must be exchanged together with the password.
 
-const OTP_TTL_MS = 5 * 60 * 1000;
-const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
-const OTP_MAX_ATTEMPTS = 5;
 // Never echo the code back in production — dev has no real SMS provider.
 const DEV_ECHO_CODE = process.env.NODE_ENV !== 'production';
 
@@ -68,34 +73,6 @@ if (config.testAuth.enabled && process.env.NODE_ENV === 'production') {
 		{ count: config.testAuth.phones.size },
 		'test phone numbers are enabled in production — they sign in with a fixed code',
 	);
-}
-
-function normalizePhone(raw: unknown): string | null {
-	if (typeof raw !== 'string') return null;
-	const digits = raw.replace(/[\s\-().]/g, '');
-	if (!/^\+?\d{10,15}$/.test(digits)) return null;
-	return digits.startsWith('+') ? digits : `+${digits}`;
-}
-
-function hashCode(code: string): string {
-	return createHash('sha256').update(code).digest('hex');
-}
-
-// Pending tokens are deliberately signed with a derived secret so they can
-// never pass the regular authMiddleware as a session token.
-const pendingSecret = `${config.jwtSecret}:otp-pending`;
-
-function signPendingToken(userId: string): string {
-	return jwt.sign({ userId, scope: 'otp-password' }, pendingSecret, { expiresIn: '10m' });
-}
-
-function verifyPendingToken(token: string): string | null {
-	try {
-		const payload = jwt.verify(token, pendingSecret) as { userId?: string; scope?: string };
-		return payload.scope === 'otp-password' && payload.userId ? payload.userId : null;
-	} catch {
-		return null;
-	}
 }
 
 type DbUser = typeof users.$inferSelect;
@@ -242,7 +219,7 @@ authRoutes.post('/otp/verify', async (c) => {
 		}
 	} else if (user.passwordHash) {
 		// Second factor: the phone is confirmed, now the password.
-		return c.json({ passwordRequired: true, pendingToken: signPendingToken(user.id) });
+		return c.json({ passwordRequired: true, pendingToken: signPendingToken(user.id, config.jwtSecret) });
 	}
 
 	const token = issueToken(c, user);
@@ -254,7 +231,7 @@ authRoutes.post('/otp/password', async (c) => {
 	const pendingToken = typeof body.pendingToken === 'string' ? body.pendingToken : '';
 	const password = typeof body.password === 'string' ? body.password : '';
 
-	const userId = verifyPendingToken(pendingToken);
+	const userId = verifyPendingToken(pendingToken, config.jwtSecret);
 	if (!userId) {
 		return c.json({ error: 'Session expired. Start over.' }, 401);
 	}

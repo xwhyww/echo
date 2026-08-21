@@ -48,11 +48,7 @@ export const config = {
 	// an empty string: under `${AUTH_TEST_PHONES:-}` there is no way to tell
 	// "left alone" from "deliberately cleared", and either reading would
 	// surprise somebody.
-	testAuth: {
-		enabled: process.env.AUTH_TEST_ENABLED !== 'false',
-		phones: parseTestPhones(process.env.AUTH_TEST_PHONES),
-		code: process.env.AUTH_TEST_CODE || '000000',
-	},
+	testAuth: resolveTestAuth(),
 	// See sms.ts for what each driver needs. Defaults to `log` so a fresh clone
 	// runs without any provider account.
 	sms: {
@@ -93,6 +89,54 @@ function parseTestPhones(value: string | undefined): Set<string> {
 		.map((p) => p.trim())
 		.filter(Boolean);
 	return new Set(list.length > 0 ? list : DEFAULT_TEST_PHONES);
+}
+
+/**
+ * The test-account settings, with the one rule that cannot be left to a default:
+ * in production the code has to be set explicitly, or the accounts are off.
+ *
+ * The old default was `000000`. Together with a list of numbers that is public
+ * in this file, that is a set of nine accounts anyone can walk into on a live
+ * deployment — and nothing in the logs would say so, because signing in with the
+ * right code is not an error. Failing *closed* is the only safe default: a
+ * missing code means no test login, not a guessable one.
+ *
+ * Not a thrown error, deliberately. Refusing to boot would take the whole
+ * service down over a feature that only matters to store reviewers, and a
+ * restart is exactly when nobody is watching. The warning is loud and the
+ * behaviour is safe.
+ *
+ * Outside production the default stands: a fresh clone has to be able to sign in
+ * without anyone configuring anything.
+ */
+function resolveTestAuth(): { enabled: boolean; phones: Set<string>; code: string } {
+	const enabled = process.env.AUTH_TEST_ENABLED !== 'false';
+	const phones = parseTestPhones(process.env.AUTH_TEST_PHONES);
+	const configured = process.env.AUTH_TEST_CODE?.trim();
+	const isProduction = process.env.NODE_ENV === 'production';
+
+	if (!isProduction) {
+		return { enabled, phones, code: configured || '000000' };
+	}
+
+	if (enabled && !configured) {
+		console.warn(
+			'[auth-service] AUTH_TEST_ENABLED is on but AUTH_TEST_CODE is unset — ' +
+			'test sign-in is disabled. Set AUTH_TEST_CODE (six digits) to turn it back on.',
+		);
+		return { enabled: false, phones, code: '' };
+	}
+
+	// Six digits because that is what the sign-in field accepts; anything else
+	// could never be typed in, so it would silently mean "disabled".
+	if (enabled && configured && !/^\d{6}$/.test(configured)) {
+		console.warn(
+			`[auth-service] AUTH_TEST_CODE must be exactly six digits — test sign-in is disabled.`,
+		);
+		return { enabled: false, phones, code: '' };
+	}
+
+	return { enabled, phones, code: configured ?? '' };
 }
 
 function parseSmsDriver(value: string | undefined): 'log' | 'smsc' | 'telegram' | undefined {

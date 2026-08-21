@@ -1,0 +1,80 @@
+name: CI
+
+# Two independent halves of the repo with separate package managers — pnpm for
+# the server workspace, npm for the client — so they run as two jobs rather than
+# one with two install steps. Either can fail without hiding the other's result.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A new push to the same branch makes the previous run's answer irrelevant.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  server:
+    name: echo-server
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: echo-server
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: echo-server/pnpm-lock.yaml
+
+      # --frozen-lockfile so a lockfile that drifted from package.json fails
+      # here rather than silently resolving to something else than a developer
+      # or the Docker build would get.
+      - run: pnpm install --frozen-lockfile
+
+      # Every project explicitly. The root tsconfig is a solution file with
+      # `include: []`; checking that alone type-checks nothing and always passes.
+      - run: pnpm typecheck
+
+      - run: pnpm test
+
+  client:
+    name: echo-client
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: echo-client
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: echo-client/package-lock.json
+
+      - run: npm ci
+
+      - run: npm test
+
+      # svelte-check's baseline is 0 errors. Warnings are not failed on: three
+      # of them are CSS for markup that is currently commented out during the
+      # layout work, and failing on those would block every unrelated change.
+      - run: npm run check
+
+      # The prerender crawl is part of the build and has broken before, so a
+      # green typecheck is not enough on its own.
+      - run: npm run build
+        env:
+          # Baked in at build time by Vite. Not the real endpoints — nothing is
+          # deployed from CI, this only has to be a valid absolute URL so the
+          # build does not fall back to a localhost that means the runner.
+          VITE_API_URL: https://api.example.invalid
+          VITE_WS_URL: wss://ws.example.invalid/ws
