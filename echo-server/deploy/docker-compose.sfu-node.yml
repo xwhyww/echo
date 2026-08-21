@@ -1,0 +1,119 @@
+# The whole stack for a *secondary* SFU node — a second machine that carries
+# voice traffic and nothing else.
+#
+# Standalone: run it on the second VPS on its own, not beside
+# docker-compose.prod.yml. There is no database, no NATS, no application
+# service here, because a LiveKit node needs none of them. It needs the shared
+# Redis, its own media ports, and a certificate for its hostname.
+#
+#   scp docker-compose.sfu-node.yml Caddyfile.sfu-node root@<second-host>:/root/echo/
+#   cd /root/echo && $EDITOR .env && docker compose -f docker-compose.sfu-node.yml up -d
+#
+# **This has not been deployed.** The LiveKit config was checked against
+# livekit/livekit-server 1.11.0 by running two nodes against one Redis and
+# watching both register; everything about the second host is written from the
+# first host's working setup and has never been run. Read it before trusting it.
+#
+# ## What has to be true before this is worth doing
+#
+# A second node cures distance and nothing else. PLAN.md A.3 steps 2-3 measure
+# whether distance is actually the problem — if the quality indicator says TCP,
+# the fix is a firewall rule and this changes nothing. Do those first.
+#
+# ## What it needs from the primary
+#
+#   • The same Redis, reachable across the network. See the note in
+#     docker-compose.multiregion.yml: publishing the port is not the answer.
+#   • The same API key and secret. Tokens are minted by voice-service on the
+#     primary and must verify here.
+#   • The same `regions` list, and its own `LIVEKIT_REGION` from that list.
+#   • Its own DNS record and its own certificate. A client connects to a node
+#     directly, so it cannot share LIVE_DOMAIN.
+#
+# ## What it does not need
+#
+# The webhook URL points back at voice-service on the primary, over the same
+# private link as Redis. Without it, a participant who vanishes from a room
+# hosted *here* stays shown as "in call" until something else notices.
+
+name: echo-sfu
+
+services:
+  caddy:
+    restart: unless-stopped
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile.sfu-node:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    environment:
+      # This node's own hostname, e.g. live-nsk.echo-application.ru.
+      SFU_DOMAIN: ${SFU_DOMAIN:?set SFU_DOMAIN in .env}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in .env}
+    depends_on:
+      - livekit
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  livekit:
+    restart: unless-stopped
+    image: livekit/livekit-server:latest
+    ports:
+      # Same shape as the primary: signalling goes through Caddy for TLS, media
+      # cannot. Both of these must be open in this host's firewall *and* in the
+      # provider's security group, which is a separate thing.
+      - "7881:7881"
+      - "50000-50200:50000-50200/udp"
+    environment:
+      LIVEKIT_CONFIG: |
+        port: 7880
+        bind_addresses:
+          - 0.0.0.0
+        rtc:
+          port_range_start: 50000
+          port_range_end: 50200
+          tcp_port: 7881
+          use_external_ip: true
+        keys:
+          ${LIVEKIT_API_KEY:?set LIVEKIT_API_KEY in .env}: ${LIVEKIT_API_SECRET:?set LIVEKIT_API_SECRET in .env}
+        webhook:
+          api_key: ${LIVEKIT_API_KEY}
+          urls:
+            # voice-service on the *primary*, over the private link. Not the
+            # public API domain: this is an internal call and the endpoint
+            # authenticates by LiveKit's own signature, not a user token.
+            - ${LIVEKIT_WEBHOOK_URL:?set LIVEKIT_WEBHOOK_URL in .env}
+        logging:
+          level: info
+          json: true
+        redis:
+          address: ${LIVEKIT_REDIS_ADDRESS:?set LIVEKIT_REDIS_ADDRESS in .env}
+          password: ${LIVEKIT_REDIS_PASSWORD:-}
+        # Must be a name from the list below, and the list must match the
+        # primary's exactly.
+        region: ${LIVEKIT_REGION:?set LIVEKIT_REGION in .env}
+        node_selector:
+          kind: regionaware
+          sort_by: random
+          regions:
+            - name: moscow
+              lat: 55.7558
+              lon: 37.6173
+            - name: novosibirsk
+              lat: 55.0084
+              lon: 82.9357
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+volumes:
+  caddy-data:
+  caddy-config:

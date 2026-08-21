@@ -1,0 +1,107 @@
+# Multi-region overlay for the *primary* node: turns the single LiveKit server
+# into the first member of a cluster, so a second node elsewhere can carry the
+# rooms whose participants are nearer to it.
+#
+#   docker compose -f docker-compose.prod.yml -f docker-compose.multiregion.yml up -d
+#
+# **This has not been deployed.** The config below was checked against
+# livekit/livekit-server 1.11.0 by running two nodes against one Redis and
+# confirming both registered — but no second machine exists yet, and PLAN.md is
+# right that this is premature until A.3 steps 2-3 have measured where the
+# latency actually comes from. A second node cures distance. It cures nothing
+# else, and it costs a second VPS every month.
+#
+# ## What makes a cluster
+#
+# Nodes find each other through Redis and nothing else: with `redis:` set,
+# LiveKit switches from "single-node routing" to the distributed router and
+# publishes itself into the `nodes` hash. That is the whole mechanism.
+#
+# ## Why the region matters
+#
+# Joining a cluster alone does not lower anyone's latency. Rooms are assigned to
+# a node when they are created, and a Novosibirsk listener whose room lives in
+# Moscow still sends every packet to Moscow. `node_selector.kind: regionaware`
+# is what changes that: the node handling the create request picks a node in the
+# region closest to the client instead of the least loaded one anywhere.
+#
+# So `region:` has to be set per node, and it has to be a name from the
+# `regions` list, or the selector has no coordinates to compare and falls back
+# to picking anything.
+#
+# ## The part that needs a decision, not a config file
+#
+# Redis is currently on the internal docker network and reachable by nothing
+# else. A second node has to reach the *same* Redis, which means exposing it
+# beyond this host. Do not simply publish the port: an open Redis is a remote
+# code execution waiting to happen. The options, in order of preference:
+#
+#   1. A private network between the two VPSs (Timeweb offers one), with Redis
+#      bound to that interface only.
+#   2. A WireGuard tunnel between the hosts, same idea without the provider.
+#   3. `requirepass` plus TLS plus a firewall allowlist. Workable, and the one
+#      with the most ways to get quietly wrong.
+#
+# Whichever it is, `REDIS_HOST` below has to name an address the other node can
+# reach, and the second node's config has to name the same one.
+#
+# ## Signalling
+#
+# Each node needs its own hostname with TLS, because the client connects to a
+# node directly. The primary already has `LIVE_DOMAIN` through Caddy; the second
+# needs its own certificate and its own DNS record — see
+# `docker-compose.sfu-node.yml`, which is the whole stack that runs there.
+
+services:
+  # Redis becomes cluster state rather than one service's cache. Nothing about
+  # the container changes here; the comment is the point.
+  #
+  # If it is lost, running rooms scatter — participants reconnect and land on
+  # whichever node answers. Annoying, not fatal. It still does not need a
+  # backup.
+  redis: {}
+
+  livekit:
+    environment:
+      # The whole config is repeated because compose merges `environment` by
+      # key, so a partial LIVEKIT_CONFIG would replace the original rather than
+      # extend it. Keep this in step with docker-compose.prod.yml — the only
+      # additions are `redis`, `region` and `node_selector`.
+      LIVEKIT_CONFIG: |
+        port: 7880
+        bind_addresses:
+          - 0.0.0.0
+        rtc:
+          port_range_start: 50000
+          port_range_end: 50200
+          tcp_port: 7881
+          use_external_ip: true
+        keys:
+          ${LIVEKIT_API_KEY}: ${LIVEKIT_API_SECRET}
+        webhook:
+          api_key: ${LIVEKIT_API_KEY}
+          urls:
+            - http://voice:3008/voice/webhooks/livekit
+        logging:
+          level: info
+          json: true
+        # ── cluster ──────────────────────────────────────────────
+        redis:
+          address: ${LIVEKIT_REDIS_ADDRESS:-redis:6379}
+          password: ${LIVEKIT_REDIS_PASSWORD:-}
+        # This node's region. Must be one of the names below.
+        region: ${LIVEKIT_REGION:-moscow}
+        node_selector:
+          kind: regionaware
+          sort_by: random
+          # Coordinates, not addresses: the selector measures great-circle
+          # distance from the client's IP to each region. Add a region here and
+          # on every other node — a name only one node knows about is a name the
+          # others cannot route to.
+          regions:
+            - name: moscow
+              lat: 55.7558
+              lon: 37.6173
+            - name: novosibirsk
+              lat: 55.0084
+              lon: 82.9357

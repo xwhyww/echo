@@ -1,0 +1,28 @@
+# Caddyfile for a secondary SFU node. One name, one job.
+#
+# Certificates are obtained the same way as on the primary: the A record for
+# SFU_DOMAIN must already point at this host and 80/443 must be open before the
+# first start. They live in the caddy-data volume — keep it across redeploys or
+# every boot re-issues and Let's Encrypt starts refusing.
+{
+	email {$ACME_EMAIL}
+}
+
+# LiveKit signalling only, exactly as on the primary. Media does not pass
+# through here: it goes straight to this host's UDP 50000-50200, with TCP 7881
+# as the fallback for networks that block UDP. Both are published in
+# docker-compose.sfu-node.yml and both have to be open in the firewall *and* in
+# the provider's security group, which is a separate list.
+#
+# `flush_interval -1` disables response buffering. Without it Caddy holds the
+# WebSocket upgrade's frames and signalling stalls.
+{$SFU_DOMAIN} {
+	reverse_proxy livekit:7880 {
+		flush_interval -1
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}
