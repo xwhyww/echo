@@ -16,7 +16,6 @@
 | `Badge.svelte` | Notification badge (numeric or mention dot) |
 | `Button.svelte` | Button with variants: primary, secondary, ghost, disabled |
 | `ButtonIcon.svelte` | Icon-only button variant |
-| `ChannelSidebar.svelte` | Left sidebar for channel navigation (placeholder for future feature) |
 | `ChatBubble.svelte` | Chat message bubble with avatar, text, attachments (images/videos/files), reply preview, forwarded header, pins, context menu |
 | `Copiable.svelte` | Text block with click-to-copy functionality |
 | `EmojiPicker.svelte` | Emoji selection popover for message composition |

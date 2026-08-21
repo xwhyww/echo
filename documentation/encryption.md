@@ -1,6 +1,13 @@
 
 How encryption works
 
+Scope: **personal chats, group messages and voice-channel chats** all use this,
+under one `MESSAGE_ENCRYPTION_KEY`. The row-level logic lives once in
+`@echo/shared/crypto` (`messageRow.ts`) and each service wraps it in its own
+`src/crypto.ts`; the low-level AES-GCM primitives are in `messageCipher.ts`
+beside it. Both are unit-tested.
+
+
 Per-message flow (write):
 1. Server generates messageId = randomUUID() upfront.
 2. For each sensitive field (content, attachments, replyToSnapshot):                                             
@@ -44,9 +51,18 @@ The key_id column is why rotation is non-destructive. Rotation procedure:
    - New writes encrypt with key_id=2.
    - Old rows still have key_id=1 stored per column — reads look up key 1 from the map and decrypt fine. Nothing
    breaks, no downtime.
-3. Run pnpm run encrypt:backfill at your leisure — it re-encrypts rows under the current key. (Current script
-   only touches rows with content_ciphertext IS NULL, so to use it for rotation you'd widen the filter to rows where
-   content_key_id != currentKeyId.)
+3. Run pnpm run encrypt:backfill at your leisure — it re-encrypts rows under the current key. Each of the three
+   services has its own:
+     pnpm --filter @echo/pers-chats-service run encrypt:backfill
+     pnpm --filter @echo/groups-service run encrypt:backfill
+     pnpm --filter @echo/voice-service run encrypt:backfill
+   (The scripts only touch rows with content_ciphertext IS NULL, so to use them for rotation you would widen the
+   filter to rows where content_key_id != currentKeyId.)
+
+   Note what the backfill does besides writing ciphertext: it **clears content, attachments and reply_to_snapshot**
+   in the same statement. Leaving them would store every message twice, once encrypted and once not, and the row
+   would be no more private than before it ran. attachments_meta keeps the hash/mimeType/size that the media, stats
+   and blob-GC queries need, so emptying the jsonb column costs nothing.
 4. Once backfill is done and verified, remove the old key from MESSAGE_ENCRYPTION_KEY, leaving only 2:<new_b64>.
    Restart.
 

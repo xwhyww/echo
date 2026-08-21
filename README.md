@@ -1,47 +1,71 @@
-# sv
+# Echo
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+A messenger: personal chats, groups, and voice channels with screen sharing.
+SvelteKit 5 + Tauri on the front, ten Node services on the back.
 
-## Creating a project
-
-If you're seeing this, you've probably already done this step. Congrats!
-
-```sh
-# create a new project
-npx sv create my-app
+```
+echo-client/    SvelteKit 5 (runes) + Tauri 2 — web, desktop, iOS, Android
+echo-server/    pnpm monorepo: ten services + @echo/shared
+documentation/  Per-service reference and design docs
+PLAN.md         Current backlog and what has been done against it
 ```
 
-To recreate this project with the same configuration:
+## Running it
 
-```sh
-# recreate this project
-npx sv@0.13.0 create --template minimal --types ts --no-install echo
+**Server** — Postgres, NATS, Redis, MinIO and LiveKit come up together, then the
+services run natively:
+
+```bash
+cd echo-server
+pnpm install
+pnpm dev:full        # infra + migrations + all ten services
 ```
 
-## Developing
+`echo-server/ARCHITECTURE.md` is the map: what each service owns, how they talk
+(NATS JetStream), and which database belongs to which.
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+**Client**:
 
-```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+```bash
+cd echo-client
+npm install
+npm run dev          # browser, on :5173
+npm run desktop      # Tauri window
+npm run android:dev  # emulator or attached device
+npm run ios:dev      # macOS only
 ```
 
-## Building
+Unset, the client works its backend out from the URL it was served over. A
+bundled mobile build has no such URL, so those need `VITE_API_URL` and
+`VITE_WS_URL` set at build time — Vite inlines them.
 
-To create a production version of your app:
+## Checks
 
-```sh
-npm run build
+```bash
+cd echo-server && pnpm typecheck && pnpm test
+cd echo-client && npm run check && npm test && npm run build
 ```
 
-You can preview the production build with `npm run preview`.
+`pnpm typecheck`, not `tsc -p tsconfig.json`: the root config is a solution file
+with `include: []` and would report success having checked nothing. CI runs both
+halves — see `.github/workflows/ci.yml`.
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+## Deploying
 
+`echo-server/deploy/` is a standalone stack: Caddy terminating TLS in front of
+the services, with Postgres, NATS, Redis and LiveKit unpublished on the internal
+network. `deploy/README.md` is the runbook — hardware floor, the firewall table
+(voice needs UDP 50000-50200 open, and a half-configured firewall looks fine
+until someone joins a call), backups, and the things that will bite you.
 
-RESTARTING SERVICE AT DOCKER CONTAINER 
+**One thing is worth repeating here:** `MESSAGE_ENCRYPTION_KEY` encrypts every
+message in the system — personal, group and voice-channel alike — and it is
+deliberately not in the database. Lose it and every stored conversation is
+permanently unreadable, backups included.
 
-docker compose up -d --build pers-chats
+## Conventions
+
+`echo-client/CLAUDE.md` is binding for the frontend: a page is a hook plus a
+`PageColumn` and a `LoadState`, logic lives in `hooks/<domain>/`, pure helpers in
+`utils/`, type and colour are composed as classes rather than written in
+component CSS, and anything over ~250 lines gets split.

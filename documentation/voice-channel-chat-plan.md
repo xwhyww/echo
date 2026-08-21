@@ -10,8 +10,17 @@ The work is split into three slices:
 
 - **Slice 1 — UI scaffold** (left voice pane + right chat panel stub) — DONE
 - **Slice 2a — Backend** (schema, routes, NATS, WS gateway) — DONE
-- **Slice 2b — Frontend** (service + WS types + chat component + wire-in) — TODO
-- **Slice 3 — Refactor** (extract a shared `<ChatPanel />` once both work) — TODO
+- **Slice 2b — Frontend** (service + WS types + chat component + wire-in) — DONE
+- **Slice 3 — Refactor** (extract a shared `<ChatPanel />` once both work) — DONE
+
+Two things changed after this was written and are not described below:
+
+- The chat is **encrypted at rest**, like personal and group messages. See
+  `documentation/encryption.md`.
+- Every route checks **channel access**, not just group membership. A voice
+  channel restricted to a role has a chat restricted to the same role, and the
+  WebSocket fan-out is narrowed to `channelAudience()` rather than going to the
+  whole group.
 
 ---
 
