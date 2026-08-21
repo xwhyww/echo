@@ -3,6 +3,7 @@ import { cors } from 'hono/cors';
 import { requestLogger, logContext } from '@echo/shared/logger';
 import { log } from './log.js';
 import { config } from './config.js';
+import { rateLimit } from './rateLimit.js';
 
 export const app = new Hono();
 
@@ -16,8 +17,20 @@ const LAN_ORIGIN =
 	/^http:\/\/(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}):\d+$/;
 const isDev = process.env.NODE_ENV !== 'production';
 
+// The two origins a bundled Tauri webview serves itself from. They differ by
+// platform and neither is configurable: WKWebView registers a custom `tauri`
+// scheme, while Android's WebView has to use a real http origin on a reserved
+// host. Allowed unconditionally, deployment included — nothing else can claim
+// them, because no DNS name resolves to either.
+const TAURI_ORIGINS = new Set([
+	// iOS, macOS
+	'tauri://localhost',
+	// Android, Windows
+	'http://tauri.localhost',
+]);
+
 function isAllowedOrigin(origin: string): boolean {
-	if (origin === 'tauri://localhost') return true;
+	if (TAURI_ORIGINS.has(origin)) return true;
 	// Deployed web origins, e.g. https://app.example.com. Exact matches only —
 	// there is no wildcard form on purpose, since these are sent credentials.
 	if (config.allowedOrigins.includes(origin)) return true;
@@ -39,6 +52,9 @@ app.use(
 		credentials: true,
 	})
 );
+// After cors() on purpose: a 429 still needs its CORS headers to be readable by
+// the browser, and preflight must not be counted against the caller.
+app.use('*', rateLimit());
 
 const SERVICE_MAP: Record<string, string> = {
 	'/auth': config.authServiceUrl,

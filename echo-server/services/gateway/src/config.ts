@@ -19,6 +19,19 @@ export const config = {
 	groupsServiceUrl: process.env.GROUPS_SERVICE_URL || 'http://localhost:3007',
 	voiceServiceUrl: process.env.VOICE_SERVICE_URL || 'http://localhost:3008',
 	pushServiceUrl: process.env.PUSH_SERVICE_URL || 'http://localhost:3009',
+	// Backs the edge rate limiter. Optional: without it the limiter keeps its
+	// counters in process, which is the same guarantee while the gateway is a
+	// single instance.
+	redisUrl: process.env.REDIS_URL,
+	rateLimits: {
+		// Per client address, per 15 minutes, on POST /auth/otp/request. The
+		// number is an env var because the right value depends on how much
+		// carrier NAT sits in front of the users, and that is not knowable from
+		// here.
+		otpRequestsPerWindow: Number(process.env.RATE_LIMIT_OTP_REQUESTS) || 10,
+		// Per client address, per minute, on everything else.
+		globalPerMinute: Number(process.env.RATE_LIMIT_GLOBAL_PER_MINUTE) || 600,
+	},
 	// Comma-separated web origins allowed to call the API with credentials.
 	// Required in production — localhost/LAN origins are dev-only (see app.ts).
 	allowedOrigins: (process.env.ALLOWED_ORIGINS || '')
