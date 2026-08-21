@@ -29,9 +29,18 @@
 		 */
 		backExact?: boolean;
 		title?: string;
+		/**
+		 * Ignore the open chat and draw the plain title bar instead.
+		 *
+		 * Only the copy mounted under the page as the back gesture's backdrop
+		 * passes this. It stands for the bar the *destination* wears, and the
+		 * destination is a list — so the conversation still published in
+		 * `chatHeader` is the wrong thing for it to show.
+		 */
+		plain?: boolean;
 	}
 
-	let { backHref = null, backExact = true, title = '' }: Props = $props();
+	let { backHref = null, backExact = true, title = '', plain = false }: Props = $props();
 
 	const t = $derived(i18n.t);
 
@@ -57,7 +66,7 @@
 	// and their presence, or the group and its size — in place of the page
 	// title. It is published by the chat page rather than rendered by it, so the
 	// bar keeps one back button and one swipe for every screen.
-	const chat = $derived(chatHeader.current);
+	const chat = $derived(plain ? null : chatHeader.current);
 
 	// Saved messages has no companion, so the avatar is our own — without this
 	// the fallback initial ('?') is all UserInfo has to draw.
@@ -78,7 +87,10 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<header class="app-header" class:has-chat={!!chat} {onclick}>
+<!-- data-swipe-surface: the bar is dragged aside with the page it belongs to,
+     rather than staying pinned while the screen underneath it changes.
+     See useSwipeBack.svelte.ts. -->
+<header class="app-header" class:has-chat={!!chat} data-swipe-surface {onclick}>
 	{#if backHref}
 		<div class="header-back">
 			<BackButton {backHref} exact={backExact} size={48} />

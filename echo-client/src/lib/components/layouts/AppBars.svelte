@@ -24,7 +24,10 @@
 	const pinned = $derived(pinnedBar.current);
 </script>
 
-<div class="bar-stack {dockTop ? 'doc-top' : 'doc-bottom'}">
+<!-- data-swipe-surface: these bars belong to the screen under them — the pinned
+     strip most literally — so a back gesture carries them off with it instead
+     of leaving them hanging over the page arriving behind. -->
+<div class="bar-stack {dockTop ? 'doc-top' : 'doc-bottom'}" data-swipe-surface>
 	{#if pinned && pinned.pinned.length > 0}
 		<PinnedMessagesBar
 			pinned={pinned.pinned}

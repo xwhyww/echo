@@ -12,14 +12,17 @@ rust-version = "1.77.2"
 
 [lib]
 name = "app_lib"
-# `cdylib` is Android's artifact, and this project has no Android target — only
-# gen/apple exists. It is dropped because a dynamic library has to resolve every
-# symbol at its own link step, and `init_plugin_screenshare` is deliberately not
-# resolvable there: the screenshare plugin's Swift is compiled by Xcode into the
-# app target now, not by swift-rs into this build (see plugins/screenshare/
-# build.rs). iOS links the staticlib, where an undefined symbol is expected and
-# is resolved at Xcode's final link; desktop uses the rlib.
-crate-type = ["staticlib", "rlib"]
+# One artifact per platform: Android loads a `cdylib`, iOS links the
+# `staticlib`, desktop uses the `rlib`.
+#
+# `cdylib` used to be dropped here, because a dynamic library has to resolve
+# every symbol at its own link step and `init_plugin_screenshare` is deliberately
+# not resolvable — the screenshare plugin's Swift is compiled by Xcode into the
+# app target rather than by swift-rs into this build (see plugins/screenshare/
+# build.rs). That undefined symbol is an iOS-only fact: it is declared under
+# `cfg(target_os = "ios")`, and an Android build takes the `stub` half of both
+# native plugins instead, where there is nothing left to resolve.
+crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2.5.6", features = [] }

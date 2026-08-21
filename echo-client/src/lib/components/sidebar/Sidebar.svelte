@@ -43,7 +43,10 @@
 
 <svelte:window onresize={pill.measure} />
 
-<aside class="sidebar">
+<!-- data-swipe-surface: the tab bar rides with the page during a back gesture.
+     The copy the layout mounts as the gesture's backdrop sits inside
+     [data-swipe-reveal] and is skipped — see useSwipeBack.svelte.ts. -->
+<aside class="sidebar" data-swipe-surface>
 	<div class="sidebar-top">
 		<nav class="tab-buttons" bind:this={pill.nav} onmouseleave={() => (hovered = null)}>
 			<span

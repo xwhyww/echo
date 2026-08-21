@@ -48,11 +48,44 @@ function inHorizontalScroller(target: Element): boolean {
 }
 
 /**
- * The element the page is drawn on, which the gesture slides to show what it is
- * about to do. Declared by the root layout rather than found by class name, so
- * the two ends of the contract are visible from both sides.
+ * Everything the gesture slides to show what it is about to do: the page
+ * itself, and the chrome drawn over it — the header, the floating app bars, the
+ * tab bar. Declared by the components rather than found by class name, so the
+ * two ends of the contract are visible from both sides.
+ *
+ * The chrome moves with the page because it belongs to the page. Leaving the
+ * header pinned while the conversation slid out from under it read as the
+ * screen tearing in half: the title still said one thing while the screen
+ * already showed another. What appears from underneath is the destination's own
+ * chrome, mounted by the layout inside `REVEAL` — which is exactly why the
+ * query has to skip it. Those copies are the backdrop; moving them too would
+ * drag the destination off-screen along with the page leaving it.
  */
 const SURFACE = '[data-swipe-surface]';
+const REVEAL = '[data-swipe-reveal]';
+
+/**
+ * Put on <html> for as long as a gesture is on screen, which is what uncovers
+ * the destination's chrome.
+ *
+ * The copies have to be mounted all along — measuring a tab bar and laying out
+ * a header at the moment the finger moves would cost the first frames of the
+ * drag — but they are fixed over the whole viewport, so left visible the spare
+ * tab bar would float over the conversation the entire time. Hidden until the
+ * page actually moves off them, and hidden again the moment it stops.
+ */
+const ACTIVE_CLASS = 'swiping-back';
+
+function markActive(on: boolean) {
+	document.documentElement.classList.toggle(ACTIVE_CLASS, on);
+}
+
+/** The moving chrome and page, never the still copies underneath them. */
+function surfaces(): HTMLElement[] {
+	return Array.from(document.querySelectorAll<HTMLElement>(SURFACE)).filter(
+		(el) => !el.closest(REVEAL),
+	);
+}
 /**
  * How much of the finger's travel the page follows. 1:1 — the page goes exactly
  * where the finger goes, which is what makes it read as being dragged aside
@@ -136,19 +169,22 @@ export function useSwipeBack(
 	// the navigation it triggered. Held here rather than inside the effect
 	// because it has to survive the effect being torn down mid-flight — which is
 	// exactly what navigating does.
-	let exiting: HTMLElement | null = null;
+	let exiting: HTMLElement[] = [];
 
 	function clearExit() {
-		const el = exiting;
-		exiting = null;
-		if (!el) return;
-		el.style.transition = 'none';
-		el.style.transform = '';
-		el.style.willChange = '';
+		const els = exiting;
+		exiting = [];
+		if (!els.length) return;
+		markActive(false);
+		for (const el of els) {
+			el.style.transition = 'none';
+			el.style.transform = '';
+			el.style.willChange = '';
+		}
 		// Cleared on the next frame so removing the transition cannot animate the
 		// reset it was meant to skip.
 		requestAnimationFrame(() => {
-			el.style.transition = '';
+			for (const el of els) el.style.transition = '';
 		});
 	}
 
@@ -165,8 +201,8 @@ export function useSwipeBack(
 		// Non-null only while a candidate gesture is in flight.
 		let start: { id: number; x: number; y: number; at: number } | null = null;
 		// Held for the length of one gesture: re-queried each time because the
-		// page it belongs to is replaced on navigation.
-		let surface: HTMLElement | null = null;
+		// page they belong to is replaced on navigation.
+		let moving: HTMLElement[] = [];
 		// True once the drag has proved itself horizontal. Separate from `start`,
 		// which only means a gesture is being considered.
 		let swiping = false;
@@ -183,7 +219,7 @@ export function useSwipeBack(
 		 * someone who meant to scroll.
 		 */
 		function follow(dx: number) {
-			if (!surface) return;
+			if (!moving.length) return;
 			// Starts from zero rather than from the recognition threshold, so the
 			// page eases out of rest instead of snapping 8px sideways.
 			pendingShift = Math.min(
@@ -198,12 +234,14 @@ export function useSwipeBack(
 
 		function paint() {
 			frame = 0;
-			if (!surface) return;
-			surface.style.transition = 'none';
-			// translate3d rather than translateX: it keeps the page on its own
+			// translate3d rather than translateX: it keeps each layer on its own
 			// compositing layer, so a drag moves an existing texture instead of
 			// repainting the conversation every frame.
-			surface.style.transform = `translate3d(${pendingShift}px, 0, 0)`;
+			const shift = `translate3d(${pendingShift}px, 0, 0)`;
+			for (const el of moving) {
+				el.style.transition = 'none';
+				el.style.transform = shift;
+			}
 		}
 
 		/** Undo everything `follow` did. Safe to call when it never ran. */
@@ -212,26 +250,36 @@ export function useSwipeBack(
 			// place the scroll lock has to be released.
 			swiping = false;
 			unlockScroll();
+			// Not cleared on the committed path: `flingOut` leaves it on until
+			// `clearExit`, so the destination's chrome stays put while the page it
+			// belongs to is still on its way off the screen.
+			markActive(false);
 			if (frame) {
 				cancelAnimationFrame(frame);
 				frame = 0;
 			}
-			const el = surface;
-			surface = null;
-			if (!el) return;
-			el.style.transition = animated ? `transform ${SETTLE_MS}ms ${SETTLE_EASE}` : 'none';
-			el.style.transform = '';
-			// Leaving a transition on the element would slow down whatever the
-			// page does with it next, and `will-change` costs memory for a layer
+			const els = moving;
+			moving = [];
+			if (!els.length) return;
+			for (const el of els) {
+				el.style.transition = animated ? `transform ${SETTLE_MS}ms ${SETTLE_EASE}` : 'none';
+				el.style.transform = '';
+			}
+			// Leaving a transition on the elements would slow down whatever the
+			// page does with them next, and `will-change` costs memory for a layer
 			// nothing is animating any more.
 			if (animated) {
 				setTimeout(() => {
-					el.style.transition = '';
-					el.style.willChange = '';
+					for (const el of els) {
+						el.style.transition = '';
+						el.style.willChange = '';
+					}
 				}, SETTLE_MS);
 			} else {
-				el.style.transition = '';
-				el.style.willChange = '';
+				for (const el of els) {
+					el.style.transition = '';
+					el.style.willChange = '';
+				}
 			}
 		}
 
@@ -297,8 +345,9 @@ export function useSwipeBack(
 				}
 
 				swiping = true;
-				surface = document.querySelector<HTMLElement>(SURFACE);
-				if (surface) surface.style.willChange = 'transform';
+				moving = surfaces();
+				markActive(true);
+				for (const el of moving) el.style.willChange = 'transform';
 			}
 
 			// Ours from here: the list must hold still while the page is dragged
@@ -350,16 +399,19 @@ export function useSwipeBack(
 			}
 			swiping = false;
 			unlockScroll();
-			const el = surface;
-			surface = null;
-			if (!el) {
+			const els = moving;
+			moving = [];
+			if (!els.length) {
+				markActive(false);
 				goBack(target, { exact: settings?.exact });
 				return;
 			}
 
-			exiting = el;
-			el.style.transition = `transform ${EXIT_MS}ms ${EXIT_EASE}`;
-			el.style.transform = `translate3d(${window.innerWidth}px, 0, 0)`;
+			exiting = els;
+			for (const el of els) {
+				el.style.transition = `transform ${EXIT_MS}ms ${EXIT_EASE}`;
+				el.style.transform = `translate3d(${window.innerWidth}px, 0, 0)`;
+			}
 
 			setTimeout(() => goBack(target, { exact: settings?.exact }), EXIT_MS);
 			// A navigation that never happens — a destination equal to where we

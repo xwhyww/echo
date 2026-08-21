@@ -129,6 +129,19 @@
 	// Anything with a screen worth revealing while it is dragged aside.
 	const hasRevealLayer = $derived((hideChrome && !inVoice) || inProfile);
 
+	/**
+	 * The title the *destination's* header wears, for the copy mounted under the
+	 * page while the gesture drags it aside.
+	 *
+	 * Not `headerTitle`: that one names the screen you are leaving. Going back
+	 * from a profile page lands on the settings menu, and from a conversation on
+	 * the list its section belongs to — which is what `sectionTitles` already
+	 * answers, because an open chat keeps its section active in the rail.
+	 */
+	const revealTitle = $derived(
+		inProfile ? t.settings.title : activeSidebar ? sectionTitles[activeSidebar] : '',
+	);
+
 	// …except that a personal chat now puts its header in the app bar rather
 	// than floating one over its own scroller, so the bar comes back for it. The
 	// sidebar stays hidden: the conversation is still the whole screen below.
@@ -172,6 +185,25 @@
 	<!-- intentionally empty -->
 {:else if guard.showSidebar}
 	<div class="app-shell" class:settings-mode={settingsMode} class:m-detail={mobileDetail} class:m-content={mobileContent}>
+		{#if hasRevealLayer}
+			<!-- The destination's chrome, drawn under the chrome you are dragging.
+			     Both are fixed at the same z-index, so DOM order is what keeps this
+			     underneath — it has to stay above the real header in the markup.
+
+			     Without it the header simply wasn't there while the page slid: the
+			     one on screen was leaving with the conversation, and the list's own
+			     did not exist until navigation landed. What showed through the gap
+			     was the wallpaper, which is what made the gesture read as a jolt
+			     rather than as one screen sliding off another.
+
+			     `data-swipe-reveal` is how the gesture tells these copies apart
+			     from the chrome it moves; see useSwipeBack.svelte.ts. -->
+			<div class="reveal-chrome" data-swipe-reveal aria-hidden="true">
+				<Header backHref={null} title={revealTitle} plain />
+				<Sidebar />
+			</div>
+		{/if}
+
 		{#if !hideChrome || hasChatHeader}
 			<!-- The fallback destination has to name the same screen the reveal
 			     layer shows, or a swipe uncovers one page and lands on another. -->
@@ -193,7 +225,7 @@
 				     Only the surfaces whose destination is a *list* get one; see
 				     `inVoice` above for the two that get nothing. Revealing the
 				     wrong screen would be worse than revealing none. -->
-				<div class="reveal-layer" aria-hidden="true">
+				<div class="reveal-layer" data-swipe-reveal aria-hidden="true">
 					{#if inProfile}
 						<!-- Matches how /settings renders it, so what appears from
 						     under the page is the screen you actually land on. -->
@@ -226,6 +258,27 @@
 <ConfirmHost />
 
 <style>
+	/* The destination's chrome, kept mounted and kept out of sight.
+
+	   Zero-height in the column: everything inside is fixed or absolute and sits
+	   exactly where the real chrome does. It is a backdrop, so nothing in it can
+	   be touched — `pointer-events` inherits, which covers the header, its back
+	   button and every tab in one declaration.
+
+	   Hidden rather than unmounted because a gesture must not pay to lay out a
+	   header and measure a tab bar on its first frame; `visibility` inherits too,
+	   and unlike `display: none` it leaves the boxes measurable for the sliding
+	   pill. The class arrives on the document element when a swipe starts — see
+	   useSwipeBack.svelte.ts. */
+	.reveal-chrome {
+		pointer-events: none;
+		visibility: hidden;
+	}
+
+	:global(html.swiping-back) .reveal-chrome {
+		visibility: visible;
+	}
+
 	.app-shell {
 		display: flex;
 		height: 100svh;
