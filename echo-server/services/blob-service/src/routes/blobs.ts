@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { stream } from 'hono/streaming';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { authMiddleware, verifyToken, type AuthEnv, type JwtPayload } from '@echo/shared';
 import { createDb } from '../db/index.js';
 import { fileBlobs, rawBlobMap, blobGrants, dmChatMembers, groupMembersMirror } from '../db/schema.js';

@@ -1,5 +1,5 @@
 import { pgTable, text, timestamp, boolean, uuid, index, uniqueIndex, varchar, jsonb, serial, smallint, customType } from 'drizzle-orm/pg-core';
-import { relations, sql } from 'drizzle-orm';
+import { relations } from 'drizzle-orm';
 
 // postgres-js returns bytea as either a "\x…" hex string or a Uint8Array
 // depending on version/config. Normalise to Buffer so the crypto helpers
