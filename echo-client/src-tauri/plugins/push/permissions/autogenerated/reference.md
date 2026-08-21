@@ -1,15 +1,18 @@
 ## Default Permission
 
 Register this install for push notifications: prompt for permission, read the
-APNs device token, and report which APNs environment the token belongs to. All
-three run once per launch from the registration hook, and the prompt itself is
-shown by iOS, which only ever asks the user once per install.
+device token (APNs on iOS, FCM on Android), report which APNs environment the
+token belongs to, and say which platform it came from so the server knows which
+provider to send through. All four run once per launch from the registration
+hook, and the prompt itself is shown by the OS, which only ever asks the user
+once per install.
 
 #### This default permission set includes the following:
 
 - `allow-request-permission`
 - `allow-get-token`
 - `allow-environment`
+- `allow-platform`
 
 ## Permission Table
 
@@ -68,6 +71,32 @@ Enables the get_token command without any pre-configured scope.
 <td>
 
 Denies the get_token command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`push:allow-platform`
+
+</td>
+<td>
+
+Enables the platform command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`push:deny-platform`
+
+</td>
+<td>
+
+Denies the platform command without any pre-configured scope.
 
 </td>
 </tr>

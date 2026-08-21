@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Runtime permission from Android 13 (API 33). Declared here so it merges
+         into the app manifest without the generated project having to know this
+         plugin exists. On older releases it is ignored. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+</manifest>

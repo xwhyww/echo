@@ -41,7 +41,26 @@ export const config = {
 		teamId: process.env.APNS_TEAM_ID || '',
 		bundleId: process.env.APNS_BUNDLE_ID || '',
 	},
+
+	/**
+	 * Firebase Cloud Messaging, the Android counterpart of the block above.
+	 *
+	 * One value rather than four: FCM authenticates with a service-account key,
+	 * and the JSON file Firebase hands out already carries the project id, the
+	 * client email and the private key. Get it from the Firebase console under
+	 * Project settings → Service accounts → Generate new private key. Like the
+	 * APNs `.p8` it is a private credential — mount it as a secret, never commit
+	 * it.
+	 *
+	 * Unset means Android tokens are stored and skipped, exactly as they were
+	 * before this existed.
+	 */
+	fcm: {
+		serviceAccountPath: process.env.FCM_SERVICE_ACCOUNT_PATH || '',
+	},
 };
 
 export const apnsConfigured =
 	!!config.apns.keyPath && !!config.apns.keyId && !!config.apns.teamId && !!config.apns.bundleId;
+
+export const fcmConfigured = !!config.fcm.serviceAccountPath;

@@ -1,8 +1,8 @@
-//! Everywhere that is not iOS.
+//! Everywhere that is neither iOS nor Android.
 //!
-//! APNs is an Apple service and there is no Android target in this project, so
-//! the desktop and browser builds have nothing to register. `request_permission`
-//! answering false is what stops the frontend hook before it asks for a token.
+//! Desktop has no push provider to register against — there is no APNs and no
+//! FCM outside the two mobile targets. `request_permission` answering false is
+//! what stops the frontend hook before it asks for a token.
 
 use tauri::{AppHandle, Runtime};
 

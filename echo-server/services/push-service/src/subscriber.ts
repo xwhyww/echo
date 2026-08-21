@@ -43,12 +43,16 @@ export async function startNatsSubscriber(): Promise<void> {
 				const event: DmMessageEvent = JSON.parse(msg.string());
 				await notifyUser(
 					event.targetUserId,
-					copy.dmMessage(
-						event.message.author,
-						event.chatId,
-						event.message.content,
-						event.message.attachments?.length ?? 0,
-					),
+					'dm',
+					event.chatId,
+					(showPreview) =>
+						copy.dmMessage(
+							event.message.author,
+							event.chatId,
+							event.message.content,
+							event.message.attachments?.length ?? 0,
+							showPreview,
+						),
 				);
 				msg.ack();
 			} catch (err) {
@@ -67,10 +71,10 @@ export async function startNatsSubscriber(): Promise<void> {
 				// `friend_declined` and `friend_cancelled` are things you would not
 				// thank an app for announcing.
 				if (event.type === 'friend_request') {
-					await notifyUser(event.toUserId, copy.friendRequest());
+					await notifyUser(event.toUserId, 'friend', undefined, () => copy.friendRequest());
 				} else if (event.type === 'friend_accepted') {
 					// The acceptance travels to whoever originally asked.
-					await notifyUser(event.toUserId, copy.friendAccepted());
+					await notifyUser(event.toUserId, 'friend', undefined, () => copy.friendAccepted());
 				}
 				msg.ack();
 			} catch (err) {
@@ -99,18 +103,24 @@ export async function startNatsSubscriber(): Promise<void> {
 					const recipients = e.targetUserIds.filter((id) => id !== e.message.authorId);
 					await notifyUsers(
 						recipients,
-						copy.groupMessage(
-							e.message.author,
-							e.groupId,
-							e.message.content,
-							e.message.attachments?.length ?? 0,
-						),
+						'group',
+						e.groupId,
+						(showPreview) =>
+							copy.groupMessage(
+								e.message.author,
+								e.groupId,
+								e.message.content,
+								e.message.attachments?.length ?? 0,
+								showPreview,
+							),
 					);
 				} else if (msg.subject === SUBJECTS.GROUP_INVITE_CREATED) {
 					const e: GroupInviteCreatedEvent = JSON.parse(msg.string());
 					await notifyUsers(
 						e.targetUserIds,
-						copy.groupInvite(e.invite.groupName, e.invite.inviterUsername),
+						'invite',
+						e.invite.groupId,
+						() => copy.groupInvite(e.invite.groupName, e.invite.inviterUsername),
 					);
 				}
 				msg.ack();

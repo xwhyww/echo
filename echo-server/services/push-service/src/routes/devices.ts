@@ -3,6 +3,7 @@ import { and, eq } from 'drizzle-orm';
 import { authMiddleware, type AuthEnv } from '@echo/shared';
 import { createDb } from '../db/index.js';
 import { deviceTokens } from '../db/schema.js';
+import { loadSettings, saveSettings, type NotificationSettings } from '../settings.js';
 import { config } from '../config.js';
 import { log } from '../log.js';
 
@@ -65,4 +66,46 @@ deviceRoutes.delete('/devices/:token', async (c) => {
 		.where(and(eq(deviceTokens.token, token), eq(deviceTokens.userId, userId)));
 
 	return c.json({ ok: true });
+});
+
+// ─── Notification settings ──────────────────────────────────────
+
+deviceRoutes.get('/settings', async (c) => {
+	const userId = c.get('user').userId;
+	return c.json({ settings: await loadSettings(userId) });
+});
+
+/**
+ * Partial update — only the keys present in the body are changed, so the client
+ * can flip one switch without having to send (and risk clobbering) the rest.
+ *
+ * Every field is validated by type rather than trusted, and unknown keys are
+ * dropped: the body reaches here straight from the network.
+ */
+deviceRoutes.patch('/settings', async (c) => {
+	const userId = c.get('user').userId;
+	const body = (await c.req.json().catch(() => null)) as Record<string, unknown> | null;
+	if (!body) return c.json({ error: 'invalid body' }, 400);
+
+	const patch: Partial<NotificationSettings> = {};
+
+	for (const key of ['enabled', 'directMessages', 'groupMessages', 'friendRequests', 'groupInvites'] as const) {
+		if (typeof body[key] === 'boolean') patch[key] = body[key] as boolean;
+	}
+	// Tri-state: true, false, or null for "follow the server default".
+	if (body.showPreview === null || typeof body.showPreview === 'boolean') {
+		patch.showPreview = body.showPreview as boolean | null;
+	}
+	for (const key of ['mutedChats', 'mutedGroups'] as const) {
+		const value = body[key];
+		if (Array.isArray(value) && value.every((v) => typeof v === 'string')) {
+			// Deduplicated and capped: this list is written by the client and read
+			// on every delivery, and nothing legitimate needs a thousand entries.
+			patch[key] = [...new Set(value as string[])].slice(0, 500);
+		}
+	}
+
+	if (Object.keys(patch).length === 0) return c.json({ error: 'nothing to update' }, 400);
+
+	return c.json({ settings: await saveSettings(userId, patch) });
 });

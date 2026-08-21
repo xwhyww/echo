@@ -7,8 +7,13 @@
 // delegate (EchoPushDelegate.m), that companion has to live in src-tauri/ios/ to
 // reach the app target, and splitting one plugin across two Swift build systems
 // buys nothing. PushPlugin.swift sits beside it, and Xcode compiles both.
-const COMMANDS: &[&str] = &["request_permission", "get_token", "environment"];
+const COMMANDS: &[&str] = &["request_permission", "get_token", "environment", "platform"];
 
 fn main() {
-	tauri_plugin::Builder::new(COMMANDS).build();
+	// `.android_path` does have to be here, unlike the iOS side: the Kotlin is a
+	// Gradle library module with a Firebase dependency, and this is what gets it
+	// added to the generated project as `:tauri-plugin-push`.
+	tauri_plugin::Builder::new(COMMANDS)
+		.android_path("android")
+		.build();
 }

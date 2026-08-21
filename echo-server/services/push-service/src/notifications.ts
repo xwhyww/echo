@@ -1,4 +1,3 @@
-import { config } from './config.js';
 import type { ApnsNotification } from './apns.js';
 
 /**
@@ -8,12 +7,16 @@ import type { ApnsNotification } from './apns.js';
  * rather than on the device, because a push arrives as finished text — the app
  * may not even be running to translate it — which means the server needs to
  * know each user's language before this can be done properly.
+ *
+ * Whether a banner may quote the message is decided per recipient and passed
+ * in, not read from config here: it is the user's own setting, falling back to
+ * the server default only when they have never expressed one.
  */
 
 const MAX_PREVIEW = 120;
 
-function preview(content: string, attachmentCount: number): string | null {
-	if (!config.includeMessagePreview) return null;
+function preview(content: string, attachmentCount: number, allowed: boolean): string | null {
+	if (!allowed) return null;
 	const text = content.trim();
 	if (!text) return attachmentCount > 0 ? 'Sent an attachment' : null;
 	return text.length > MAX_PREVIEW ? `${text.slice(0, MAX_PREVIEW - 1)}…` : text;
@@ -28,11 +31,12 @@ export function dmMessage(
 	chatId: string,
 	content: string,
 	attachmentCount: number,
+	showPreview: boolean,
 ): ApnsNotification {
 	const name = displayName(author);
 	return {
 		title: name,
-		body: preview(content, attachmentCount) ?? 'Sent you a message',
+		body: preview(content, attachmentCount, showPreview) ?? 'Sent you a message',
 		// One banner per conversation rather than one per message: twenty messages
 		// while the phone is in a pocket should not be twenty notifications.
 		collapseId: `dm:${chatId}`,
@@ -53,9 +57,10 @@ export function groupMessage(
 	groupId: string,
 	content: string,
 	attachmentCount: number,
+	showPreview: boolean,
 ): ApnsNotification {
 	const name = displayName(author);
-	const text = preview(content, attachmentCount);
+	const text = preview(content, attachmentCount, showPreview);
 	return {
 		title: name,
 		body: text ?? 'Sent a message in a group',

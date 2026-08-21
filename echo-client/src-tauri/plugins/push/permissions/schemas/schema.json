@@ -319,6 +319,18 @@
           "markdownDescription": "Denies the get_token command without any pre-configured scope."
         },
         {
+          "description": "Enables the platform command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-platform",
+          "markdownDescription": "Enables the platform command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the platform command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-platform",
+          "markdownDescription": "Denies the platform command without any pre-configured scope."
+        },
+        {
           "description": "Enables the request_permission command without any pre-configured scope.",
           "type": "string",
           "const": "allow-request-permission",
@@ -331,10 +343,10 @@
           "markdownDescription": "Denies the request_permission command without any pre-configured scope."
         },
         {
-          "description": "Register this install for push notifications: prompt for permission, read the\nAPNs device token, and report which APNs environment the token belongs to. All\nthree run once per launch from the registration hook, and the prompt itself is\nshown by iOS, which only ever asks the user once per install.\n\n#### This default permission set includes:\n\n- `allow-request-permission`\n- `allow-get-token`\n- `allow-environment`",
+          "description": "Register this install for push notifications: prompt for permission, read the\ndevice token (APNs on iOS, FCM on Android), report which APNs environment the\ntoken belongs to, and say which platform it came from so the server knows which\nprovider to send through. All four run once per launch from the registration\nhook, and the prompt itself is shown by the OS, which only ever asks the user\nonce per install.\n\n#### This default permission set includes:\n\n- `allow-request-permission`\n- `allow-get-token`\n- `allow-environment`\n- `allow-platform`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Register this install for push notifications: prompt for permission, read the\nAPNs device token, and report which APNs environment the token belongs to. All\nthree run once per launch from the registration hook, and the prompt itself is\nshown by iOS, which only ever asks the user once per install.\n\n#### This default permission set includes:\n\n- `allow-request-permission`\n- `allow-get-token`\n- `allow-environment`"
+          "markdownDescription": "Register this install for push notifications: prompt for permission, read the\ndevice token (APNs on iOS, FCM on Android), report which APNs environment the\ntoken belongs to, and say which platform it came from so the server knows which\nprovider to send through. All four run once per launch from the registration\nhook, and the prompt itself is shown by the OS, which only ever asks the user\nonce per install.\n\n#### This default permission set includes:\n\n- `allow-request-permission`\n- `allow-get-token`\n- `allow-environment`\n- `allow-platform`"
         }
       ]
     }
