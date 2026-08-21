@@ -4,6 +4,8 @@ import { authMiddleware, type AuthEnv } from '@echo/shared';
 import { createDb } from '../db/index.js';
 import { groups, groupMembers, groupMessages, userCache, groupChatReads } from '../db/schema.js';
 import { config } from '../config.js';
+import {  resolveAttachment } from '@echo/shared';
+import { decryptRow } from '../crypto.js';
 import {
 	can, canEditInfo,
 	isValidInvitePolicy, isValidMessagePolicy, isValidPinPolicy, isValidEditInfoPolicy,
@@ -11,7 +13,7 @@ import {
 } from '../permissions.js';
 import {
 	publishGroupCreated, publishGroupUpdated, publishGroupDeleted,
-	publishGroupMemberJoined, publishGroupMemberLeft, publishGroupMemberRoleChanged,
+	publishGroupMemberLeft, publishGroupMemberRoleChanged,
 } from '../nats.js';
 import { log } from '../log.js';
 
@@ -39,15 +41,6 @@ async function listMemberIds(groupId: string): Promise<string[]> {
 		.from(groupMembers)
 		.where(eq(groupMembers.groupId, groupId));
 	return rows.map((r) => r.userId);
-}
-
-async function userSummary(id: string) {
-	const [u] = await db
-		.select({ id: userCache.id, username: userCache.username, displayName: userCache.displayName, avatarUrl: userCache.avatarUrl })
-		.from(userCache)
-		.where(eq(userCache.id, id))
-		.limit(1);
-	return u ?? null;
 }
 
 // ─── List groups for current user ───────────────────────────────
@@ -91,6 +84,13 @@ groupsRoutes.get('/', async (c) => {
 				attachments: groupMessages.attachments,
 				createdAt: groupMessages.createdAt,
 				systemKind: groupMessages.systemKind,
+				// Needed to decrypt the two above. The id doubles as the AAD.
+				contentCiphertext: groupMessages.contentCiphertext,
+				contentNonce: groupMessages.contentNonce,
+				contentKeyId: groupMessages.contentKeyId,
+				attachmentsCiphertext: groupMessages.attachmentsCiphertext,
+				attachmentsNonce: groupMessages.attachmentsNonce,
+				attachmentsKeyId: groupMessages.attachmentsKeyId,
 			})
 			.from(groupMessages)
 			.innerJoin(userCache, eq(groupMessages.authorId, userCache.id))
@@ -147,17 +147,22 @@ groupsRoutes.get('/', async (c) => {
 	const enriched = rows.map((g) => {
 		const msg = lastMessageMap.get(g.id);
 		const lastMessage = msg
-			? {
-					id: msg.id,
-					groupId: msg.groupId,
-					authorId: msg.authorId,
-					authorUsername: msg.authorUsername,
-					authorDisplayName: msg.authorDisplayName,
-					content: msg.content,
-					attachments: (msg.attachments as unknown[]) ?? [],
-					createdAt: msg.createdAt.toISOString(),
-					systemKind: msg.systemKind,
-				}
+			? (() => {
+					// The sidebar shows the message text, so the preview has to be
+					// decrypted like any other read.
+					const plain = decryptRow({ ...msg, replyToSnapshot: null });
+					return {
+						id: plain.id,
+						groupId: msg.groupId,
+						authorId: msg.authorId,
+						authorUsername: msg.authorUsername,
+						authorDisplayName: msg.authorDisplayName,
+						content: plain.content,
+						attachments: (plain.attachments as unknown[]) ?? [],
+						createdAt: msg.createdAt.toISOString(),
+						systemKind: msg.systemKind,
+					};
+				})()
 			: null;
 		// Group "read by recipient" isn't tracked per-member yet (we only know
 		// my own lastReadAt, which says nothing about other members), so the
@@ -217,6 +222,48 @@ groupsRoutes.post('/', async (c) => {
 	void publishGroupCreated({ targetUserIds: [me.userId], group: summary, memberIds: [me.userId] });
 
 	return c.json({ group: { ...summary, role: 'owner' as const } }, 201);
+});
+
+// ─── Groups shared with another user ────────────────────────────
+
+/**
+ * The groups the caller and `:userId` are both members of.
+ *
+ * Registered ahead of `/:id` for readability only — the two cannot collide,
+ * since this path has a second segment.
+ *
+ * Returns the groups themselves rather than a bare count: the personal-chat
+ * info screen shows the number today, and a list of shared groups is the
+ * obvious next thing to want from the same place.
+ */
+groupsRoutes.get('/common/:userId', async (c) => {
+	const me = c.get('user');
+	const otherId = c.req.param('userId');
+
+	// Self-chat ("Notes") would otherwise report every group the user is in as
+	// shared with themselves, which is true and useless.
+	if (otherId === me.userId) return c.json({ groups: [], count: 0 });
+
+	const mine = db
+		.select({ groupId: groupMembers.groupId })
+		.from(groupMembers)
+		.where(eq(groupMembers.userId, me.userId));
+
+	const rows = await db
+		.select({
+			id: groups.id,
+			name: groups.name,
+			avatarUrl: groups.avatarUrl,
+		})
+		.from(groupMembers)
+		.innerJoin(groups, eq(groupMembers.groupId, groups.id))
+		.where(and(
+			eq(groupMembers.userId, otherId),
+			inArray(groupMembers.groupId, mine),
+		))
+		.orderBy(desc(groups.createdAt));
+
+	return c.json({ groups: rows, count: rows.length });
 });
 
 // ─── Get group details (members + your role) ────────────────────
@@ -641,13 +688,10 @@ groupsRoutes.get('/:id/stats', async (c) => {
 			COALESCE(SUM(CASE WHEN att->>'mimeType' LIKE 'image/%' AND att->>'mimeType' <> 'image/gif' THEN 1 ELSE 0 END), 0)::int AS photos,
 			COALESCE(SUM(CASE WHEN att->>'mimeType' = 'image/gif' THEN 1 ELSE 0 END), 0)::int AS gifs,
 			COALESCE(SUM(CASE WHEN att->>'mimeType' LIKE 'video/%' THEN 1 ELSE 0 END), 0)::int AS videos,
-			-- Recorded voice notes carry a voice payload; everything else in the
-			-- audio range is an upload. The files bucket counts neither.
-			COALESCE(SUM(CASE WHEN att->>'mimeType' LIKE 'audio/%' AND jsonb_typeof(att->'voice') = 'object' THEN 1 ELSE 0 END), 0)::int AS voice_messages,
-			COALESCE(SUM(CASE WHEN att->>'mimeType' LIKE 'audio/%' AND jsonb_typeof(att->'voice') IS DISTINCT FROM 'object' THEN 1 ELSE 0 END), 0)::int AS audio,
+			COALESCE(SUM(CASE WHEN att->>'mimeType' LIKE 'audio/%' THEN 1 ELSE 0 END), 0)::int AS audio_total,
 			COALESCE(SUM(CASE WHEN att->>'mimeType' NOT LIKE 'image/%' AND att->>'mimeType' NOT LIKE 'video/%' AND att->>'mimeType' NOT LIKE 'audio/%' THEN 1 ELSE 0 END), 0)::int AS files
 		FROM group_messages gm
-		LEFT JOIN LATERAL jsonb_array_elements(gm.attachments) att ON TRUE
+		LEFT JOIN LATERAL jsonb_array_elements(COALESCE(gm.attachments_meta, gm.attachments)) att ON TRUE
 		WHERE gm.group_id = ${id}
 	`);
 
@@ -658,9 +702,36 @@ groupsRoutes.get('/:id/stats', async (c) => {
 		videos: number;
 		files: number;
 		gifs: number;
-		audio: number;
-		voice_messages: number;
+		audio_total: number;
 	}>)[0];
+
+	// Recorded voice notes and uploaded audio share the audio/* mime range and
+	// are told apart by the attachment's `voice` payload — which lives inside the
+	// ciphertext, not in attachments_meta. Decrypt just the messages carrying
+	// audio (a small slice of any group) and split the total there.
+	const audioTotal = row?.audio_total ?? 0;
+	let voiceMessages = 0;
+	if (audioTotal > 0) {
+		const audioRows = await db
+			.select()
+			.from(groupMessages)
+			.where(and(
+				eq(groupMessages.groupId, id),
+				sql`EXISTS (
+					SELECT 1 FROM jsonb_array_elements(COALESCE(${groupMessages.attachmentsMeta}, ${groupMessages.attachments})) a
+					WHERE a->>'mimeType' LIKE 'audio/%'
+				)`,
+			));
+		for (const m of audioRows) {
+			const dec = decryptRow(m);
+			const list = Array.isArray(dec.attachments) ? (dec.attachments as Record<string, unknown>[]) : [];
+			for (const a of list) {
+				if (typeof a?.mimeType === 'string' && a.mimeType.startsWith('audio/') && a.voice) {
+					voiceMessages += 1;
+				}
+			}
+		}
+	}
 
 	return c.json({
 		messages: row?.messages ?? 0,
@@ -669,8 +740,8 @@ groupsRoutes.get('/:id/stats', async (c) => {
 		videos: row?.videos ?? 0,
 		files: row?.files ?? 0,
 		gifs: row?.gifs ?? 0,
-		audio: row?.audio ?? 0,
-		voiceMessages: row?.voice_messages ?? 0,
+		audio: audioTotal - voiceMessages,
+		voiceMessages,
 	});
 });
 
@@ -781,7 +852,7 @@ groupsRoutes.get('/:id/media', async (c) => {
 				att.ord AS ord,
 				att.value AS attachment
 			FROM group_messages gm
-			CROSS JOIN LATERAL jsonb_array_elements(gm.attachments) WITH ORDINALITY att(value, ord)
+			CROSS JOIN LATERAL jsonb_array_elements(COALESCE(gm.attachments_meta, gm.attachments)) WITH ORDINALITY att(value, ord)
 			WHERE gm.group_id = ${id}
 				AND (${mimeFilter})
 				${cursorFilter}
@@ -793,11 +864,15 @@ groupsRoutes.get('/:id/media', async (c) => {
 		return c.json({ error: 'Failed to load media' }, 500);
 	}
 
+	// `att.value` is whatever COALESCE picked. For an encrypted row that is the
+	// attachments_meta projection — hash/mimeType/size, enough to filter and
+	// paginate on but not to render: url, filename and id are in the ciphertext.
+	// Rows older than the migration already carry the full attachment.
 	const rows = result as unknown as Array<{
 		message_id: string;
 		created_at: Date | string;
 		ord: number | bigint | string;
-		attachment: { id: string; url: string; filename: string; mimeType: string; size: number };
+		attachment: Record<string, unknown>;
 	}>;
 
 	const hasMore = rows.length > limit;
@@ -806,11 +881,49 @@ groupsRoutes.get('/:id/media', async (c) => {
 	const tsToString = (t: Date | string): string =>
 		t instanceof Date ? t.toISOString() : t;
 
-	const items = rows.map((r) => ({
-		messageId: r.message_id,
-		createdAt: tsToString(r.created_at),
-		attachment: r.attachment,
-	}));
+	// Decrypt once per message, then resolve each row out of the plaintext array.
+	const messageIds = [...new Set(rows.map((r) => r.message_id))];
+	const plaintextByMessage = new Map<string, Record<string, unknown>[]>();
+	const metaByMessage = new Map<string, Record<string, unknown>[]>();
+	if (messageIds.length > 0) {
+		const msgRows = await db
+			.select()
+			.from(groupMessages)
+			.where(inArray(groupMessages.id, messageIds));
+		for (const m of msgRows) {
+			const dec = decryptRow(m);
+			plaintextByMessage.set(
+				m.id,
+				Array.isArray(dec.attachments) ? (dec.attachments as Record<string, unknown>[]) : [],
+			);
+			metaByMessage.set(
+				m.id,
+				Array.isArray(m.attachmentsMeta) ? (m.attachmentsMeta as Record<string, unknown>[]) : [],
+			);
+		}
+	}
+
+	const items = rows
+		.map((r) => {
+			const attachment = resolveAttachment(
+				r.attachment,
+				Number(r.ord),
+				plaintextByMessage.get(r.message_id) ?? [],
+				metaByMessage.get(r.message_id) ?? [],
+			);
+			if (!attachment) return null;
+			// The audio tab lists uploads only — recorded voice notes are surfaced
+			// separately. The `voice` flag is visible only after decryption, so this
+			// cannot be an SQL predicate; a page may come back short and the caller
+			// simply pages again.
+			if (kind === 'audio' && attachment.voice) return null;
+			return {
+				messageId: r.message_id,
+				createdAt: tsToString(r.created_at),
+				attachment,
+			};
+		})
+		.filter((it): it is NonNullable<typeof it> => it !== null);
 
 	const last = rows[rows.length - 1];
 	const nextCursor = hasMore && last

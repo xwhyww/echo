@@ -1,8 +1,14 @@
-// Backfill: re-encrypt existing plaintext messages into the new ciphertext
-// columns. Idempotent — skips rows that already have content_ciphertext set.
+// Backfill: move existing plaintext messages into the ciphertext columns.
+// Idempotent — skips rows that already have content_ciphertext set.
 // Run with: pnpm --filter pers-chats-service run encrypt:backfill
+//
+// It clears `content`, `attachments` and `reply_to_snapshot` in the same
+// statement that writes the ciphertext. That is the point of the exercise:
+// leaving them behind stores every message twice, once encrypted and once not,
+// and the row is no more private than before it ran. New writes already leave
+// them empty, so afterwards the plaintext columns hold nothing in the table.
 import 'dotenv/config';
-import { sql, isNull, and } from 'drizzle-orm';
+import { sql, isNull } from 'drizzle-orm';
 import { createDb } from '../db/index.js';
 import { personalMessages } from '../db/schema.js';
 import { config } from '../config.js';
@@ -47,6 +53,12 @@ async function main() {
 					replyToSnapshotNonce: enc.replyToSnapshotNonce,
 					replyToSnapshotKeyId: enc.replyToSnapshotKeyId,
 					attachmentsMeta: enc.attachmentsMeta,
+					// The whole reason to run this. `attachments_meta` above keeps the
+					// hash/type/size the media and GC queries need, so emptying the
+					// jsonb column costs nothing.
+					content: '',
+					attachments: [],
+					replyToSnapshot: null,
 				})
 				.where(sql`${personalMessages.id} = ${row.id}`);
 		}

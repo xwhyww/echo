@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "encrypt:backfill": "tsx src/scripts/encryptBackfill.ts"
   },
   "dependencies": {
     "@echo/shared": "workspace:*",

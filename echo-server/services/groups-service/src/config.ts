@@ -1,6 +1,7 @@
 import { config as loadEnv } from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { loadEncryptionKeys } from '@echo/shared';
 
 // Services run with cwd = their own dir (pnpm --filter), where a plain
 // dotenv/config would find no .env — shared dev vars live in the repo root.
@@ -16,4 +17,17 @@ export const config = {
 	friendsServiceUrl: process.env.FRIENDS_SERVICE_URL || 'http://localhost:3005',
 	blobServiceUrl: process.env.BLOB_SERVICE_URL || 'http://localhost:3006',
 	internalApiKey: process.env.INTERNAL_API_KEY || 'dev-internal-key',
+
+	/**
+	 * Message encryption keys, indexed by the `key_id` column each encrypted row
+	 * carries. Loaded from the same `MESSAGE_ENCRYPTION_KEY` as pers-chats-service
+	 * on purpose: one key, one backup to keep, one thing to lose.
+	 *
+	 * Throws at startup when it is missing, rather than writing rows nobody can
+	 * read and finding out later.
+	 */
+	encryption: loadEncryptionKeys(
+		process.env.MESSAGE_ENCRYPTION_KEY,
+		process.env.MESSAGE_ENCRYPTION_CURRENT_KEY_ID,
+	),
 };

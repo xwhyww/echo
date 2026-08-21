@@ -1,12 +1,15 @@
 import { Hono } from 'hono';
-import { and, eq, lt, gt, gte, desc, asc, count, ne, inArray, isNotNull, sql } from 'drizzle-orm';
+import { and, eq, lt, gt, gte, desc, asc, inArray, isNotNull, sql } from 'drizzle-orm';
 import { authMiddleware, type AuthEnv, type DmReactionSummary } from '@echo/shared';
 import { createDb } from '../db/index.js';
 import {
 	groups, groupMembers, groupMessages, groupChatReads,
 	groupMessageReactions, userCache, groupMessageLinks,
 } from '../db/schema.js';
+import { randomUUID } from 'node:crypto';
+import { attachmentHashesFromRow } from '@echo/shared';
 import { config } from '../config.js';
+import { encryptForInsert, decryptRow, stripCiphertext } from '../crypto.js';
 import { can, canMessage, canPin, type Role, type MessagePolicy, type PinPolicy } from '../permissions.js';
 import {
 	publishGroupMessage, publishGroupMessageEdited, publishGroupMessageDeleted,
@@ -76,7 +79,10 @@ async function removeGroupGrantsIfUnused(hashes: string[], groupId: string, toke
 			.where(
 				and(
 					eq(groupMessages.groupId, groupId),
-					sql`${groupMessages.attachments} @> ${JSON.stringify([{ hash: h }])}::jsonb`,
+					// COALESCE because attachments moved into the ciphertext: new rows
+					// answer from attachments_meta, rows older than the migration
+					// still from attachments.
+					sql`COALESCE(${groupMessages.attachmentsMeta}, ${groupMessages.attachments}) @> ${JSON.stringify([{ hash: h }])}::jsonb`,
 				),
 			)
 			.limit(1);
@@ -182,22 +188,27 @@ async function syncMessageLinks(messageId: string, groupId: string, content: str
 	}
 }
 
+// The single point where a stored row becomes something a client sees, and so
+// the single place that has to decrypt. Callers hand it whatever came back from
+// the database; rows written before the migration have no ciphertext and pass
+// through untouched.
 function serializeMessage(row: typeof groupMessages.$inferSelect, author: Awaited<ReturnType<typeof authorSummary>>, reactions: DmReactionSummary[]) {
+	const plain = decryptRow(row);
 	return {
-		id: row.id,
-		groupId: row.groupId,
-		authorId: row.authorId,
-		content: row.content,
-		attachments: row.attachments ?? [],
-		isEdited: row.isEdited,
-		createdAt: row.createdAt.toISOString(),
-		updatedAt: row.updatedAt.toISOString(),
-		pinnedAt: row.pinnedAt ? row.pinnedAt.toISOString() : null,
-		pinnedBy: row.pinnedBy,
-		systemKind: row.systemKind,
-		replyToId: row.replyToId,
-		replyToSnapshot: row.replyToSnapshot,
-		forwardedFrom: row.forwardedFrom,
+		id: plain.id,
+		groupId: plain.groupId,
+		authorId: plain.authorId,
+		content: plain.content,
+		attachments: plain.attachments ?? [],
+		isEdited: plain.isEdited,
+		createdAt: plain.createdAt.toISOString(),
+		updatedAt: plain.updatedAt.toISOString(),
+		pinnedAt: plain.pinnedAt ? plain.pinnedAt.toISOString() : null,
+		pinnedBy: plain.pinnedBy,
+		systemKind: plain.systemKind,
+		replyToId: plain.replyToId,
+		replyToSnapshot: plain.replyToSnapshot,
+		forwardedFrom: plain.forwardedFrom,
 		author,
 		reactions,
 	};
@@ -238,35 +249,45 @@ messagesRoutes.post('/:id/messages', async (c) => {
 
 	let replyToSnapshot: unknown = null;
 	if (replyToId) {
+		// The whole row, not a projection: decrypting needs the id (it is the AAD)
+		// and the ciphertext columns, and listing them out here would be one more
+		// place to forget when a column is added.
 		const [reply] = await db
-			.select({
-				authorId: groupMessages.authorId,
-				content: groupMessages.content,
-				attachments: groupMessages.attachments,
-			})
+			.select()
 			.from(groupMessages)
 			.where(and(eq(groupMessages.id, replyToId), eq(groupMessages.groupId, id)))
 			.limit(1);
 		if (reply) {
-			const authorName = (await authorSummary(reply.authorId)).username;
-			const att = Array.isArray(reply.attachments) ? reply.attachments : [];
+			const plainReply = decryptRow(reply);
+			const authorName = (await authorSummary(plainReply.authorId)).username;
+			const att = Array.isArray(plainReply.attachments) ? plainReply.attachments : [];
 			replyToSnapshot = {
-				authorId: reply.authorId,
+				authorId: plainReply.authorId,
 				authorName,
-				content: reply.content.slice(0, 200),
+				content: (plainReply.content ?? '').slice(0, 200),
 				attachmentType: att[0]?.mimeType ?? null,
 			};
 		}
 	}
 
+	// The id is generated here rather than by the default, because it is the
+	// AAD binding each ciphertext to this row — it has to exist before the
+	// encryption, not after the insert.
+	const messageId = randomUUID();
+	const enc = encryptForInsert(messageId, { content, attachments, replyToSnapshot });
+
 	const [msg] = await db.insert(groupMessages).values({
+		id: messageId,
 		groupId: id,
 		authorId: me.userId,
-		content,
-		attachments,
+		// The plaintext columns stay in the table for rows older than the
+		// migration; a new row leaves them empty and lives in the ciphertext.
+		content: '',
+		attachments: [],
 		replyToId,
-		replyToSnapshot,
+		replyToSnapshot: null,
 		forwardedFrom,
+		...enc,
 	}).returning();
 
 	const hashes = extractAttachmentHashes(attachments);
@@ -281,7 +302,13 @@ messagesRoutes.post('/:id/messages', async (c) => {
 	const author = await authorSummary(me.userId);
 	const memberIds = await listMemberIds(id);
 
-	const payload = serializeMessage(msg, author, []);
+	// Serialised from the plaintext we already hold rather than by decrypting
+	// what we just wrote — same values, one fewer round of crypto.
+	const payload = serializeMessage(
+		{ ...msg, content, attachments, replyToSnapshot },
+		author,
+		[],
+	);
 	void publishGroupMessage({
 		targetUserIds: memberIds,
 		groupId: id,
@@ -371,15 +398,21 @@ messagesRoutes.patch('/messages/:messageId', async (c) => {
 	const role = await membership(msg.groupId, me.userId);
 	if (!role) return c.json({ error: 'not a member' }, 403);
 
+	const previous = decryptRow(msg);
 	const body = await c.req.json().catch(() => ({}));
-	const content = body?.content !== undefined ? String(body.content) : msg.content;
-	const attachments = Array.isArray(body?.attachments) ? body.attachments : msg.attachments;
+	const content = body?.content !== undefined ? String(body.content) : (previous.content ?? '');
+	const attachments = Array.isArray(body?.attachments) ? body.attachments : previous.attachments;
 
-	const oldHashes = extractAttachmentHashes(msg.attachments);
+	// From the meta column where it exists, so a row whose attachments are
+	// already encrypted still reconciles its blob grants correctly.
+	const oldHashes = attachmentHashesFromRow(msg);
 	const newHashes = extractAttachmentHashes(attachments);
 
+	// Re-encrypted under the same message id, so the AAD still binds to this row.
+	const enc = encryptForInsert(messageId, { content, attachments, replyToSnapshot: previous.replyToSnapshot });
+
 	const [updated] = await db.update(groupMessages)
-		.set({ content, attachments, isEdited: true, updatedAt: new Date() })
+		.set({ content: '', attachments: [], isEdited: true, updatedAt: new Date(), ...enc })
 		.where(eq(groupMessages.id, messageId))
 		.returning();
 
@@ -404,7 +437,7 @@ messagesRoutes.patch('/messages/:messageId', async (c) => {
 		updatedAt: updated.updatedAt.toISOString(),
 	});
 
-	return c.json({ message: updated });
+	return c.json({ message: { ...stripCiphertext(updated), content, attachments } });
 });
 
 // ─── Delete message (own, or any if admin+) ─────────────────────
@@ -422,7 +455,7 @@ messagesRoutes.delete('/messages/:messageId', async (c) => {
 	const isOwn = msg.authorId === me.userId;
 	if (!isOwn && !can(role, 'message.delete_any')) return c.json({ error: 'forbidden' }, 403);
 
-	const removedHashes = extractAttachmentHashes(msg.attachments);
+	const removedHashes = attachmentHashesFromRow(msg);
 	await db.delete(groupMessages).where(eq(groupMessages.id, messageId));
 
 	if (removedHashes.length > 0) {
@@ -588,7 +621,6 @@ messagesRoutes.post('/messages/:messageId/reactions', async (c) => {
 			.from(groupMessageReactions)
 			.where(eq(groupMessageReactions.messageId, messageId));
 		const distinctEmojis = Number(distinct);
-		const isNewEmoji = distinctEmojis === 0 || true; // safest: always check below
 		const [{ exists }] = await db
 			.select({ exists: sql<number>`count(*)` })
 			.from(groupMessageReactions)

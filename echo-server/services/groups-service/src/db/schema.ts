@@ -1,5 +1,27 @@
-import { pgTable, text, timestamp, boolean, uuid, index, uniqueIndex, varchar, jsonb, serial, smallint } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, boolean, uuid, index, uniqueIndex, varchar, jsonb, serial, smallint, customType } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
+
+// postgres-js returns bytea as either a "\x…" hex string or a Uint8Array
+// depending on version/config. Normalise to Buffer so the crypto helpers
+// (which rely on Buffer.subarray / cipher.update accepting Buffer) get what
+// they expect on every read.
+const bytea = customType<{ data: Buffer; driverData: Buffer | Uint8Array | string; default: false }>({
+	dataType() {
+		return 'bytea';
+	},
+	fromDriver(value) {
+		if (Buffer.isBuffer(value)) return value;
+		if (value instanceof Uint8Array) return Buffer.from(value);
+		if (typeof value === 'string') {
+			const hex = value.startsWith('\\x') ? value.slice(2) : value;
+			return Buffer.from(hex, 'hex');
+		}
+		throw new Error(`bytea: unexpected driver value type ${typeof value}`);
+	},
+	toDriver(value) {
+		return value;
+	},
+});
 
 // ─── User Cache (populated via NATS events from auth-service) ────
 
@@ -93,7 +115,23 @@ export const groupMessages = pgTable('group_messages', {
 	replyToId: uuid('reply_to_id'),
 	replyToSnapshot: jsonb('reply_to_snapshot'),
 	forwardedFrom: jsonb('forwarded_from'),
+	// At-rest encryption. The plaintext columns above stay for rows written
+	// before the migration and are emptied on every new write; `decryptRow`
+	// prefers the ciphertext whenever it is present, so both shapes read alike
+	// until the backfill has been through.
+	contentCiphertext: bytea('content_ciphertext'),
+	contentNonce: bytea('content_nonce'),
 	contentKeyId: smallint('content_key_id'),
+	replyToSnapshotCiphertext: bytea('reply_to_snapshot_ciphertext'),
+	replyToSnapshotNonce: bytea('reply_to_snapshot_nonce'),
+	replyToSnapshotKeyId: smallint('reply_to_snapshot_key_id'),
+	attachmentsCiphertext: bytea('attachments_ciphertext'),
+	attachmentsNonce: bytea('attachments_nonce'),
+	attachmentsKeyId: smallint('attachments_key_id'),
+	// Non-sensitive attachment facts, left in plaintext so media listings, stats
+	// and the blob GC's grant reconciliation stay jsonb queries instead of
+	// decrypting every row in the table. Filenames are not in here.
+	attachmentsMeta: jsonb('attachments_meta'),
 }, (t) => [
 	index('idx_gmsg_group_created').on(t.groupId, t.createdAt),
 	index('idx_gmsg_group_pinned').on(t.groupId, t.pinnedAt),
