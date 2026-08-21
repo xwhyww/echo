@@ -14,6 +14,9 @@ importers:
       concurrently:
         specifier: ^9.1.2
         version: 9.2.1
+      postgres:
+        specifier: ^3.4.8
+        version: 3.4.8
       typescript:
         specifier: ^6.0.2
         version: 6.0.2
@@ -49,6 +52,25 @@ importers:
         specifier: ^6.0.2
         version: 6.0.2
 
+  packages/test-support:
+    dependencies:
+      '@echo/shared':
+        specifier: workspace:*
+        version: link:../shared
+      drizzle-orm:
+        specifier: ^0.45.2
+        version: 0.45.2(postgres@3.4.8)
+      hono:
+        specifier: ^4.12.9
+        version: 4.12.9
+      postgres:
+        specifier: ^3.4.8
+        version: 3.4.8
+    devDependencies:
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.2
+
   services/auth-service:
     dependencies:
       '@echo/shared':
@@ -79,6 +101,9 @@ importers:
         specifier: ^4.3.6
         version: 4.3.6
     devDependencies:
+      '@echo/test-support':
+        specifier: workspace:*
+        version: link:../../packages/test-support
       '@types/bcryptjs':
         specifier: ^2.4.6
         version: 2.4.6
@@ -128,6 +153,9 @@ importers:
         specifier: ^0.33.5
         version: 0.33.5
     devDependencies:
+      '@echo/test-support':
+        specifier: workspace:*
+        version: link:../../packages/test-support
       '@types/fluent-ffmpeg':
         specifier: ^2.1.27
         version: 2.1.28
@@ -162,6 +190,9 @@ importers:
         specifier: ^3.4.8
         version: 3.4.8
     devDependencies:
+      '@echo/test-support':
+        specifier: workspace:*
+        version: link:../../packages/test-support
       drizzle-kit:
         specifier: ^0.31.10
         version: 0.31.10
@@ -218,6 +249,9 @@ importers:
         specifier: ^3.4.8
         version: 3.4.8
     devDependencies:
+      '@echo/test-support':
+        specifier: workspace:*
+        version: link:../../packages/test-support
       drizzle-kit:
         specifier: ^0.31.10
         version: 0.31.10
@@ -258,6 +292,9 @@ importers:
         specifier: ^0.33.5
         version: 0.33.5
     devDependencies:
+      '@echo/test-support':
+        specifier: workspace:*
+        version: link:../../packages/test-support
       '@types/fluent-ffmpeg':
         specifier: ^2.1.27
         version: 2.1.28
@@ -295,6 +332,9 @@ importers:
         specifier: ^3.4.8
         version: 3.4.8
     devDependencies:
+      '@echo/test-support':
+        specifier: workspace:*
+        version: link:../../packages/test-support
       '@types/jsonwebtoken':
         specifier: ^9.0.10
         version: 9.0.10
@@ -332,6 +372,9 @@ importers:
         specifier: ^4.3.6
         version: 4.3.6
     devDependencies:
+      '@echo/test-support':
+        specifier: workspace:*
+        version: link:../../packages/test-support
       drizzle-kit:
         specifier: ^0.31.10
         version: 0.31.10
@@ -366,6 +409,9 @@ importers:
         specifier: ^3.4.8
         version: 3.4.8
     devDependencies:
+      '@echo/test-support':
+        specifier: workspace:*
+        version: link:../../packages/test-support
       drizzle-kit:
         specifier: ^0.31.10
         version: 0.31.10

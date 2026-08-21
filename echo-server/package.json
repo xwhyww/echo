@@ -8,7 +8,8 @@
     "infra:down": "docker compose down",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit -p packages/shared/tsconfig.json && tsc --noEmit -p services/gateway/tsconfig.json && tsc --noEmit -p services/auth-service/tsconfig.json && tsc --noEmit -p services/user-service/tsconfig.json && tsc --noEmit -p services/pers-chats-service/tsconfig.json && tsc --noEmit -p services/ws-gateway/tsconfig.json && tsc --noEmit -p services/friends-service/tsconfig.json && tsc --noEmit -p services/blob-service/tsconfig.json && tsc --noEmit -p services/groups-service/tsconfig.json && tsc --noEmit -p services/voice-service/tsconfig.json && tsc --noEmit -p services/push-service/tsconfig.json",
+    "test:integration": "vitest run integration.test",
+    "typecheck": "tsc --noEmit -p packages/shared/tsconfig.json && tsc --noEmit -p packages/test-support/tsconfig.json && tsc --noEmit -p services/gateway/tsconfig.json && tsc --noEmit -p services/auth-service/tsconfig.json && tsc --noEmit -p services/user-service/tsconfig.json && tsc --noEmit -p services/pers-chats-service/tsconfig.json && tsc --noEmit -p services/ws-gateway/tsconfig.json && tsc --noEmit -p services/friends-service/tsconfig.json && tsc --noEmit -p services/blob-service/tsconfig.json && tsc --noEmit -p services/groups-service/tsconfig.json && tsc --noEmit -p services/voice-service/tsconfig.json && tsc --noEmit -p services/push-service/tsconfig.json",
     "dev": "concurrently -k -n gw,auth,user,pc,ws,fr,blob,gr,voice,push -c blue,green,yellow,magenta,cyan,gray,white,red,blueBright,greenBright \"pnpm --filter @echo/gateway dev\" \"pnpm --filter @echo/auth-service dev\" \"pnpm --filter @echo/user-service dev\" \"pnpm --filter @echo/pers-chats-service dev\" \"pnpm --filter @echo/ws-gateway dev\" \"pnpm --filter @echo/friends-service dev\" \"pnpm --filter @echo/blob-service dev\" \"pnpm --filter @echo/groups-service dev\" \"pnpm --filter @echo/voice-service dev\" \"pnpm --filter @echo/push-service dev\"",
     "dev:gateway": "pnpm --filter @echo/gateway dev",
     "dev:auth": "pnpm --filter @echo/auth-service dev",
@@ -23,7 +24,8 @@
     "dev:full": "pnpm infra:up && pnpm db:migrate:all && pnpm dev",
     "docker:full": "docker compose --profile full up -d --build",
     "docker:full:down": "docker compose --profile full down",
-    "docker:reset": "docker compose --profile full down -v"
+    "docker:reset": "docker compose --profile full down -v",
+    "test:integration:setup": "node scripts/create-test-dbs.mjs"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -36,6 +38,7 @@
     "@types/node": "^25.5.0",
     "concurrently": "^9.1.2",
     "typescript": "^6.0.2",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "postgres": "^3.4.8"
   }
 }
