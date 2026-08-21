@@ -351,8 +351,31 @@ pnpm dev:push
 
 ```bash
 pnpm typecheck           # every project explicitly — see the note below
-pnpm test                # vitest
+pnpm test                # vitest: unit tests, plus integration where a DB is set
 ```
+
+The unit tests are pure — crypto, permissions, OTP helpers. The integration
+tests drive `app.fetch` against a real Postgres and **skip themselves** unless a
+connection string is set:
+
+```bash
+pnpm infra:up
+TEST_DATABASE_URL=postgresql://echo:echo_dev@localhost:15432/echo_test pnpm test:integration:setup
+TEST_DATABASE_URL=postgresql://echo:echo_dev@localhost:15432/echo_test pnpm test
+```
+
+`TEST_DATABASE_URL` is a **template**: each service appends its own suffix, so
+that one value becomes `echo_test_auth`, `echo_test_users` and so on. One
+database per service, matching how they are separated in production — sharing
+one would let a foreign key pass here that could never exist on the real thing.
+`test:integration:setup` creates them and is idempotent.
+
+Every service that owns a database has a suite; gateway and ws-gateway do not,
+because neither owns one. They migrate their own database and truncate every
+table between tests, so point them at scratch databases.
+`packages/test-support` is the harness and documents the rest; each service
+adds a `src/testing/integration.ts` naming its tables and env. CI supplies a
+`postgres:17-alpine` service so the suites are not quietly skipped there.
 
 `tsc -p tsconfig.json` at the root checks **nothing**: it is a solution file
 with `include: []`, and without `--build` that reports success having compiled
@@ -369,7 +392,11 @@ pnpm db:migrate:all      # apply, per service
 Migrations also run automatically when a container boots, so a deploy needs no
 separate step. That is also why a migration proposing a column that already
 exists takes the service down — see the note at the top of
-`services/groups-service/drizzle/0004_encrypt_group_messages.sql`.
+`services/groups-service/drizzle/0004_encrypt_group_messages.sql`. The drift it
+describes is closed: the missing `meta/*_snapshot.json` for 0001-0003 have been
+recorded, and `db:generate` now reports no changes. The note stays because
+drizzle hashes each applied migration file and editing one would make it look
+like a new migration.
 
 ### Production
 
