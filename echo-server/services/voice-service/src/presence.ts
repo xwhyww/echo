@@ -1,7 +1,8 @@
 import { eq } from 'drizzle-orm';
 import type { VoiceParticipantEvent } from '@echo/shared';
 import { createDb } from './db/index.js';
-import { voiceChannels, groupMembersMirror, userCache } from './db/schema.js';
+import { voiceChannels, userCache } from './db/schema.js';
+import { channelAudience } from './permissions.js';
 import { config } from './config.js';
 import { publishVoiceParticipant } from './nats.js';
 import { log } from './log.js';
@@ -36,14 +37,16 @@ export async function loadParticipantPayload(userId: string): Promise<{
 }
 
 /**
- * Fan a presence change out to every member of the channel's group over NATS.
+ * Fan a presence change out over NATS to everyone who may see the channel.
  *
- * Deliberately performs no permission checks: both callers have already
- * established authority in their own way — the presence endpoint validates the
- * caller's membership and channel access, while the LiveKit webhook is the
- * server-side ground truth for who is actually connected. In particular a
- * `left` event must go out even for a user who has since been removed from the
- * group, otherwise they linger in everyone's sidebar forever.
+ * It does not re-check the *subject's* authority, and must not: both callers
+ * have already established it in their own way — the presence endpoint
+ * validates the caller's membership and channel access, while the LiveKit
+ * webhook is the server-side ground truth for who is actually connected. In
+ * particular a `left` event must go out even for a user who has since been
+ * removed from the group, otherwise they linger in everyone's sidebar forever.
+ *
+ * What it does check is the *audience*: see `channelAudience`.
  *
  * Returns false when the channel no longer exists (deleted mid-call), which is
  * not an error — subscribers already got `voice_channel_deleted`.
@@ -63,19 +66,18 @@ export async function fanOutParticipantEvent(opts: {
 
 	const profile = await loadParticipantPayload(opts.userId);
 
-	// Target = all members of the group (including the subject so their other
-	// open tabs / devices see the update too).
-	// TODO: For restricted channels, narrow this to visible users only so a
-	// participant identity doesn't leak to members without channel access.
-	// The list/join endpoints already block the unauthorized; this would prevent
-	// the participant userId/name flashing through the WS firehose.
-	const members = await db
-		.select({ userId: groupMembersMirror.userId })
-		.from(groupMembersMirror)
-		.where(eq(groupMembersMirror.groupId, ch.groupId));
+	// Target = everyone who may see this channel, plus the subject so their own
+	// tabs and devices update too. For an open channel that is the whole group;
+	// for a restricted one it is only the members whose roles grant access.
+	//
+	// The narrowing matters because the list and join endpoints guard the API
+	// but not this: without it, a participant's id and display name flash
+	// through the WebSocket firehose to members who cannot see the channel at
+	// all, which tells them who is talking to whom in a private room.
+	const targetUserIds = await channelAudience(ch.id, ch.groupId, opts.userId);
 
 	const event: VoiceParticipantEvent = {
-		targetUserIds: members.map((m) => m.userId),
+		targetUserIds,
 		groupId: ch.groupId,
 		channelId: ch.id,
 		kind: opts.kind,

@@ -1,6 +1,7 @@
 import { config as loadEnv } from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { loadEncryptionKeys } from '@echo/shared';
 
 // Services run with cwd = their own dir (pnpm --filter), where a plain
 // dotenv/config would find no .env — shared dev vars live in the repo root.
@@ -24,4 +25,15 @@ export const config = {
 	livekitPublicUrl: process.env.LIVEKIT_PUBLIC_URL || process.env.LIVEKIT_URL || 'ws://localhost:7880',
 	livekitApiKey: process.env.LIVEKIT_API_KEY!,
 	livekitApiSecret: process.env.LIVEKIT_API_SECRET!,
+
+	/**
+	 * Message encryption keys for the voice-channel chats, indexed by the
+	 * `key_id` column each encrypted row carries. The same
+	 * `MESSAGE_ENCRYPTION_KEY` as pers-chats and groups: one key, one backup to
+	 * keep, one thing to lose.
+	 */
+	encryption: loadEncryptionKeys(
+		process.env.MESSAGE_ENCRYPTION_KEY,
+		process.env.MESSAGE_ENCRYPTION_CURRENT_KEY_ID,
+	),
 };

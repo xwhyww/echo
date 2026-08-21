@@ -6,12 +6,16 @@ import {
 	voiceChannels, voiceChannelMessages, voiceChannelChatReads,
 	voiceChannelMessageReactions, groupMembersMirror, userCache,
 } from '../db/schema.js';
+import { randomUUID } from 'node:crypto';
+import { attachmentHashesFromRow } from '@echo/shared';
 import { config } from '../config.js';
+import { encryptForInsert, decryptRow, stripCiphertext } from '../crypto.js';
 import {
 	publishVoiceChannelMessage, publishVoiceChannelMessageEdited, publishVoiceChannelMessageDeleted,
 	publishVoiceChannelMessagePinned, publishVoiceChannelMessageUnpinned,
 	publishVoiceChannelMessageReaction, publishVoiceChannelRead,
 } from '../nats.js';
+import { channelAccess, channelAudience } from '../permissions.js';
 import { log } from '../log.js';
 
 const db = createDb(config.databaseUrl);
@@ -79,7 +83,9 @@ async function removeGroupGrantsIfUnused(hashes: string[], groupId: string, toke
 			.where(
 				and(
 					eq(voiceChannelMessages.groupId, groupId),
-					sql`${voiceChannelMessages.attachments} @> ${JSON.stringify([{ hash: h }])}::jsonb`,
+					// COALESCE because attachments moved into the ciphertext: new rows
+					// answer from attachments_meta, older ones from attachments.
+					sql`COALESCE(${voiceChannelMessages.attachmentsMeta}, ${voiceChannelMessages.attachments}) @> ${JSON.stringify([{ hash: h }])}::jsonb`,
 				),
 			)
 			.limit(1);
@@ -112,12 +118,29 @@ async function membership(groupId: string, userId: string): Promise<Role | null>
 	return (m?.role as Role) ?? null;
 }
 
-async function listMemberIds(groupId: string): Promise<string[]> {
-	const rows = await db
-		.select({ userId: groupMembersMirror.userId })
-		.from(groupMembersMirror)
-		.where(eq(groupMembersMirror.groupId, groupId));
-	return rows.map((r) => r.userId);
+/**
+ * Group membership *and* the right to see this channel.
+ *
+ * A voice channel's chat is only as private as the channel: restricting a
+ * channel to a role has to restrict its conversation too, or the restriction
+ * means nothing — a member without access could read and post in a room they
+ * cannot even join. Every route here goes through this rather than through
+ * `membership` alone.
+ *
+ * Returns the group role on success so callers can still check admin-only
+ * actions, and null when either gate is closed. Both are answered with the same
+ * 403 on purpose: telling an unauthorized caller apart from a non-member would
+ * confirm the channel exists.
+ */
+async function chatAccess(
+	channelId: string,
+	groupId: string,
+	userId: string,
+): Promise<Role | null> {
+	const role = await membership(groupId, userId);
+	if (!role) return null;
+	const access = await channelAccess(channelId, groupId, userId, role);
+	return access.visible ? role : null;
 }
 
 async function authorSummary(id: string) {
@@ -154,26 +177,30 @@ async function getReactionsForMessages(messageIds: string[]): Promise<Record<str
 	return out;
 }
 
+// The single point where a stored row becomes something a client sees, and so
+// the single place that has to decrypt. Rows written before the migration carry
+// no ciphertext and pass through untouched.
 function serializeMessage(
 	row: typeof voiceChannelMessages.$inferSelect,
 	author: Awaited<ReturnType<typeof authorSummary>>,
 	reactions: DmReactionSummary[],
 ) {
+	const plain = decryptRow(row);
 	return {
-		id: row.id,
-		channelId: row.channelId,
-		groupId: row.groupId,
-		authorId: row.authorId,
-		content: row.content,
-		attachments: row.attachments ?? [],
-		isEdited: row.isEdited,
-		createdAt: row.createdAt.toISOString(),
-		updatedAt: row.updatedAt.toISOString(),
-		pinnedAt: row.pinnedAt ? row.pinnedAt.toISOString() : null,
-		pinnedBy: row.pinnedBy,
-		replyToId: row.replyToId,
-		replyToSnapshot: row.replyToSnapshot,
-		forwardedFrom: row.forwardedFrom,
+		id: plain.id,
+		channelId: plain.channelId,
+		groupId: plain.groupId,
+		authorId: plain.authorId,
+		content: plain.content,
+		attachments: plain.attachments ?? [],
+		isEdited: plain.isEdited,
+		createdAt: plain.createdAt.toISOString(),
+		updatedAt: plain.updatedAt.toISOString(),
+		pinnedAt: plain.pinnedAt ? plain.pinnedAt.toISOString() : null,
+		pinnedBy: plain.pinnedBy,
+		replyToId: plain.replyToId,
+		replyToSnapshot: plain.replyToSnapshot,
+		forwardedFrom: plain.forwardedFrom,
 		author,
 		reactions,
 	};
@@ -193,7 +220,7 @@ messagesRoutes.post('/channels/:id/messages', async (c) => {
 	const ch = await channelInfo(channelId);
 	if (!ch) return c.json({ error: 'channel not found' }, 404);
 
-	const role = await membership(ch.groupId, me.userId);
+	const role = await chatAccess(channelId, ch.groupId, me.userId);
 	if (!role) return c.json({ error: 'forbidden' }, 403);
 
 	const body = await c.req.json().catch(() => ({}));
@@ -219,36 +246,45 @@ messagesRoutes.post('/channels/:id/messages', async (c) => {
 
 	let replyToSnapshot: unknown = null;
 	if (replyToId) {
+		// The whole row, not a projection: decrypting needs the id (it is the AAD)
+		// and the ciphertext columns.
 		const [reply] = await db
-			.select({
-				authorId: voiceChannelMessages.authorId,
-				content: voiceChannelMessages.content,
-				attachments: voiceChannelMessages.attachments,
-			})
+			.select()
 			.from(voiceChannelMessages)
 			.where(and(eq(voiceChannelMessages.id, replyToId), eq(voiceChannelMessages.channelId, channelId)))
 			.limit(1);
 		if (reply) {
-			const authorName = (await authorSummary(reply.authorId)).username;
-			const att = Array.isArray(reply.attachments) ? reply.attachments : [];
+			const plainReply = decryptRow(reply);
+			const authorName = (await authorSummary(plainReply.authorId)).username;
+			const att = Array.isArray(plainReply.attachments) ? plainReply.attachments : [];
 			replyToSnapshot = {
-				authorId: reply.authorId,
+				authorId: plainReply.authorId,
 				authorName,
-				content: reply.content.slice(0, 200),
+				content: (plainReply.content ?? '').slice(0, 200),
 				attachmentType: att[0]?.mimeType ?? null,
 			};
 		}
 	}
 
+	// The id is generated here rather than by the default, because it is the AAD
+	// binding each ciphertext to this row — it has to exist before the
+	// encryption, not after the insert.
+	const messageId = randomUUID();
+	const enc = encryptForInsert(messageId, { content, attachments, replyToSnapshot });
+
 	const [msg] = await db.insert(voiceChannelMessages).values({
+		id: messageId,
 		channelId,
 		groupId: ch.groupId,
 		authorId: me.userId,
-		content,
-		attachments,
+		// The plaintext columns remain for rows older than the migration; a new
+		// row leaves them empty and lives in the ciphertext.
+		content: '',
+		attachments: [],
 		replyToId,
-		replyToSnapshot,
+		replyToSnapshot: null,
 		forwardedFrom,
+		...enc,
 	}).returning();
 
 	const hashes = extractAttachmentHashes(attachments);
@@ -259,8 +295,14 @@ messagesRoutes.post('/channels/:id/messages', async (c) => {
 	}
 
 	const author = await authorSummary(me.userId);
-	const memberIds = await listMemberIds(ch.groupId);
-	const payload = serializeMessage(msg, author, []);
+	const memberIds = await channelAudience(channelId, ch.groupId);
+	// Serialised from the plaintext we already hold rather than by decrypting
+	// what we just wrote — same values, one fewer round of crypto.
+	const payload = serializeMessage(
+		{ ...msg, content, attachments, replyToSnapshot },
+		author,
+		[],
+	);
 
 	void publishVoiceChannelMessage({
 		targetUserIds: memberIds,
@@ -294,7 +336,7 @@ messagesRoutes.get('/channels/:id/messages', async (c) => {
 	const ch = await channelInfo(channelId);
 	if (!ch) return c.json({ error: 'channel not found' }, 404);
 
-	const role = await membership(ch.groupId, me.userId);
+	const role = await chatAccess(channelId, ch.groupId, me.userId);
 	if (!role) return c.json({ error: 'forbidden' }, 403);
 
 	const cursor = c.req.query('cursor');
@@ -347,18 +389,24 @@ messagesRoutes.patch('/messages/:messageId', async (c) => {
 	if (!msg) return c.json({ error: 'message not found' }, 404);
 	if (msg.authorId !== me.userId) return c.json({ error: 'can only edit own messages' }, 403);
 
-	const role = await membership(msg.groupId, me.userId);
+	const role = await chatAccess(msg.channelId, msg.groupId, me.userId);
 	if (!role) return c.json({ error: 'not a member' }, 403);
 
+	const previous = decryptRow(msg);
 	const body = await c.req.json().catch(() => ({}));
-	const content = body?.content !== undefined ? String(body.content) : msg.content;
-	const attachments = Array.isArray(body?.attachments) ? body.attachments : msg.attachments;
+	const content = body?.content !== undefined ? String(body.content) : (previous.content ?? '');
+	const attachments = Array.isArray(body?.attachments) ? body.attachments : previous.attachments;
 
-	const oldHashes = extractAttachmentHashes(msg.attachments);
+	// From the meta column where it exists, so a row whose attachments are
+	// already encrypted still reconciles its blob grants correctly.
+	const oldHashes = attachmentHashesFromRow(msg);
 	const newHashes = extractAttachmentHashes(attachments);
 
+	// Re-encrypted under the same message id, so the AAD still binds to this row.
+	const enc = encryptForInsert(messageId, { content, attachments, replyToSnapshot: previous.replyToSnapshot });
+
 	const [updated] = await db.update(voiceChannelMessages)
-		.set({ content, attachments, isEdited: true, updatedAt: new Date() })
+		.set({ content: '', attachments: [], isEdited: true, updatedAt: new Date(), ...enc })
 		.where(eq(voiceChannelMessages.id, messageId))
 		.returning();
 
@@ -371,7 +419,7 @@ messagesRoutes.patch('/messages/:messageId', async (c) => {
 	}
 	if (removed.length > 0) void removeGroupGrantsIfUnused(removed, msg.groupId, token);
 
-	const memberIds = await listMemberIds(msg.groupId);
+	const memberIds = await channelAudience(msg.channelId, msg.groupId);
 	void publishVoiceChannelMessageEdited({
 		targetUserIds: memberIds,
 		channelId: msg.channelId,
@@ -382,7 +430,7 @@ messagesRoutes.patch('/messages/:messageId', async (c) => {
 		updatedAt: updated.updatedAt.toISOString(),
 	});
 
-	return c.json({ message: updated });
+	return c.json({ message: { ...stripCiphertext(updated), content, attachments } });
 });
 
 // ─── Delete message (own, or any if admin+) ─────────────────────
@@ -394,20 +442,20 @@ messagesRoutes.delete('/messages/:messageId', async (c) => {
 	const [msg] = await db.select().from(voiceChannelMessages).where(eq(voiceChannelMessages.id, messageId)).limit(1);
 	if (!msg) return c.json({ error: 'message not found' }, 404);
 
-	const role = await membership(msg.groupId, me.userId);
+	const role = await chatAccess(msg.channelId, msg.groupId, me.userId);
 	if (!role) return c.json({ error: 'not a member' }, 403);
 
 	const isOwn = msg.authorId === me.userId;
 	if (!isOwn && !isAdminOrOwner(role)) return c.json({ error: 'forbidden' }, 403);
 
-	const removedHashes = extractAttachmentHashes(msg.attachments);
+	const removedHashes = attachmentHashesFromRow(msg);
 	await db.delete(voiceChannelMessages).where(eq(voiceChannelMessages.id, messageId));
 
 	if (removedHashes.length > 0) {
 		void removeGroupGrantsIfUnused(removedHashes, msg.groupId, bearerToken(c) ?? '');
 	}
 
-	const memberIds = await listMemberIds(msg.groupId);
+	const memberIds = await channelAudience(msg.channelId, msg.groupId);
 	void publishVoiceChannelMessageDeleted({
 		targetUserIds: memberIds,
 		channelId: msg.channelId,
@@ -427,7 +475,7 @@ messagesRoutes.post('/channels/:id/read', async (c) => {
 	const ch = await channelInfo(channelId);
 	if (!ch) return c.json({ error: 'channel not found' }, 404);
 
-	const role = await membership(ch.groupId, me.userId);
+	const role = await chatAccess(channelId, ch.groupId, me.userId);
 	if (!role) return c.json({ error: 'not a member' }, 403);
 
 	const now = new Date();
@@ -438,7 +486,7 @@ messagesRoutes.post('/channels/:id/read', async (c) => {
 		set: { lastReadAt: now },
 	});
 
-	const memberIds = await listMemberIds(ch.groupId);
+	const memberIds = await channelAudience(channelId, ch.groupId);
 	void publishVoiceChannelRead({
 		targetUserIds: memberIds,
 		channelId,
@@ -459,7 +507,7 @@ messagesRoutes.get('/channels/:id/pinned', async (c) => {
 	const ch = await channelInfo(channelId);
 	if (!ch) return c.json({ error: 'channel not found' }, 404);
 
-	const role = await membership(ch.groupId, me.userId);
+	const role = await chatAccess(channelId, ch.groupId, me.userId);
 	if (!role) return c.json({ error: 'not a member' }, 403);
 
 	const rows = await db
@@ -494,7 +542,7 @@ messagesRoutes.post('/messages/:messageId/pin', async (c) => {
 	const [msg] = await db.select().from(voiceChannelMessages).where(eq(voiceChannelMessages.id, messageId)).limit(1);
 	if (!msg) return c.json({ error: 'message not found' }, 404);
 
-	const role = await membership(msg.groupId, me.userId);
+	const role = await chatAccess(msg.channelId, msg.groupId, me.userId);
 	if (!role) return c.json({ error: 'forbidden' }, 403);
 	if (!isAdminOrOwner(role)) return c.json({ error: 'forbidden' }, 403);
 
@@ -503,7 +551,7 @@ messagesRoutes.post('/messages/:messageId/pin', async (c) => {
 		.set({ pinnedAt: now, pinnedBy: me.userId })
 		.where(eq(voiceChannelMessages.id, messageId));
 
-	const memberIds = await listMemberIds(msg.groupId);
+	const memberIds = await channelAudience(msg.channelId, msg.groupId);
 	void publishVoiceChannelMessagePinned({
 		targetUserIds: memberIds,
 		channelId: msg.channelId,
@@ -523,7 +571,7 @@ messagesRoutes.delete('/messages/:messageId/pin', async (c) => {
 	const [msg] = await db.select().from(voiceChannelMessages).where(eq(voiceChannelMessages.id, messageId)).limit(1);
 	if (!msg) return c.json({ error: 'message not found' }, 404);
 
-	const role = await membership(msg.groupId, me.userId);
+	const role = await chatAccess(msg.channelId, msg.groupId, me.userId);
 	if (!role) return c.json({ error: 'forbidden' }, 403);
 	if (!isAdminOrOwner(role)) return c.json({ error: 'forbidden' }, 403);
 
@@ -531,7 +579,7 @@ messagesRoutes.delete('/messages/:messageId/pin', async (c) => {
 		.set({ pinnedAt: null, pinnedBy: null })
 		.where(eq(voiceChannelMessages.id, messageId));
 
-	const memberIds = await listMemberIds(msg.groupId);
+	const memberIds = await channelAudience(msg.channelId, msg.groupId);
 	void publishVoiceChannelMessageUnpinned({
 		targetUserIds: memberIds,
 		channelId: msg.channelId,
@@ -560,7 +608,7 @@ messagesRoutes.post('/messages/:messageId/reactions', async (c) => {
 		.from(voiceChannelMessages).where(eq(voiceChannelMessages.id, messageId)).limit(1);
 	if (!msg) return c.json({ error: 'message not found' }, 404);
 
-	const role = await membership(msg.groupId, me.userId);
+	const role = await chatAccess(msg.channelId, msg.groupId, me.userId);
 	if (!role) return c.json({ error: 'not a member' }, 403);
 
 	// Toggle: remove if exists, replace if different emoji, add otherwise.
@@ -595,7 +643,7 @@ messagesRoutes.post('/messages/:messageId/reactions', async (c) => {
 	}
 
 	const reactions = (await getReactionsForMessages([messageId]))[messageId] ?? [];
-	const memberIds = await listMemberIds(msg.groupId);
+	const memberIds = await channelAudience(msg.channelId, msg.groupId);
 	void publishVoiceChannelMessageReaction({
 		targetUserIds: memberIds,
 		channelId: msg.channelId,

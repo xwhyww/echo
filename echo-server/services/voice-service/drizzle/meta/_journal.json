@@ -43,6 +43,13 @@
       "when": 1778820944836,
       "tag": "0005_glossy_wallow",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787291658078,
+      "tag": "0006_encrypt_voice_channel_messages",
+      "breakpoints": true
     }
   ]
 }

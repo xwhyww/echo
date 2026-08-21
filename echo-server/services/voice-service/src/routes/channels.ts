@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
-import { and, eq, asc, desc, inArray, count } from 'drizzle-orm';
+import {  eq, asc, desc, inArray, count } from 'drizzle-orm';
 import { authMiddleware, type AuthEnv, type VoiceParticipantEvent } from '@echo/shared';
 import { createDb } from '../db/index.js';
-import { voiceChannels, voiceChannelCategories, groupMembersMirror, userCache } from '../db/schema.js';
+import { voiceChannels, voiceChannelCategories, userCache } from '../db/schema.js';
 import { config } from '../config.js';
 import { createJoinToken, createScreenToken, listActiveParticipants, deleteRoom } from '../livekit.js';
 import { fanOutParticipantEvent } from '../presence.js';
@@ -20,6 +20,7 @@ import {
 	groupVoicePerms,
 	channelAccess,
 	channelAccessMap,
+	channelAudience,
 } from '../permissions.js';
 import { log } from '../log.js';
 
@@ -41,6 +42,49 @@ channelsRoutes.use('*', authMiddleware(config.jwtSecret));
 // groups them client-side; serving both shapes from one endpoint keeps the
 // realtime patches simple (a single channel update only needs to mutate one
 // list).
+
+/**
+ * How many voice channels the caller can see across a set of groups.
+ *
+ * Feeds the "voice channels" counter on the personal-chat info screen, which
+ * asks groups-service for the groups shared with the other person and then asks
+ * this for the channels inside them. Counted from the *caller's* point of view,
+ * not the pair's: it answers "how many of these rooms can I go to", and
+ * computing the other person's visibility would mean disclosing their roles.
+ *
+ * Groups the caller is not a member of are skipped rather than refused — the
+ * list comes from another service and may lag a membership change by a moment.
+ */
+channelsRoutes.get('/channels/count', async (c) => {
+	const me = c.get('user');
+	const raw = c.req.query('groupIds') ?? '';
+	const groupIds = [...new Set(raw.split(',').map((g) => g.trim()).filter(Boolean))];
+	if (groupIds.length === 0) return c.json({ count: 0 });
+
+	const rows = await db
+		.select({ id: voiceChannels.id, groupId: voiceChannels.groupId })
+		.from(voiceChannels)
+		.where(inArray(voiceChannels.groupId, groupIds));
+
+	const byGroup = new Map<string, string[]>();
+	for (const r of rows) {
+		const list = byGroup.get(r.groupId);
+		if (list) list.push(r.id);
+		else byGroup.set(r.groupId, [r.id]);
+	}
+
+	let count = 0;
+	for (const [groupId, ids] of byGroup) {
+		const role = await membership(groupId, me.userId);
+		if (!role) continue;
+		const access = await channelAccessMap(groupId, me.userId, ids, role);
+		for (const id of ids) {
+			if (access.get(id)?.visible === true) count += 1;
+		}
+	}
+
+	return c.json({ count });
+});
 
 channelsRoutes.get('/channels', async (c) => {
 	const me = c.get('user');
@@ -225,7 +269,9 @@ channelsRoutes.patch('/channels/:id', async (c) => {
 		return c.json({ error: 'channel name already exists' }, 409);
 	}
 
-	const targetUserIds = await groupMemberIds(ch.groupId);
+	// Only the people who can see the channel — a rename of a restricted room
+	// otherwise announces its new name to the whole group.
+	const targetUserIds = await channelAudience(id, ch.groupId);
 	publishVoiceChannelUpdated({
 		targetUserIds,
 		groupId: ch.groupId,
@@ -416,6 +462,11 @@ channelsRoutes.delete('/channels/:id', async (c) => {
 	const perms = await groupVoicePerms(ch.groupId, me.userId);
 	if (!perms.manageChannels) return c.json({ error: 'forbidden' }, 403);
 
+	// Before the delete, not after: the allowlist rows cascade away with the
+	// channel, and once they are gone every channel looks open and the audience
+	// widens to the whole group.
+	const targetUserIds = await channelAudience(id, ch.groupId);
+
 	await db.delete(voiceChannels).where(eq(voiceChannels.id, id));
 
 	// Forcibly tear down the LiveKit room so any connected callers are kicked
@@ -424,7 +475,6 @@ channelsRoutes.delete('/channels/:id', async (c) => {
 	// page without an active connection."
 	await deleteRoom(ch.id);
 
-	const targetUserIds = await groupMemberIds(ch.groupId);
 	publishVoiceChannelDeleted({
 		targetUserIds,
 		groupId: ch.groupId,

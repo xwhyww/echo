@@ -130,6 +130,63 @@ export async function channelAccess(
 	};
 }
 
+/**
+ * The group members who may *see* a channel — the audience a presence change
+ * about it may be fanned out to.
+ *
+ * Mirrors `channelAccess`'s `visible` rule from the other direction: no
+ * allowlist rows means an open channel and therefore the whole group, otherwise
+ * it is the owners and admins plus whoever holds one of the allowed roles.
+ * Role membership is intersected with the group mirror, because a role row
+ * outlives the membership that justified it — someone who left the group still
+ * has their voice-role rows until the next reconcile.
+ *
+ * `alwaysInclude` is the subject of the event. They are added unconditionally
+ * so their own tabs and devices see it, which matters most in the case the
+ * group membership can no longer prove: a `left` fired for someone who was
+ * removed from the group mid-call. Without it their own sidebar keeps them in
+ * the channel forever.
+ */
+export async function channelAudience(
+	channelId: string,
+	groupId: string,
+	alwaysInclude?: string,
+): Promise<string[]> {
+	const audience = new Set<string>();
+	if (alwaysInclude) audience.add(alwaysInclude);
+
+	const allowlist = await db
+		.select({ roleId: voiceChannelRoleAccess.roleId })
+		.from(voiceChannelRoleAccess)
+		.where(eq(voiceChannelRoleAccess.channelId, channelId));
+
+	const members = await db
+		.select({ userId: groupMembersMirror.userId, role: groupMembersMirror.role })
+		.from(groupMembersMirror)
+		.where(eq(groupMembersMirror.groupId, groupId));
+
+	if (allowlist.length === 0) {
+		for (const m of members) audience.add(m.userId);
+		return [...audience];
+	}
+
+	for (const m of members) {
+		if (m.role === 'owner' || m.role === 'admin') audience.add(m.userId);
+	}
+
+	const memberIds = new Set(members.map((m) => m.userId));
+	const holders = await db
+		.select({ userId: voiceRoleMembers.userId })
+		.from(voiceRoleMembers)
+		.where(inArray(voiceRoleMembers.roleId, allowlist.map((r) => r.roleId)));
+
+	for (const h of holders) {
+		if (memberIds.has(h.userId)) audience.add(h.userId);
+	}
+
+	return [...audience];
+}
+
 // Bulk variant for listChannels — avoids N+1 by fetching the entire allowlist
 // for the group and the user's role memberships in a single pass each.
 export async function channelAccessMap(

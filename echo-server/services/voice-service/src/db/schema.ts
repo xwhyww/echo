@@ -1,4 +1,26 @@
-import { pgTable, text, timestamp, uuid, integer, boolean, jsonb, smallint, index, uniqueIndex, varchar } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid, integer, boolean, jsonb, smallint, index, uniqueIndex, varchar, customType } from 'drizzle-orm/pg-core';
+
+// postgres-js returns bytea as either a "\x…" hex string or a Uint8Array
+// depending on version/config. Normalise to Buffer so the crypto helpers
+// (which rely on Buffer.subarray / cipher.update accepting Buffer) get what
+// they expect on every read.
+const bytea = customType<{ data: Buffer; driverData: Buffer | Uint8Array | string; default: false }>({
+	dataType() {
+		return 'bytea';
+	},
+	fromDriver(value) {
+		if (Buffer.isBuffer(value)) return value;
+		if (value instanceof Uint8Array) return Buffer.from(value);
+		if (typeof value === 'string') {
+			const hex = value.startsWith('\\x') ? value.slice(2) : value;
+			return Buffer.from(hex, 'hex');
+		}
+		throw new Error(`bytea: unexpected driver value type ${typeof value}`);
+	},
+	toDriver(value) {
+		return value;
+	},
+});
 
 // ─── User Cache (populated via NATS USER_* events) ───────────────
 
@@ -78,7 +100,21 @@ export const voiceChannelMessages = pgTable('voice_channel_messages', {
 	replyToId: uuid('reply_to_id'),
 	replyToSnapshot: jsonb('reply_to_snapshot'),
 	forwardedFrom: jsonb('forwarded_from'),
+	// At-rest encryption, the same shape as personal_messages and
+	// group_messages. A voice channel's chat is as private as the channel, so it
+	// gets the same treatment as any other conversation.
+	contentCiphertext: bytea('content_ciphertext'),
+	contentNonce: bytea('content_nonce'),
 	contentKeyId: smallint('content_key_id'),
+	replyToSnapshotCiphertext: bytea('reply_to_snapshot_ciphertext'),
+	replyToSnapshotNonce: bytea('reply_to_snapshot_nonce'),
+	replyToSnapshotKeyId: smallint('reply_to_snapshot_key_id'),
+	attachmentsCiphertext: bytea('attachments_ciphertext'),
+	attachmentsNonce: bytea('attachments_nonce'),
+	attachmentsKeyId: smallint('attachments_key_id'),
+	// Hash, type and size only — enough for the blob GC to reconcile grants
+	// without decrypting. Filenames stay inside the ciphertext.
+	attachmentsMeta: jsonb('attachments_meta'),
 }, (t) => [
 	index('idx_vcm_channel_created').on(t.channelId, t.createdAt),
 	index('idx_vcm_channel_pinned').on(t.channelId, t.pinnedAt),
